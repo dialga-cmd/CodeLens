@@ -17,6 +17,8 @@ import os
 import re
 from typing import Any, Sequence
 
+from .parser import is_generated_path
+
 # Extensions worth reading for context, plus the manifest-ish files that describe
 # the project rather than implement it.
 CONTEXT_EXTENSIONS = {
@@ -50,13 +52,31 @@ STOP_WORDS = {
     "the", "and", "for", "with", "from", "this", "that", "these", "those",
     "please", "can", "you", "tell", "about", "show", "read", "all", "file",
     "files", "project", "repo", "repository", "my", "different", "need",
-    "want", "access", "look", "see",
+    "want", "access", "look", "see", "what", "does", "do", "how", "why",
+    "where", "which", "when", "whole", "its", "are", "was", "were", "there",
+    "here", "explain", "describe", "give", "tell", "code", "codebase", "used",
+    "using", "use", "work", "works", "code", "happens", "happen", "app",
 }
 
+# Queries that should get the whole-repository view rather than two files.
 BROAD_MARKERS = (
     "all files", "related", "everything", "entire", "broad", "overview",
-    "analyze", "read all", "scan", "chat", "conversation",
+    "analyze", "analyse", "read all", "scan", "chat", "conversation",
+    "architecture", "structure", "how does", "how do", "what does",
+    "how is", "how are", "where is", "why is", "data flow", "entry point",
+    "big picture", "summarise", "summarize", "explain the", "walk me",
 )
+
+
+def is_broad_query(query: str) -> bool:
+    lowered = (query or "").lower()
+    if any(marker in lowered for marker in BROAD_MARKERS):
+        return True
+    # A question with no file-shaped words in it is a question about the project.
+    return not any(token in lowered for token in ("/", ".", "_", "-")) and bool(
+        re.search(r"\b(what|how|why|where|which|explain|describe|summarise|summarize)\b", lowered)
+    )
+
 
 MAX_FILE_BYTES = 200_000
 
@@ -122,8 +142,12 @@ def collect_repo_file_paths(repo_path: str) -> list[str]:
             except OSError:
                 continue
             ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
-            if ext in CONTEXT_EXTENSIONS or file_name.lower() in CONTEXT_FILE_NAMES or file_name.startswith(".env"):
-                collected.append(os.path.relpath(full_path, repo_path))
+            if ext not in CONTEXT_EXTENSIONS and file_name.lower() not in CONTEXT_FILE_NAMES and not file_name.startswith(".env"):
+                continue
+            relative_path = os.path.relpath(full_path, repo_path)
+            if is_generated_path(file_name, relative_path):
+                continue
+            collected.append(relative_path)
     return collected
 
 
@@ -137,26 +161,32 @@ def query_terms(query: str) -> list[str]:
     return tokens
 
 
-def is_broad_query(query: str) -> bool:
-    lowered = (query or "").lower()
-    return any(marker in lowered for marker in BROAD_MARKERS)
+def _segments(path: str) -> set[str]:
+    """The meaningful words in a path: ``app/services/user_service.py`` -> {app, services, user, service}."""
+    return {segment for segment in re.split(r"[/\\._\-]+", path.lower()) if segment}
 
 
 def _score_file(file_path: str, terms: Sequence[str]) -> int:
+    """Rank a path against the terms of a question.
+
+    Matching whole path segments is what keeps ``do`` from matching ``vendor``:
+    a raw substring test makes almost every path look relevant to every query.
+    """
     lowered = file_path.lower()
     basename = os.path.basename(lowered)
-    dirname = os.path.dirname(lowered)
+    stem = os.path.splitext(basename)[0]
+    segments = _segments(lowered)
+
     score = 0
     for term in terms:
-        if term == basename:
-            score += 8
-        if term in basename:
-            score += 6
-        if term in lowered:
+        if term in segments:
+            score += 8 if term == stem else 5
+        elif len(term) >= 4 and any(segment.startswith(term) or term.startswith(segment) for segment in segments):
+            score += 3
+        elif len(term) >= 5 and term in basename:
             score += 4
-        if term in dirname:
-            score += 2
-    if basename in {"readme.md", "package.json", "requirements.txt", "pyproject.toml"}:
+
+    if basename in {"readme.md", "package.json", "requirements.txt", "pyproject.toml", "readme"}:
         score += 1
     return score
 
@@ -185,15 +215,24 @@ def select_context_files(snapshot: dict[str, Any], query: str, max_files: int = 
     terms = query_terms(query)
     broad = is_broad_query(query)
 
+    # Entry points and extension points named by the architecture pass are the
+    # files a newcomer asks about, so they are always in the running.
+    structural = {str(path) for path in structural_files(snapshot)}
+
     scored = [
         (score, file_info)
         for file_info in files
         if (score := _score_file(str(file_info.get("file_path", "")), terms)) > 0
+        or (broad and str(file_info.get("file_path", "")) in structural)
     ]
 
     if not scored and broad:
         special = {str(item.get("file_path", "")) for item in snapshot.get("special_files", []) or []}
-        scored = [(1, file_info) for file_info in files if str(file_info.get("file_path", "")) in special]
+        scored = [
+            (1, file_info)
+            for file_info in files
+            if str(file_info.get("file_path", "")) in special or str(file_info.get("file_path", "")) in structural
+        ]
 
     scored.sort(key=lambda item: (-item[0], str(item[1].get("file_path", ""))))
 
@@ -210,6 +249,18 @@ def select_context_files(snapshot: dict[str, Any], query: str, max_files: int = 
             break
 
     return selected or files[:limit]
+
+
+def structural_files(snapshot: dict[str, Any]) -> list[str]:
+    """Files the architecture pass identified as entry or extension points."""
+    architecture = snapshot.get("architecture") or {}
+    paths: list[str] = []
+    for key in ("entry_points", "extension_points", "risks"):
+        for item in architecture.get(key, []) or []:
+            path = str(item.get("file_path", "")) if isinstance(item, dict) else ""
+            if path and path not in paths:
+                paths.append(path)
+    return paths
 
 
 def build_file_context(
@@ -300,25 +351,52 @@ def build_general_context(snapshot: dict[str, Any]) -> str:
     """Repository-level summary: structure, stack, findings and key manifests."""
     parts = [
         f"Repository URL: {snapshot.get('repo_url', '')}",
+        f"Commit analysed: {snapshot.get('head_sha', '')[:12]}",
         f"Total files analysed: {len(snapshot.get('files', []))}",
     ]
 
+    architecture = snapshot.get("architecture") or {}
+    if architecture:
+        parts.append(f"Architecture: {architecture.get('pattern', '')}")
+        if architecture.get("summary"):
+            parts.append(f"Summary: {architecture['summary']}")
+        for layer in architecture.get("layers", [])[:8]:
+            parts.append(
+                f"  - {layer.get('name', '')}: {layer.get('responsibility', '')} "
+                f"[{', '.join(str(item) for item in (layer.get('files') or [])[:6])}]"
+            )
+
     for label, key, limit in (
-        ("Tech stack", "tech_stack", 3000),
-        ("Dependencies", "ai_dependencies", 3000),
+        ("Tech stack", "tech_stack", 2000),
         ("Hotspots", "hotspots", 3000),
         ("Security findings", "vulnerabilities", 3000),
+        ("Git history", "churn", 800),
     ):
         payload = snapshot.get(key) or {}
         if payload:
             parts.append(f"{label}: {json.dumps(payload)[:limit]}")
 
+    manifests = snapshot.get("dependency_manifests") or []
+    if manifests:
+        for manifest in manifests[:4]:
+            dependencies = manifest.get("dependencies", [])[:40]
+            parts.append(
+                f"Dependencies from {manifest.get('file_path')} ({manifest.get('ecosystem', 'unknown')}): "
+                + ", ".join(
+                    f"{item.get('name')}{item.get('version', '')}".strip() for item in dependencies[:40]
+                )[:2000]
+            )
+
     for file_info in (snapshot.get("special_files", []) or [])[:5]:
         parts.append(f"\nFile: {file_info.get('file_path')}\n{str(file_info.get('content', ''))[:3000]}")
 
-    top_files = (snapshot.get("files", []) or [])[:8]
+    top_files = (snapshot.get("files", []) or [])[:12]
     if top_files:
         parts.append("\nRepository structure:")
-        parts.extend(f"- {file.get('file_path')} ({file.get('language')})" for file in top_files)
+        parts.extend(
+            f"- {file.get('file_path')} ({file.get('language')}, complexity {file.get('complexity', 0)}, "
+            f"{file.get('loc', 0)} lines)"
+            for file in top_files
+        )
 
     return "\n".join(parts)
