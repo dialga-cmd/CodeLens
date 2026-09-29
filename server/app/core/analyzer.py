@@ -16,7 +16,6 @@ missing key downgrades the report, it does not empty it.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -27,7 +26,7 @@ from .ai_analyzer import AIAnalyzer
 from .git_metrics import ChurnReport, GitHistory
 from .graph import GraphBuilder, DependencyGraph
 from .hotspots import rank_hotspots
-from .ingestion import IngestionEngine
+from .ingestion import IngestionEngine, normalize_repo_url
 from .parser import (
     extract_imports_with_regex,
     is_generated_path,
@@ -106,13 +105,36 @@ class CodeAnalyzer:
     # pipeline
     # ------------------------------------------------------------------ #
 
-    def analyze_repo(self, repo_url: str, progress_callback: Callable[[str], None] | None = None) -> dict[str, Any]:
+    def analyze_repo(
+        self,
+        repo_url: str,
+        progress_callback: Callable[[str], None] | None = None,
+        refresh: bool = False,
+    ) -> dict[str, Any]:
+        """Measure a repository, then let a model review what was measured.
+
+        ``refresh=True`` re-runs the whole pipeline. Otherwise a stored analysis
+        of the same commit is returned, because re-measuring an unchanged
+        repository would spend a clone, a history walk and a set of model calls to
+        arrive at the same answer.
+        """
         started = time.perf_counter()
         report = self._progress(progress_callback)
 
-        repo_id = hashlib.sha256(repo_url.encode()).hexdigest()[:12]
-        repo_path = self.ingestion.clone_repo(repo_url)
-        report(f"Repository cloned. Reading source files...")
+        repo_url = normalize_repo_url(repo_url)
+        repo_id = self.ingestion.repo_id_for(repo_url)
+
+        if not refresh:
+            cached = self.ingestion.cached_snapshot(repo_url)
+            if cached:
+                report(
+                    f"This repository is unchanged since it was analysed ({cached['head_sha'][:7]}); "
+                    "reusing that analysis. Ask for a refresh to run it again."
+                )
+                return self._result_from_snapshot(cached, cached=True)
+
+        repo_path = self.ingestion.clone_repo(repo_url, report)
+        report("Repository cloned. Reading source files...")
 
         files, truncated = self._collect_files(repo_path, report)
         source_files = [file for file in files if self._is_source(file)]
@@ -203,6 +225,20 @@ class CodeAnalyzer:
         security_summary = summarize_findings(findings)
         self._attach_findings_to_files(files, findings)
 
+        analyzed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        stats = self._build_stats(
+            files=files,
+            findings=findings,
+            security_summary=security_summary,
+            graph=graph,
+            hotspots=hotspots,
+            manifests=manifests,
+            dependency_research=dependency_research,
+            head_sha=churn.head,
+            analyzed_at=analyzed_at,
+            elapsed=time.perf_counter() - started,
+        )
+
         snapshot = self._build_snapshot(
             repo_id=repo_id,
             repo_url=repo_url,
@@ -218,52 +254,82 @@ class CodeAnalyzer:
             architecture=architecture,
             llm_usage=llm_usage,
             dependency_research=dependency_research,
+            security_summary=security_summary,
+            stats=stats,
             truncated=truncated,
             elapsed=time.perf_counter() - started,
         )
         self.ingestion.save_snapshot(repo_id, snapshot)
+        return self._result_from_snapshot(snapshot, cached=False)
 
+    @staticmethod
+    def _result_from_snapshot(snapshot: dict[str, Any], cached: bool) -> dict[str, Any]:
+        """The API payload, built from the snapshot either way.
+
+        A run that reused a stored analysis and a run that just performed one
+        therefore return the same keys, so the client never has to guess which
+        kind of response it received.
+        """
         return {
-            "repo_id": repo_id,
-            "repo_url": repo_url,
-            "head_sha": snapshot["head_sha"],
-            "files": self._public_files(files),
-            "graph": graph.to_dict(),
-            "hotspots": [hotspot.to_dict() for hotspot in hotspots],
-            "vulnerabilities": findings,
-            "security_summary": security_summary,
-            "dependency_manifests": manifests,
-            "tech_stack": tech_stack,
-            "ai_dependencies": self._normalize_dependency_payload(dependency_research),
-            "dependency_research": dependency_research,
-            "architecture": architecture,
-            "churn": churn.to_dict(),
-            "llm_usage": llm_usage,
-            "truncated": truncated,
-            "stats": {
-                "total_files": len(files),
-                "source_files": sum(1 for file in files if self._is_source(file)),
-                "languages": self._count_languages(files),
-                "total_vulnerabilities": len(findings),
-                "critical_vulnerabilities": security_summary["by_severity"].get("CRITICAL", 0),
-                "high_vulnerabilities": security_summary["by_severity"].get("HIGH", 0),
-                "medium_vulnerabilities": security_summary["by_severity"].get("MEDIUM", 0),
-                "static_findings": sum(1 for item in findings if item.get("source") == "static-analysis"),
-                "model_findings": sum(1 for item in findings if item.get("source") == MODEL_FINDING_SOURCE),
-                "dismissed_findings": sum(1 for item in findings if item.get("triage") == "dismissed"),
-                "grounded_findings": sum(1 for item in findings if item.get("reference")),
-                "hotspot_count": len(hotspots),
-                "graph_links": graph.metrics()["link_count"],
-                "dependency_manifests": len(manifests),
-                "dependencies": sum(len(manifest.get("dependencies", [])) for manifest in manifests),
-                "vulnerable_dependencies": len(dependency_research.get("vulnerable", [])),
-                "outdated_dependencies": len(dependency_research.get("outdated", [])),
-                "research_queries": int(dependency_research.get("queries_run", 0)),
-                "total_loc": sum(int(file.get("loc", 0) or 0) for file in files if self._is_source(file)),
-                "analyzed_at": snapshot["analyzed_at"],
-                "elapsed_seconds": round(time.perf_counter() - started, 2),
-                "head_sha": snapshot["head_sha"],
-            },
+            "repo_id": snapshot.get("repo_id", ""),
+            "repo_url": snapshot.get("repo_url", ""),
+            "head_sha": snapshot.get("head_sha", ""),
+            "files": snapshot.get("files", []),
+            "graph": snapshot.get("graph", {}),
+            "hotspots": snapshot.get("hotspots", []),
+            "vulnerabilities": snapshot.get("vulnerabilities", []),
+            "security_summary": snapshot.get("security_summary", {}),
+            "dependency_manifests": snapshot.get("dependency_manifests", []),
+            "tech_stack": snapshot.get("tech_stack", {}),
+            "ai_dependencies": snapshot.get("ai_dependencies", {"vulnerable": [], "outdated": []}),
+            "dependency_research": snapshot.get("dependency_research", {}),
+            "architecture": snapshot.get("architecture", {}),
+            "churn": snapshot.get("churn", {}),
+            "llm_usage": snapshot.get("llm_usage", []),
+            "truncated": bool(snapshot.get("truncated")),
+            "cached": cached,
+            "stats": snapshot.get("stats", {}),
+        }
+
+    def _build_stats(
+        self,
+        *,
+        files: Sequence[dict[str, Any]],
+        findings: Sequence[dict[str, Any]],
+        security_summary: dict[str, Any],
+        graph: DependencyGraph,
+        hotspots: Sequence[Any],
+        manifests: Sequence[dict[str, Any]],
+        dependency_research: dict[str, Any],
+        head_sha: str,
+        analyzed_at: str,
+        elapsed: float,
+    ) -> dict[str, Any]:
+        """The numbers the dashboard shows, counted once and stored with the snapshot."""
+        by_severity = security_summary.get("by_severity", {})
+        return {
+            "total_files": len(files),
+            "source_files": sum(1 for file in files if self._is_source(file)),
+            "languages": self._count_languages(files),
+            "total_vulnerabilities": len(findings),
+            "critical_vulnerabilities": by_severity.get("CRITICAL", 0),
+            "high_vulnerabilities": by_severity.get("HIGH", 0),
+            "medium_vulnerabilities": by_severity.get("MEDIUM", 0),
+            "static_findings": sum(1 for item in findings if item.get("source") == "static-analysis"),
+            "model_findings": sum(1 for item in findings if item.get("source") == MODEL_FINDING_SOURCE),
+            "dismissed_findings": sum(1 for item in findings if item.get("triage") == "dismissed"),
+            "grounded_findings": sum(1 for item in findings if item.get("reference")),
+            "hotspot_count": len(hotspots),
+            "graph_links": graph.metrics()["link_count"],
+            "dependency_manifests": len(manifests),
+            "dependencies": sum(len(manifest.get("dependencies", [])) for manifest in manifests),
+            "vulnerable_dependencies": len(dependency_research.get("vulnerable", [])),
+            "outdated_dependencies": len(dependency_research.get("outdated", [])),
+            "research_queries": int(dependency_research.get("queries_run", 0)),
+            "total_loc": sum(int(file.get("loc", 0) or 0) for file in files if self._is_source(file)),
+            "analyzed_at": analyzed_at,
+            "elapsed_seconds": round(elapsed, 2),
+            "head_sha": head_sha,
         }
 
     # ------------------------------------------------------------------ #
@@ -478,6 +544,8 @@ class CodeAnalyzer:
         architecture: dict[str, Any],
         llm_usage: list[dict[str, Any]],
         dependency_research: dict[str, Any],
+        security_summary: dict[str, Any],
+        stats: dict[str, Any],
         truncated: bool,
         elapsed: float,
     ) -> dict[str, Any]:
@@ -487,7 +555,7 @@ class CodeAnalyzer:
             "repo_url": repo_url,
             "repo_path": repo_path,
             "head_sha": head_sha,
-            "analyzed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "analyzed_at": stats.get("analyzed_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "elapsed_seconds": round(elapsed, 2),
             "truncated": truncated,
             "files": self._public_files(files),
@@ -495,12 +563,15 @@ class CodeAnalyzer:
             "graph": graph.to_dict(),
             "hotspots": [hotspot.to_dict() for hotspot in hotspots],
             "vulnerabilities": findings,
+            "security_summary": security_summary,
             "dependency_manifests": manifests,
             "dependency_research": dependency_research,
+            "ai_dependencies": self._normalize_dependency_payload(dependency_research),
             "tech_stack": tech_stack,
             "architecture": architecture,
             "churn": churn.to_dict(),
             "llm_usage": llm_usage,
+            "stats": stats,
             "model_available": bool(self.ai_analyzer and self.ai_analyzer.available),
             "research_available": bool(self.research.available),
         }

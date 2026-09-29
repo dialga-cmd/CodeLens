@@ -1,16 +1,15 @@
 import asyncio
-import concurrent.futures
 import json
 import os
 import queue
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Callable
 
 import anyio
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import Depends, FastAPI, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
@@ -21,6 +20,8 @@ from app.core.auth import initialize_firebase, verify_token
 from app.core.chat_context import guess_language, read_repo_file, resolve_repo_file
 from app.core.chat_service import ChatService
 from app.core.fix_advisor import FixAdvisor
+from app.core.ingestion import RepoURLError, normalize_repo_url
+from app.core.limits import AnalysisRegistry, RateLimits, TooManyAnalyses
 from app.core.llm import LLMError, get_llm_client
 
 
@@ -54,8 +55,43 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+
+@app.on_event("startup")
+async def expire_stale_snapshots() -> None:
+    """Drop snapshots and clones that have outlived their time-to-live."""
+    removed = analyzer.ingestion.expire()
+    if removed:
+        print(f"Removed {len(removed)} expired analyses: {', '.join(removed)}", flush=True)
+    rate_limits.prune()
+
 # Core services
 analyzer = CodeAnalyzer()
+rate_limits = RateLimits()
+analysis_registry = AnalysisRegistry()
+
+
+def rate_limit(kind: str) -> Callable[..., None]:
+    """A dependency that spends one token from the bucket for this class of request.
+
+    Analysis, chat and patch generation are separately limited because they cost
+    very different amounts, and a single shared limit would either let one
+    expensive request starve a cheap one or be useless for the expensive one.
+    """
+
+    def dependency(request: Request) -> None:
+        allowed, retry_after = rate_limits.check(kind, rate_limits.client_key(request))
+        if allowed:
+            return
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Too many {kind} requests from this client. "
+                f"Try again in {int(retry_after) + 1} seconds."
+            ),
+            headers={"Retry-After": str(int(retry_after) + 1)},
+        )
+
+    return dependency
 
 
 @app.get("/health")
@@ -69,6 +105,10 @@ async def health_check():
             "configured": llm.configured,
             "models": {"heavy": llm.heavy_model, "fast": llm.fast_model},
         },
+        "research": {"configured": analyzer.research.available},
+        "storage": analyzer.ingestion.stats(),
+        "jobs": analysis_registry.describe(),
+        "rate_limits": rate_limits.describe(),
     }
 
 
@@ -87,49 +127,74 @@ async def list_models(user: dict = Depends(verify_token)):
 
 
 @app.get("/analyze/stream")
-async def analyze_repo_stream(url: str = Query(..., description="Public GitHub repository URL"), user: dict = Depends(verify_token)):
-    progress_queue: "queue.Queue[str]" = queue.Queue()
+async def analyze_repo_stream(
+    url: str = Query(..., description="Public GitHub repository URL"),
+    refresh: bool = Query(False, description="Re-run the analysis instead of reusing the stored one"),
+    user: dict = Depends(verify_token),
+    _rate: None = Depends(rate_limit("analyze")),
+):
+    """Analyse a repository, streaming progress as Server-Sent Events.
 
-    def progress_callback(message: str) -> None:
-        progress_queue.put(message)
+    Two requests for the same repository share one run: the second attaches to the
+    first one's progress instead of cloning and paying for the same analysis
+    twice. ``refresh=true`` re-runs the pipeline even if nothing changed.
+    """
+    try:
+        canonical = normalize_repo_url(url)
+    except RepoURLError as error:
+        return EventSourceResponse(_error_events(str(error)))
 
-    async def drain(status: str) -> AsyncIterator[dict[str, str]]:
-        while True:
-            try:
-                message = progress_queue.get_nowait()
-            except queue.Empty:
-                return
-            yield {"data": json.dumps({"status": status, "message": message})}
+    def runner(publish: Callable[[str], None]) -> dict[str, Any]:
+        return analyzer.analyze_repo(canonical, progress_callback=publish, refresh=refresh)
 
-    async def event_generator():
-        yield {"data": json.dumps({"status": "starting", "message": f"Initializing analysis for {url}"})}
-        await asyncio.sleep(0.3)
+    try:
+        job, started = analysis_registry.start_or_attach(canonical, runner)
+    except TooManyAnalyses as error:
+        return EventSourceResponse(_error_events(str(error)))
 
+    async def event_generator() -> AsyncIterator[dict[str, str]]:
+        subscription = job.subscribe()
         try:
-            yield {"data": json.dumps({"status": "cloning", "message": "Cloning repository (shallow)..."})}
-
-            loop = asyncio.get_event_loop()
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                future = loop.run_in_executor(pool, lambda: analyzer.analyze_repo(url, progress_callback=progress_callback))
-
-                while not future.done():
-                    await asyncio.sleep(0.3)
-                    async for event in drain("analyzing"):
-                        yield event
-
-                results = await asyncio.wrap_future(future)
-
-            async for event in drain("analyzing"):
-                yield event
-
             yield {
                 "data": json.dumps(
-                    {"status": "completed", "message": f"Analysed {len(results['files'])} files", "results": results}
+                    {
+                        "status": "starting",
+                        "message": (
+                            f"Starting analysis of {canonical}"
+                            if started
+                            else f"Attaching to the analysis of {canonical} that is already running"
+                        ),
+                    }
                 )
             }
-        except Exception as error:  # noqa: BLE001 - reported to the client as an event
-            print(f"Analysis failed for {url}: {error}", flush=True)
-            yield {"data": json.dumps({"status": "error", "message": str(error)})}
+
+            while True:
+                try:
+                    message = subscription.get_nowait()
+                except queue.Empty:
+                    if job.finished.is_set():
+                        break
+                    await asyncio.sleep(0.25)
+                    continue
+                yield {"data": json.dumps({"status": "analyzing", "message": message})}
+
+            if job.error:
+                print(f"Analysis failed for {canonical}: {job.error}", flush=True)
+                yield {"data": json.dumps({"status": "error", "message": job.error})}
+                return
+
+            results = job.result or {}
+            yield {
+                "data": json.dumps(
+                    {
+                        "status": "completed",
+                        "message": f"Analysed {len(results.get('files', []))} files",
+                        "results": results,
+                    }
+                )
+            }
+        finally:
+            job.unsubscribe(subscription)
 
     return EventSourceResponse(event_generator())
 
@@ -145,7 +210,11 @@ class RepoFileRequest(BaseModel):
 
 
 @app.post("/chat")
-async def chat(request: ChatRequest, user: dict = Depends(verify_token)):
+async def chat(
+    request: ChatRequest,
+    user: dict = Depends(verify_token),
+    _rate: None = Depends(rate_limit("chat")),
+):
     snapshot = analyzer.ingestion.load_snapshot(request.repo_id)
     if not snapshot:
         return {
@@ -161,7 +230,11 @@ async def chat(request: ChatRequest, user: dict = Depends(verify_token)):
 
 
 @app.post("/chat/stream")
-async def chat_stream(request: ChatRequest, user: dict = Depends(verify_token)):
+async def chat_stream(
+    request: ChatRequest,
+    user: dict = Depends(verify_token),
+    _rate: None = Depends(rate_limit("chat")),
+):
     """Stream an answer as Server-Sent Events using the fast model."""
     snapshot = analyzer.ingestion.load_snapshot(request.repo_id)
     if not snapshot:
@@ -184,7 +257,11 @@ class FixRequest(BaseModel):
 
 
 @app.post("/api/fix")
-async def propose_fix(request: FixRequest, user: dict = Depends(verify_token)):
+async def propose_fix(
+    request: FixRequest,
+    user: dict = Depends(verify_token),
+    _rate: None = Depends(rate_limit("fix")),
+):
     """Write a patch for one finding and report whether it applies to the clone."""
     snapshot = analyzer.ingestion.load_snapshot(request.repo_id)
     if not snapshot:
@@ -227,7 +304,11 @@ async def _error_events(message: str) -> AsyncIterator[dict[str, str]]:
 
 
 @app.post("/repo/file")
-async def repo_file(request: RepoFileRequest, user: dict = Depends(verify_token)):
+async def repo_file(
+    request: RepoFileRequest,
+    user: dict = Depends(verify_token),
+    _rate: None = Depends(rate_limit("file")),
+):
     snapshot = analyzer.ingestion.load_snapshot(request.repo_id)
     if not snapshot:
         return {"error": "Repository snapshot not found."}
