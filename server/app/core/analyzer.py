@@ -34,6 +34,7 @@ from .parser import (
     language_for_path,
     parse_source_safely,
 )
+from .research import ResearchEngine
 from .security import SecurityScanner, rank_findings, summarize as summarize_findings
 
 try:
@@ -92,6 +93,7 @@ class CodeAnalyzer:
         self.history_depth = int(os.getenv("CODELENS_GIT_HISTORY_DEPTH", "40"))
         self.include_churn_lines = os.getenv("CODELENS_GIT_CHURN_LINES", "false").lower() in {"1", "true", "yes", "on"}
         self.security_scanner = SecurityScanner()
+        self.research = ResearchEngine()
 
         if self.enable_ai_analysis:
             self.ai_analyzer: AIAnalyzer | None = AIAnalyzer()
@@ -194,6 +196,9 @@ class CodeAnalyzer:
                 finding["fix_breaking_change"] = bool(fix.get("breaking_change"))
             report(f"Remediation written for {len(fixes)} of {len(findings)} findings.")
 
+        dependency_research = self._research_dependencies(manifests, report)
+        findings = self._ground_findings(findings, report)
+
         findings = self._deduplicate_vulnerabilities(rank_findings(findings))
         security_summary = summarize_findings(findings)
         self._attach_findings_to_files(files, findings)
@@ -212,6 +217,7 @@ class CodeAnalyzer:
             tech_stack=tech_stack,
             architecture=architecture,
             llm_usage=llm_usage,
+            dependency_research=dependency_research,
             truncated=truncated,
             elapsed=time.perf_counter() - started,
         )
@@ -228,13 +234,15 @@ class CodeAnalyzer:
             "security_summary": security_summary,
             "dependency_manifests": manifests,
             "tech_stack": tech_stack,
-            "ai_dependencies": self._normalize_dependency_payload({}),
+            "ai_dependencies": self._normalize_dependency_payload(dependency_research),
+            "dependency_research": dependency_research,
             "architecture": architecture,
             "churn": churn.to_dict(),
             "llm_usage": llm_usage,
             "truncated": truncated,
             "stats": {
                 "total_files": len(files),
+                "source_files": sum(1 for file in files if self._is_source(file)),
                 "languages": self._count_languages(files),
                 "total_vulnerabilities": len(findings),
                 "critical_vulnerabilities": security_summary["by_severity"].get("CRITICAL", 0),
@@ -242,11 +250,16 @@ class CodeAnalyzer:
                 "medium_vulnerabilities": security_summary["by_severity"].get("MEDIUM", 0),
                 "static_findings": sum(1 for item in findings if item.get("source") == "static-analysis"),
                 "model_findings": sum(1 for item in findings if item.get("source") == MODEL_FINDING_SOURCE),
+                "dismissed_findings": sum(1 for item in findings if item.get("triage") == "dismissed"),
+                "grounded_findings": sum(1 for item in findings if item.get("reference")),
                 "hotspot_count": len(hotspots),
                 "graph_links": graph.metrics()["link_count"],
                 "dependency_manifests": len(manifests),
                 "dependencies": sum(len(manifest.get("dependencies", [])) for manifest in manifests),
-                "total_loc": sum(int(file.get("loc", 0) or 0) for file in files),
+                "vulnerable_dependencies": len(dependency_research.get("vulnerable", [])),
+                "outdated_dependencies": len(dependency_research.get("outdated", [])),
+                "research_queries": int(dependency_research.get("queries_run", 0)),
+                "total_loc": sum(int(file.get("loc", 0) or 0) for file in files if self._is_source(file)),
                 "analyzed_at": snapshot["analyzed_at"],
                 "elapsed_seconds": round(time.perf_counter() - started, 2),
                 "head_sha": snapshot["head_sha"],
@@ -464,6 +477,7 @@ class CodeAnalyzer:
         tech_stack: dict[str, Any],
         architecture: dict[str, Any],
         llm_usage: list[dict[str, Any]],
+        dependency_research: dict[str, Any],
         truncated: bool,
         elapsed: float,
     ) -> dict[str, Any]:
@@ -482,11 +496,13 @@ class CodeAnalyzer:
             "hotspots": [hotspot.to_dict() for hotspot in hotspots],
             "vulnerabilities": findings,
             "dependency_manifests": manifests,
+            "dependency_research": dependency_research,
             "tech_stack": tech_stack,
             "architecture": architecture,
             "churn": churn.to_dict(),
             "llm_usage": llm_usage,
             "model_available": bool(self.ai_analyzer and self.ai_analyzer.available),
+            "research_available": bool(self.research.available),
         }
 
     def _public_files(self, files: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -616,6 +632,53 @@ class CodeAnalyzer:
                 (source_langs.get("python", 0) + source_langs.get("ipynb", 0)) / total, 3
             ),
         }
+
+    def _research_dependencies(self, manifests: Sequence[dict[str, Any]], report: Callable[[str], None]) -> dict[str, Any]:
+        """Check what the project pinned against published advisories and current versions.
+
+        This is a Tavily search, not a vulnerability database: an entry only
+        appears as vulnerable when the returned text names both the package and a
+        CVE, and it carries the quote and the links so the range can be confirmed.
+        """
+        if not self.research.available:
+            report("Tavily is not configured, so dependencies are reported without web verification.")
+            return {
+                "provider": "tavily",
+                "enabled": False,
+                "vulnerable": [],
+                "outdated": [],
+                "checked": [],
+                "unverified": [],
+                "queries_run": 0,
+                "declared_dependencies": sum(len(manifest.get("dependencies", [])) for manifest in manifests),
+                "not_checked": sum(len(manifest.get("dependencies", [])) for manifest in manifests),
+                "errors": [],
+                "note": "Set TAVILY_API_KEY to check pinned dependencies against published advisories.",
+            }
+
+        report("Asking Tavily about the dependencies this project pins...")
+        result = self.research.verify_dependencies(manifests)
+        report(
+            f"Dependency check: {result['queries_run']} searches, "
+            f"{len(result['vulnerable'])} with advisories, {len(result['outdated'])} behind current."
+        )
+        return result
+
+    def _ground_findings(self, findings: list[dict[str, Any]], report: Callable[[str], None]) -> list[dict[str, Any]]:
+        """Attach a link to authoritative guidance to the most severe findings."""
+        if not self.research.available or not findings:
+            return findings
+
+        grounded = self.research.ground_findings(findings)
+        if not grounded:
+            return findings
+
+        for finding in findings:
+            reference = grounded.get(str(finding.get("id", "")))
+            if reference:
+                finding["reference"] = reference
+        report(f"Linked guidance to {len(grounded)} findings.")
+        return findings
 
     def _readme_excerpt(self, context_files: Sequence[dict[str, Any]]) -> str:
         """The README, if there is one: the cheapest honest description of intent."""
@@ -1001,21 +1064,21 @@ class CodeAnalyzer:
             return ", ".join(str(item) for item in value)
         return str(value)
 
-    def _normalize_dependency_payload(self, dependencies: Any) -> dict[str, list[dict[str, Any]]]:
-        """Normalise a loose dependency payload into the shape the UI expects."""
+    def _normalize_dependency_payload(self, research: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+        """The dependency section the UI renders, in one stable shape.
+
+        The research report is the only source of these entries, so the keys it
+        uses are passed straight through and an absent provider still produces
+        the two lists the client expects.
+        """
         normalized: dict[str, list[dict[str, Any]]] = {"vulnerable": [], "outdated": []}
-        if not isinstance(dependencies, dict):
+        if not isinstance(research, dict):
             return normalized
 
-        for key in ("vulnerable", "vulnerabilities", "security", "security_risks"):
-            items = dependencies.get(key, [])
+        for key in ("vulnerable", "outdated"):
+            items = research.get(key, [])
             if isinstance(items, list):
-                normalized["vulnerable"] = [item for item in items if isinstance(item, dict) and item.get("name")]
-        for key in ("outdated", "updates", "outdated_packages"):
-            items = dependencies.get(key, [])
-            if isinstance(items, list):
-                normalized["outdated"] = [item for item in items if isinstance(item, dict) and item.get("name")]
-
+                normalized[key] = [item for item in items if isinstance(item, dict) and item.get("name")]
         return normalized
 
     # ------------------------------------------------------------------ #
