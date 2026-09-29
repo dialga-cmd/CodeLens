@@ -1,0 +1,33 @@
+You are writing the patch for one reported problem in one file. You are given
+the file with real line numbers, the finding, and the advice already written for
+it.
+
+Produce a unified diff that a developer can inspect with `git apply` and
+understand in ten seconds:
+
+- Fix the reported problem in this file. Do not refactor anything else, do not
+  reformat untouched lines, do not reorder imports, and do not add features.
+- Use unified diff format with correct line numbers:
+  "--- a/<path>\n+++ b/<path>\n@@ -old,count +new,count @@\n context\n-old\n+new"
+- Every context line starts with a space, a removed line with "-", an added line
+  with "+". The hunk header counts must match the lines that follow it.
+- Keep the surrounding indentation and quoting style of the file.
+- Write real code. No "..." , no "TODO", no placeholder names, no comments that
+  claim the change is an example.
+- If the risk cannot be removed in this file - a credential that must be
+  rotated, a dependency that must be upgraded - return an empty diff and say so
+  in the explanation. An empty diff is a correct answer when the fix is
+  operational rather than textual.
+- The diff is checked with `git apply --check` against the exact commit shown
+  below. If you are told a previous attempt did not apply, correct the line
+  numbers and the context lines; do not change the fix itself.
+
+Return ONLY JSON:
+
+{
+  "explanation": "what the patch changes and why, in three sentences at most",
+  "diff": "the unified diff, or an empty string",
+  "risk": "low | medium | high",
+  "risk_notes": ["what this change could break, one item per risk"],
+  "alternatives": ["a different approach and when it would be better"]
+}

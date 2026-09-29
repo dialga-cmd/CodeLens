@@ -18,16 +18,10 @@ from sse_starlette.sse import EventSourceResponse
 from app.core.ai_analyzer import AIAnalyzer
 from app.core.analyzer import CodeAnalyzer
 from app.core.auth import initialize_firebase, verify_token
-from app.core.chat_context import (
-    build_file_context,
-    build_general_context,
-    guess_language,
-    read_repo_file,
-    resolve_repo_file,
-    select_context_files,
-)
+from app.core.chat_context import guess_language, read_repo_file, resolve_repo_file
+from app.core.chat_service import ChatService
+from app.core.fix_advisor import FixAdvisor
 from app.core.llm import LLMError, get_llm_client
-from app.core.prompts import load_prompt
 
 
 app = FastAPI(
@@ -150,56 +144,20 @@ class RepoFileRequest(BaseModel):
     file_path: str
 
 
-def _chat_prompt(query: str, context: str, used_files: list[str]) -> list[dict[str, str]]:
-    template = load_prompt("chat_prompt.txt")
-    grounding = ""
-    if used_files:
-        grounding = "\nFiles you were given: " + ", ".join(used_files)
-    user_prompt = (
-        f"{template}\n\nRepository evidence:\n{context}{grounding}\n\n"
-        f"Question: {query}\n\nAnswer from the evidence above, citing file paths."
-    )
-    return [
-        {
-            "role": "system",
-            "content": (
-                "You are CodeLens, an assistant that answers questions about one specific codebase using "
-                "only the evidence you were given. Say so plainly when the evidence is missing."
-            ),
-        },
-        {"role": "user", "content": user_prompt},
-    ]
-
-
-def _chat_context(snapshot: dict, query: str) -> tuple[str, list[str]]:
-    matched_files = select_context_files(snapshot, query)
-    if matched_files:
-        return build_file_context(snapshot, matched_files, query)
-    return build_general_context(snapshot), []
-
-
 @app.post("/chat")
 async def chat(request: ChatRequest, user: dict = Depends(verify_token)):
     snapshot = analyzer.ingestion.load_snapshot(request.repo_id)
     if not snapshot:
-        return {"answer": "I could not find a stored snapshot for that repository yet. Run an analysis first, then ask again."}
+        return {
+            "answer": "I could not find a stored snapshot for that repository yet. Run an analysis first, then ask again.",
+            "sources": [],
+        }
 
-    llm = get_llm_client()
-    if not llm.configured:
+    service = ChatService(snapshot)
+    if not service.client.configured:
         return {"error": "Model access is not configured on this server (NEBIUS_API_KEY is missing).", "answer": ""}
 
-    context, used_files = _chat_context(snapshot, request.query)
-    try:
-        result = await llm.chat(_chat_prompt(request.query, context, used_files), role="fast")
-    except LLMError as error:
-        return {"error": str(error), "answer": ""}
-
-    return {
-        "answer": result.text,
-        "model": result.model,
-        "usage": result.usage_dict(),
-        "sources": used_files,
-    }
+    return await service.answer(request.query)
 
 
 @app.post("/chat/stream")
@@ -211,23 +169,56 @@ async def chat_stream(request: ChatRequest, user: dict = Depends(verify_token)):
             _error_events("I could not find a stored snapshot for that repository yet. Run an analysis first.")
         )
 
-    llm = get_llm_client()
-    if not llm.configured:
+    service = ChatService(snapshot)
+    if not service.client.configured:
         return EventSourceResponse(_error_events("Model access is not configured on this server (NEBIUS_API_KEY is missing)."))
 
-    context, used_files = _chat_context(snapshot, request.query)
-    messages = _chat_prompt(request.query, context, used_files)
+    return EventSourceResponse(service.stream(request.query))
 
-    async def event_generator() -> AsyncIterator[dict[str, str]]:
-        yield {"event": "sources", "data": json.dumps({"sources": used_files, "model": llm.model_for("fast")})}
-        try:
-            async for delta in llm.chat_stream(messages, role="fast"):
-                yield {"event": "delta", "data": json.dumps({"text": delta})}
-            yield {"event": "done", "data": json.dumps({"ok": True})}
-        except LLMError as error:
-            yield {"event": "error", "data": json.dumps({"message": str(error)})}
 
-    return EventSourceResponse(event_generator())
+class FixRequest(BaseModel):
+    repo_id: str
+    finding_id: str = ""
+    file_path: str = ""
+    line: int = 0
+
+
+@app.post("/api/fix")
+async def propose_fix(request: FixRequest, user: dict = Depends(verify_token)):
+    """Write a patch for one finding and report whether it applies to the clone."""
+    snapshot = analyzer.ingestion.load_snapshot(request.repo_id)
+    if not snapshot:
+        return {"error": "Repository snapshot not found. Run an analysis first."}
+
+    finding = _find_finding(snapshot, request)
+    if finding is None:
+        return {"error": "No finding matches that id or file and line in this analysis."}
+
+    advisor = FixAdvisor(snapshot)
+    if not advisor.available:
+        return {
+            "error": "Patch generation needs model access (NEBIUS_API_KEY) and the analysed clone.",
+            "finding_id": finding.get("id", ""),
+        }
+
+    fix = await anyio.to_thread.run_sync(advisor.propose, finding)
+    return {"finding": finding, "fix": fix.to_dict()}
+
+
+def _find_finding(snapshot: dict[str, Any], request: FixRequest) -> dict[str, Any] | None:
+    """Locate one finding by id, or by file and line as a fallback."""
+    findings = [item for item in snapshot.get("vulnerabilities", []) if isinstance(item, dict)]
+    if request.finding_id:
+        for finding in findings:
+            if str(finding.get("id", "")) == request.finding_id:
+                return finding
+
+    for finding in findings:
+        if str(finding.get("file_path", "")) != request.file_path:
+            continue
+        if not request.line or int(finding.get("line", 0) or 0) == request.line:
+            return finding
+    return None
 
 
 async def _error_events(message: str) -> AsyncIterator[dict[str, str]]:
