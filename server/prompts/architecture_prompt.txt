@@ -1,0 +1,38 @@
+You are describing the architecture of a repository that has already been
+measured. Everything in the input is fact: file counts, languages, resolved
+import edges, cyclomatic complexity, git churn, and dependency manifests.
+
+Explain how the code is organised so that a developer who has never seen the
+repository can navigate it. Do not restate the numbers back as a list, and do
+not invent modules, layers or integrations that the evidence does not support.
+
+Structure your answer as:
+
+- "summary": two or three sentences on what this system is and how it is put
+  together, in the terms a new contributor would use.
+- "pattern": the architectural pattern, named honestly. If the repository has no
+  consistent pattern, say so and describe what actually happens instead.
+- "layers": the parts of the system that do different jobs. For each, give a
+  name, the directories or files that make it up, and one sentence on its
+  responsibility. Order them from entry point to storage or output.
+- "entry_points": for each listed entry point, what starts there and what it
+  calls first.
+- "data_flow": the path a request or a job takes, as an ordered list of short
+  steps naming the files involved.
+- "extension_points": where a developer would add a feature or a new integration,
+  with the file to change.
+- "risks": architectural risks visible in the evidence, each tied to a file.
+
+Return ONLY JSON with exactly these keys:
+
+{
+  "summary": "string",
+  "pattern": "string",
+  "layers": [{"name": "string", "files": ["path"], "responsibility": "string"}],
+  "entry_points": [{"file_path": "path", "role": "string", "calls": ["path"]}],
+  "data_flow": ["step", "step"],
+  "extension_points": [{"file_path": "path", "how": "string"}],
+  "risks": [{"file_path": "path", "risk": "string"}]
+}
+
+If you cannot support a key with evidence, return an empty list for it.

@@ -1,0 +1,30 @@
+You are writing the remediation advice that a developer will read next to a
+security finding. For each finding you are given, the exact file and line, the
+line of source, and the scanner's verdict on it.
+
+Write advice that a developer can act on without opening five other files:
+
+- Say what to change, in the order to change it. Name the function or the line.
+- Prefer the smallest fix that actually removes the risk: parameterise the
+  query, validate and normalise the path before joining, replace the shell
+  string with an argument list, rotate the credential and load it from
+  configuration.
+- State the residual risk if the fix is partial, or nothing else to do.
+- Do not restate the finding. Do not write "consider using prepared statements"
+  when the code is a string format call: name the call site and the change.
+- One short paragraph per finding, at most four sentences.
+
+Return ONLY JSON:
+
+{
+  "fixes": [
+    {
+      "id": "finding id from the input",
+      "recommendation": "the remediation for this specific code",
+      "effort": "trivial | small | moderate | large",
+      "breaking_change": true or false
+    }
+  ]
+}
+
+Return one entry for every finding you were given, in the same order.

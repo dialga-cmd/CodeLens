@@ -1,18 +1,23 @@
-"""Model-backed repository analysis, built on the shared Token Factory client.
+"""Model passes over an already-measured repository.
 
-This layer is deliberately thin: it prepares a code summary, asks the heavy model
-for structured findings, and normalises whatever shape comes back. All transport
-concerns (retries, timeouts, JSON repair, key handling) live in
-:mod:`app.core.llm`.
+By the time this module runs, the deterministic stages are done: files are
+parsed, the import graph is resolved, git history is read and the static
+scanner has produced a short list of located candidates. The model is used for
+the three things it is actually good at here:
 
-Everything here degrades instead of failing. If no API key is configured, or the
-provider is unreachable, the deterministic analysis performed by
-:class:`app.core.analyzer.CodeAnalyzer` still completes and the run is labelled
-as unverified.
+* triaging candidates it can see the evidence for, including dismissing the
+  false positives a regex cannot rule out;
+* describing the architecture from the measurements;
+* writing remediation advice that names the code to change.
+
+Every method returns something usable when the provider is unavailable, when a
+chunk fails, or when the answer is unusable, and every call records its model,
+token counts and latency.
 """
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import re
 from typing import Any, Callable, Sequence
@@ -20,22 +25,48 @@ from typing import Any, Callable, Sequence
 from .llm import ROLE_HEAVY, LLMError, get_llm_client
 from .prompts import load_prompt
 
-_MAX_SUMMARY_FILES = 50
-_MAX_SUMMARY_DETAIL = 20
-_MAX_SNIPPET_LINES = 20
-_MAX_SNIPPET_CHARS = 1200
+# How many candidates to review per request. Small enough that the evidence
+# stays legible, large enough that a repository does not need thirty calls.
+TRIAGE_CHUNK_SIZE = 12
+FIX_CHUNK_SIZE = 8
 
-_EMPTY_RESULT: dict[str, Any] = {
-    "vulnerabilities": [],
-    "hotspots": [],
-    "tech_stack": {},
-    "dependencies": {},
-    "recommendations": "",
+# Findings that get model-written remediation. Beyond this the scanner's own
+# recommendation stands, and the report says so.
+MAX_FIX_TARGETS = 24
+
+SYSTEM_TRIAGE = (
+    "You are a senior application-security reviewer. You are given located findings from a static "
+    "scanner together with the source lines that triggered them. Judge each one on its evidence and "
+    "be willing to dismiss it. You answer in JSON only."
+)
+SYSTEM_ARCHITECTURE = (
+    "You are a software architect documenting a codebase you have measured. You describe what the "
+    "measurements show, in plain language, and never invent structure that is not in the evidence. "
+    "You answer in JSON only."
+)
+SYSTEM_FIXES = (
+    "You are a senior engineer writing remediation advice for specific code. You name the call site "
+    "and the change. You answer in JSON only."
+)
+
+SYSTEM = {
+    "triage": SYSTEM_TRIAGE,
+    "architecture": SYSTEM_ARCHITECTURE,
+    "fixes": SYSTEM_FIXES,
+}
+
+VERDICTS = {"confirm", "downgrade", "dismiss", "escalate"}
+
+_VERDICT_TO_TRIAGE = {
+    "confirm": "confirmed",
+    "downgrade": "downgraded",
+    "dismiss": "dismissed",
+    "escalate": "escalated",
 }
 
 
 class AIAnalyzer:
-    """Asks the heavy model for findings about an already-parsed repository."""
+    """Model-backed passes over a repository that has already been measured."""
 
     def __init__(self, role: str = ROLE_HEAVY, model: str | None = None) -> None:
         self.client = get_llm_client()
@@ -64,146 +95,427 @@ class AIAnalyzer:
         if self._progress_callback:
             try:
                 self._progress_callback(message)
-            except Exception:  # noqa: BLE001 - progress must never break a run
-                pass
+            except Exception as error:  # noqa: BLE001 - progress must never break a run
+                print(f"progress callback failed: {error}")
 
-    # -- public API -------------------------------------------------------- #
+    # -- triage ------------------------------------------------------------ #
 
-    def analyze_codebase(self, files: Sequence[dict[str, Any]], repo_info: str = "") -> dict[str, Any]:
-        """Return vulnerabilities, hotspots, tech stack and dependency insights."""
+    def triage_findings(
+        self,
+        findings: Sequence[dict[str, Any]],
+        repo_info: str = "",
+        context_files: Sequence[dict[str, Any]] = (),
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+        """Review located candidates.
+
+        Returns ``(triaged_findings, model_only_findings, usage)``. Findings the
+        model dismissed are kept with ``triage="dismissed"`` rather than deleted,
+        because a dismissal is itself something a reviewer should be able to see
+        and overrule.
+        """
         if not self.available:
-            self._report("No NEBIUS_API_KEY configured - skipping model analysis, keeping deterministic results only.")
-            return {**_EMPTY_RESULT, "llm_usage": []}
+            self._report("No NEBIUS_API_KEY configured - keeping static analysis results unreviewed.")
+            return [self._mark_unreviewed(finding) for finding in findings], [], []
+
+        before = len(self.usage_log)
+        triaged = [self._mark_unreviewed(finding) for finding in findings]
+        if not triaged:
+            return triaged, [], []
+
+        contents = {
+            str(file.get("file_path", "")): str(file.get("content", ""))
+            for file in context_files
+            if file.get("file_path")
+        }
+        chunks = [
+            [self._candidate_payload(finding, contents) for finding in triaged[index : index + TRIAGE_CHUNK_SIZE]]
+            for index in range(0, len(triaged), TRIAGE_CHUNK_SIZE)
+        ]
+
+        self._report(
+            f"Reviewing {len(triaged)} candidates in {len(chunks)} batches with {self.model_id}..."
+        )
+        results = self._run_chunks(chunks, lambda batch: self._triage_chunk(batch, repo_info))
+
+        model_only: list[dict[str, Any]] = []
+        for payload, data in results:
+            if data is None:
+                continue
+            verdicts = data.get("verdicts") if isinstance(data, dict) else None
+            by_id = {
+                str(verdict.get("id", "")): verdict
+                for verdict in (verdicts or [])
+                if isinstance(verdict, dict) and verdict.get("id")
+            }
+            for candidate in payload:
+                finding = self._find_by_id(triaged, str(candidate["id"]))
+                if finding is None:
+                    continue
+                verdict = by_id.get(str(candidate["id"]))
+                if verdict is None:
+                    continue
+                self._apply_verdict(finding, verdict)
+
+            for extra in (data.get("additional_findings") if isinstance(data, dict) else None) or []:
+                parsed = self._parse_model_finding(extra, repo_info)
+                if parsed:
+                    model_only.append(parsed)
+
+        dismissed = sum(1 for finding in triaged if finding.get("triage") == "dismissed")
+        confirmed = sum(1 for finding in triaged if finding.get("triage") == "confirmed")
+        self._report(
+            f"Model triage: {confirmed} confirmed, {dismissed} dismissed, {len(model_only)} further issues reported."
+        )
+        return triaged, model_only, list(self.usage_log[before:])
+
+    def _triage_chunk(self, candidates: list[dict[str, Any]], repo_info: str = "") -> dict[str, Any]:
+        template = load_prompt("triage_prompt.txt")
+        evidence = json.dumps(candidates, indent=1)
+        instruction = (
+            "Review these candidates. Return one verdict for every candidate id, and nothing else unless "
+            "you can see a real issue in the evidence shown."
+        )
+        data, _ = self._ask_json(
+            "triage",
+            f"{template}\n\n{instruction}\n\nRepository: {repo_info or 'unknown'}\n\nCandidates:\n{evidence}",
+            max_output_tokens=3000,
+        )
+        return data if isinstance(data, dict) else {}
+
+    def _candidate_payload(self, finding: dict[str, Any], contents: dict[str, str]) -> dict[str, Any]:
+        """One candidate plus the lines around it, so the model can judge context."""
+        file_path = str(finding.get("file_path", ""))
+        line = int(finding.get("line", 0) or 0)
+        payload = {
+            "id": finding.get("id"),
+            "rule": finding.get("rule") or finding.get("id"),
+            "detector": finding.get("detector", "pattern"),
+            "reported_severity": finding.get("severity", "MEDIUM"),
+            "file_path": file_path,
+            "line": line,
+            "description": finding.get("description", ""),
+            "matched_line": str(finding.get("snippet", ""))[:300],
+        }
+
+        surrounding = self._surrounding_lines(contents.get(file_path, ""), line, radius=4)
+        if surrounding:
+            payload["surrounding_code"] = surrounding
+        return payload
+
+    @staticmethod
+    def _surrounding_lines(content: str, line: int, radius: int = 4) -> str:
+        if not content or line <= 0:
+            return ""
+        lines = content.splitlines()
+        start = max(0, line - 1 - radius)
+        end = min(len(lines), line + radius)
+        return "\n".join(
+            f"{number}: {text}" for number, text in enumerate(lines[start:end], start=start + 1)
+        )
+
+    def _apply_verdict(self, finding: dict[str, Any], verdict: dict[str, Any]) -> None:
+        raw = str(verdict.get("verdict", "")).strip().lower()
+        if raw not in VERDICTS:
+            return
+
+        finding["triage"] = _VERDICT_TO_TRIAGE[raw]
+        finding["triage_note"] = str(verdict.get("explanation", ""))[:800]
+
+        severity = str(verdict.get("severity", "")).strip().upper()
+        # A dismissal keeps the severity the scanner gave it: there is no risk to
+        # rate once the match is judged safe.
+        if severity in {"CRITICAL", "HIGH", "MEDIUM", "LOW"} and raw != "dismiss":
+            if severity != str(finding.get("severity", "")).upper():
+                finding["original_severity"] = finding.get("severity")
+                finding["severity"] = severity
+
+        recommendation = str(verdict.get("recommendation", "")).strip()
+        if recommendation:
+            finding["recommendation"] = recommendation[:1200]
+
+    def _parse_model_finding(self, payload: Any, repo_info: str) -> dict[str, Any] | None:
+        if not isinstance(payload, dict):
+            return None
+        file_path = str(payload.get("file_path", "")).strip()
+        description = str(payload.get("description", "")).strip()
+        if not file_path or not description:
+            return None
+
+        severity = str(payload.get("severity", "MEDIUM")).strip().upper()
+        if severity not in {"CRITICAL", "HIGH", "MEDIUM", "LOW"}:
+            severity = "MEDIUM"
+        try:
+            line = int(payload.get("line", 0) or 0)
+        except (TypeError, ValueError):
+            line = 0
+
+        name = str(payload.get("name", "Model-reported issue")).strip()[:120] or "Model-reported issue"
+        return {
+            "id": f"model:{name.lower().replace(' ', '-')[:40]}:{file_path}:{line}",
+            "rule": "model_review",
+            "name": name,
+            "severity": severity,
+            "description": description[:1200],
+            "file_path": file_path,
+            "line": line,
+            "snippet": str(payload.get("snippet", ""))[:200],
+            "recommendation": str(payload.get("recommendation", ""))[:1200],
+            "detector": "model",
+            "confidence": "low",
+            "source": "model-review",
+            "triage": "unverified",
+            "triage_note": "Reported during model review of the scanner's evidence. Not reproduced by static analysis.",
+        }
+
+    # -- architecture ------------------------------------------------------ #
+
+    def summarise_architecture(
+        self,
+        *,
+        tech_stack: dict[str, Any] | None = None,
+        manifests: Sequence[dict[str, Any]] = (),
+        entry_points: Sequence[str] = (),
+        graph_metrics: dict[str, Any] | None = None,
+        hotspots: Sequence[dict[str, Any]] = (),
+        repo_info: str = "",
+        readme: str = "",
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """Describe how the measured repository fits together."""
+        if not self.available:
+            return {}, []
+
+        before = len(self.usage_log)
+        facts: dict[str, Any] = {
+            "repository": repo_info or "unknown",
+            "tech_stack": tech_stack or {},
+            "graph": graph_metrics or {},
+            "entry_points": list(entry_points)[:12],
+            "hotspots": [
+                {
+                    "file_path": hotspot.get("file_path"),
+                    "language": hotspot.get("language"),
+                    "score": hotspot.get("score"),
+                    "complexity": hotspot.get("complexity"),
+                    "fan_in": hotspot.get("fan_in"),
+                    "fan_out": hotspot.get("fan_out"),
+                    "loc": hotspot.get("loc"),
+                    "reasons": hotspot.get("reasons", [])[:3],
+                }
+                for hotspot in list(hotspots)[:10]
+            ],
+            "dependencies": self._dependency_facts(manifests),
+        }
+        if readme:
+            facts["readme_excerpt"] = readme[:3000]
 
         try:
-            code_summary = self._prepare_code_summary(files)
-            if not code_summary:
-                self._report("No readable source files to summarise - skipping model analysis.")
-                return {**_EMPTY_RESULT, "llm_usage": self.usage_log}
-
-            self._report(f"Asking {self.model_id} for security, dependency and quality findings...")
-            scan = self._run_comprehensive_scan(code_summary, repo_info)
-
-            self._report("Asking for a second opinion on the most complex areas...")
-            hotspots = self._identify_hotspots(files, code_summary)
-
-            return {
-                "vulnerabilities": self._extract_vulnerabilities(scan),
-                "hotspots": hotspots,
-                "tech_stack": scan.get("tech_stack", {}) if isinstance(scan, dict) else {},
-                "dependencies": scan.get("dependencies", {}) if isinstance(scan, dict) else {},
-                "recommendations": str(scan.get("summary", "")) if isinstance(scan, dict) else "",
-                "llm_usage": self.usage_log,
-            }
-        except LLMError as error:
-            self._report(f"Model analysis unavailable: {error}. Continuing with deterministic results only.")
-            return {**_EMPTY_RESULT, "llm_usage": self.usage_log}
-        except Exception as error:  # noqa: BLE001 - a model pass must not fail the run
-            self._report(f"Unexpected error during model analysis: {error}. Continuing with deterministic results only.")
-            return {**_EMPTY_RESULT, "llm_usage": self.usage_log}
-
-    # -- prompts ----------------------------------------------------------- #
-
-    def _prepare_code_summary(self, files: Sequence[dict[str, Any]]) -> str:
-        """Compact, deterministic description of the repository for the model."""
-        parts: list[str] = []
-        detailed = 0
-
-        for file in files[:_MAX_SUMMARY_FILES]:
-            if detailed >= _MAX_SUMMARY_DETAIL:
-                break
-
-            file_path = str(file.get("file_path", ""))
-            if not file_path:
-                continue
-
-            content = str(file.get("content", ""))
-            preview = "\n".join(content.splitlines()[:_MAX_SNIPPET_LINES])
-            function_names = [
-                str(item.get("name", "unknown")) if isinstance(item, dict) else str(item)
-                for item in list(file.get("functions", []))[:5]
-            ]
-
-            parts.append(
-                "\n".join(
-                    [
-                        f"File: {file_path} ({file.get('language', 'unknown')})",
-                        f"Lines: {len(content.splitlines())}",
-                        f"Cyclomatic complexity: {file.get('complexity', 0)}",
-                        f"Functions: {', '.join(function_names) if function_names else 'n/a'}",
-                        f"Imports: {', '.join(str(item) for item in list(file.get('imports', []))[:12]) or 'none'}",
-                        "Snippet:",
-                        preview[:_MAX_SNIPPET_CHARS],
-                    ]
-                )
+            data, _ = self._ask_json(
+                "architecture",
+                f"{load_prompt('architecture_prompt.txt')}\n\nMeasurements:\n{json.dumps(facts, indent=1)[:20000]}",
+                max_output_tokens=3000,
             )
-            detailed += 1
+        except LLMError as error:
+            self._report(f"Architecture summary unavailable: {error}")
+            return {}, list(self.usage_log[before:])
 
-        return "\n\n".join(parts)
+        cleaned = self._clean_architecture(data if isinstance(data, dict) else {}, self.model_id)
+        return cleaned, list(self.usage_log[before:])
 
-    def _ask_json(self, instruction: str, context: str, temperature: float = 0.2) -> dict[str, Any]:
-        """Send a prompt built from the analysis template and parse the JSON answer."""
-        template = load_prompt("analysis_prompt.txt")
-        user_prompt = f"{template}\n\n{instruction}\n\nRepository evidence:\n{context}"
+    def _dependency_facts(self, manifests: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+        """The dependency inventory, capped so the prompt stays readable."""
+        facts: list[dict[str, Any]] = []
+        for manifest in manifests:
+            dependencies = [
+                {
+                    "name": str(dependency.get("name", "")),
+                    "version": str(dependency.get("version", ""))[:32],
+                }
+                for dependency in manifest.get("dependencies", [])
+                if dependency.get("name")
+            ]
+            if not dependencies:
+                continue
+            facts.append(
+                {
+                    "file": str(manifest.get("file_path", "")),
+                    "ecosystem": manifest.get("ecosystem", ""),
+                    "count": len(dependencies),
+                    "declared": dependencies[:25],
+                    "scripts": manifest.get("scripts", [])[:12],
+                }
+            )
+        return facts[:8]
+
+    @staticmethod
+    def _clean_architecture(data: dict[str, Any], model: str = "") -> dict[str, Any]:
+        def _strings(key: str, limit: int) -> list[str]:
+            value = data.get(key)
+            if isinstance(value, list):
+                return [str(item).strip() for item in value if str(item).strip()][:limit]
+            return []
+
+        def _objects(key: str, fields: Sequence[str], limit: int) -> list[dict[str, Any]]:
+            value = data.get(key)
+            if not isinstance(value, list):
+                return []
+            cleaned: list[dict[str, Any]] = []
+            for item in value[:limit]:
+                if not isinstance(item, dict):
+                    continue
+                entry = {field: item[field] for field in fields if field in item}
+                if entry:
+                    cleaned.append(entry)
+            return cleaned
+
+        return {
+            "summary": str(data.get("summary", ""))[:2000],
+            "pattern": str(data.get("pattern", ""))[:400],
+            "layers": _objects("layers", ("name", "files", "responsibility"), 8),
+            "entry_points": _objects("entry_points", ("file_path", "role", "calls"), 10),
+            "data_flow": _strings("data_flow", 10),
+            "extension_points": _objects("extension_points", ("file_path", "how"), 8),
+            "risks": _objects("risks", ("file_path", "risk"), 8),
+            "generated_by": model,
+        }
+
+    # -- remediation ------------------------------------------------------- #
+
+    def recommend_fixes(
+        self,
+        findings: Sequence[dict[str, Any]],
+        repo_info: str = "",
+        context_files: Sequence[dict[str, Any]] = (),
+    ) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+        """Write remediation advice for the findings that survived triage."""
+        if not self.available:
+            return {}, []
+
+        before = len(self.usage_log)
+        targets = [
+            finding
+            for finding in findings
+            if finding.get("triage") in {"confirmed", "escalated", "unverified", "unreviewed", "downgraded"}
+        ][:MAX_FIX_TARGETS]
+        if not targets:
+            return {}, []
+
+        contents = {
+            str(file.get("file_path", "")): str(file.get("content", ""))
+            for file in context_files
+            if file.get("file_path")
+        }
+        payload = [
+            {
+                "id": finding.get("id"),
+                "name": finding.get("name"),
+                "severity": finding.get("severity"),
+                "file_path": finding.get("file_path"),
+                "line": finding.get("line"),
+                "matched_line": str(finding.get("snippet", ""))[:200],
+                "scanner_recommendation": str(finding.get("recommendation", ""))[:200],
+                "surrounding_code": self._surrounding_lines(
+                    contents.get(str(finding.get("file_path", "")), ""),
+                    int(finding.get("line", 0) or 0),
+                    radius=3,
+                ),
+            }
+            for finding in targets
+        ]
+
+        chunks = [payload[index : index + FIX_CHUNK_SIZE] for index in range(0, len(payload), FIX_CHUNK_SIZE)]
+        self._report(f"Writing remediation for {len(payload)} findings with {self.model_id}...")
+        results = self._run_chunks(chunks, self._fix_chunk)
+
+        fixes: dict[str, dict[str, Any]] = {}
+        for chunk, data in results:
+            if not isinstance(data, dict):
+                continue
+            for fix in data.get("fixes", []) or []:
+                if not isinstance(fix, dict) or not fix.get("id"):
+                    continue
+                recommendation = str(fix.get("recommendation", "")).strip()
+                if not recommendation:
+                    continue
+                fixes[str(fix["id"])] = {
+                    "recommendation": recommendation[:1500],
+                    "effort": str(fix.get("effort", "")).strip().lower(),
+                    "breaking_change": bool(fix.get("breaking_change", False)),
+                }
+
+        return fixes, list(self.usage_log[before:])
+
+    def _fix_chunk(self, findings: list[dict[str, Any]]) -> dict[str, Any]:
+        data, _ = self._ask_json(
+            "fixes",
+            f"{load_prompt('fix_prompt.txt')}\n\nFindings:\n{json.dumps(findings, indent=1)}",
+            max_output_tokens=2500,
+        )
+        return data if isinstance(data, dict) else {}
+
+    # -- shared plumbing --------------------------------------------------- #
+
+    def _run_chunks(
+        self,
+        chunks: Sequence[Sequence[Any]],
+        worker: Callable[[list[Any]], dict[str, Any]],
+    ) -> list[tuple[list[Any], dict[str, Any] | None]]:
+        """Run independent batches with a bounded pool; a failed batch is not fatal.
+
+        Results come back in the order the batches were given, so a caller can
+        line a response up with the evidence that produced it.
+        """
+        if not chunks:
+            return []
+
+        answers: list[dict[str, Any] | None] = [None] * len(chunks)
+        max_workers = max(1, min(len(chunks), self.client.max_concurrency))
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {pool.submit(worker, list(chunk)): index for index, chunk in enumerate(chunks)}
+            for future in concurrent.futures.as_completed(futures):
+                index = futures[future]
+                try:
+                    answers[index] = future.result()
+                except Exception as error:  # noqa: BLE001 - one bad batch must not lose the run
+                    self._report(f"A batch could not be completed and was skipped: {error}")
+
+        return [(list(chunk), answers[index]) for index, chunk in enumerate(chunks)]
+
+    def _ask_json(
+        self,
+        step: str,
+        user_prompt: str,
+        temperature: float = 0.1,
+        max_output_tokens: int | None = None,
+    ) -> tuple[Any, Any]:
+        """One structured call, recorded in the usage log with the step it served."""
         data, result = self.client.chat_json_sync(
             [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a senior application-security reviewer and software architect. "
-                        "You only report what the provided evidence supports."
-                    ),
-                },
+                {"role": "system", "content": SYSTEM.get(step, "You answer in JSON only.")},
                 {"role": "user", "content": user_prompt},
             ],
             role=self.role,
             model=self.model,
             temperature=temperature,
+            max_output_tokens=max_output_tokens,
         )
         usage = result.usage_dict()
-        usage["step"] = instruction.split(".")[0][:80]
+        usage["step"] = step
         self.usage_log.append(usage)
-        return data if isinstance(data, dict) else {"items": data}
+        return data, result
 
-    def _run_comprehensive_scan(self, code_summary: str, repo_info: str = "") -> dict[str, Any]:
-        instruction = (
-            "Identify the tech stack, the notable dependencies, the security risks and the code hotspots "
-            "visible in this repository evidence."
-        )
-        if repo_info:
-            instruction = f"{instruction}\nRepository: {repo_info}"
-        return self._ask_json(instruction, code_summary, temperature=0.15)
+    @staticmethod
+    def _mark_unreviewed(finding: dict[str, Any]) -> dict[str, Any]:
+        marked = dict(finding)
+        marked.setdefault("triage", "unreviewed")
+        return marked
 
-    def _identify_hotspots(self, files: Sequence[dict[str, Any]], code_summary: str) -> list[dict[str, Any]]:
-        ranked = sorted(
-            (file for file in files if str(file.get("file_path", ""))),
-            key=lambda file: int(file.get("complexity", 0) or 0),
-            reverse=True,
-        )[:30]
-        inventory = json.dumps(
-            [
-                {
-                    "file_path": file.get("file_path"),
-                    "language": file.get("language"),
-                    "complexity": file.get("complexity", 0),
-                    "lines": len(str(file.get("content", "")).splitlines()),
-                }
-                for file in ranked
-            ],
-            indent=2,
-        )
-        try:
-            data = self._ask_json(
-                "Focus on the hotspots listed here: explain why the most complex files are risky to change and "
-                "what refactoring would pay off.",
-                f"Complexity inventory:\n{inventory}\n\nCode evidence:\n{code_summary}",
-            )
-        except LLMError as error:
-            self._report(f"Hotspot pass unavailable: {error}")
-            return []
-        return self._extract_hotspots(data)
-
-    # -- normalisation of loosely shaped model output --------------------- #
+    @staticmethod
+    def _find_by_id(findings: Sequence[dict[str, Any]], finding_id: str) -> dict[str, Any] | None:
+        for finding in findings:
+            if str(finding.get("id", "")) == finding_id:
+                return finding
+        return None
 
     @staticmethod
     def _safe_int(value: Any, default: int = 0) -> int:
@@ -212,66 +524,3 @@ class AIAnalyzer:
         except (TypeError, ValueError):
             match = re.search(r"(\d+)", str(value))
             return int(match.group(1)) if match else default
-
-    def _extract_vulnerabilities(self, parsed: Any) -> list[dict[str, Any]]:
-        """Pull findings out of any of the shapes a model tends to produce."""
-        items: list[Any] = []
-
-        if isinstance(parsed, list):
-            items = parsed
-        elif isinstance(parsed, dict):
-            for key in ("security_risks", "vulnerabilities", "vulnerable", "findings"):
-                candidate = parsed.get(key)
-                if isinstance(candidate, list) and candidate:
-                    items = candidate
-                    break
-            else:
-                dependencies = parsed.get("dependencies")
-                if isinstance(dependencies, dict):
-                    items = list(dependencies.get("vulnerable", []) or [])
-
-        findings: list[dict[str, Any]] = []
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            location = str(item.get("location") or item.get("file_path") or "")
-            file_path, _, line_part = location.partition(":")
-            findings.append(
-                {
-                    "name": str(item.get("name") or item.get("type") or "Unspecified issue"),
-                    "severity": str(item.get("severity", "MEDIUM")).upper(),
-                    "description": str(item.get("description", "")),
-                    "file_path": file_path or str(item.get("file_path", "")),
-                    "line": self._safe_int(line_part or item.get("line", 0)),
-                    "snippet": str(item.get("snippet", ""))[:200],
-                    "recommendation": str(item.get("recommendation", "")),
-                    "source": "model",
-                }
-            )
-        return findings
-
-    def _extract_hotspots(self, parsed: Any) -> list[dict[str, Any]]:
-        items: list[Any] = []
-        if isinstance(parsed, list):
-            items = parsed
-        elif isinstance(parsed, dict):
-            for key in ("hotspots", "code_hotspots", "complexity_hotspots", "items"):
-                candidate = parsed.get(key)
-                if isinstance(candidate, list) and candidate:
-                    items = candidate
-                    break
-
-        hotspots: list[dict[str, Any]] = []
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            hotspots.append(
-                {
-                    "file_path": str(item.get("file_path", "")),
-                    "complexity": self._safe_int(item.get("complexity") or item.get("complexity_score", 0)),
-                    "language": str(item.get("language", "unknown")),
-                    "reason": str(item.get("reason", "")),
-                    "suggestions": [str(entry) for entry in list(item.get("suggestions", []) or [])],
-                }
-            )
-        return [hotspot for hotspot in hotspots if hotspot["file_path"]]
