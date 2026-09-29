@@ -200,7 +200,7 @@ export default function Dashboard() {
                    status?.status === "parsing" ? "📊 Finalizing Results..." :
                    status?.status ? `Status: ${status.status}` : "Processing..."}
                 </span>
-                <span className="text-[#333]">NVIDIA NIM API</span>
+                <span className="text-[#333]">Nebius Token Factory · NVIDIA Nemotron</span>
               </div>
             </div>
           </div>
