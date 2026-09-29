@@ -24,13 +24,11 @@ class CodeAnalyzer:
         self.enable_ai_analysis = os.getenv("CODELENS_ENABLE_AI_ANALYSIS", "true").lower() in {"1", "true", "yes", "on"}
         self.max_files = int(os.getenv("CODELENS_MAX_FILES", str(self.MAX_FILES)))
         self.max_file_bytes = int(os.getenv("CODELENS_MAX_FILE_BYTES", str(self.MAX_FILE_BYTES)))
-        # Initialize AI Analyzer
+        # Model analysis is optional: without a key the deterministic pass still runs.
         if self.enable_ai_analysis:
-            try:
-                self.ai_analyzer = AIAnalyzer()
-            except ValueError as e:
-                print(f"Warning: AI Analyzer not available - {e}")
-                self.ai_analyzer = None
+            self.ai_analyzer = AIAnalyzer()
+            if not self.ai_analyzer.available:
+                print("Warning: NEBIUS_API_KEY is not set - running deterministic analysis only.")
         else:
             self.ai_analyzer = None
 
@@ -97,22 +95,22 @@ class CodeAnalyzer:
             graph_data = {"nodes": [], "links": []}
             ai_tech_stack = {}
             ai_deps_data = {}
+            llm_usage: list[dict] = []
             repo_context_files = self._collect_repo_context_files(all_files)
             dependency_manifests = self._collect_dependency_manifests(all_files)
             dependency_count = sum(len(manifest.get("dependencies", [])) for manifest in dependency_manifests)
 
-            # Use AI Analysis to enhance findings if available
+            # Use model analysis to enhance findings if available
             if self.ai_analyzer:
                 try:
-                    print("Running AI analysis with NVIDIA NIM API...")
                     if progress_callback:
                         self.ai_analyzer.set_progress_callback(progress_callback)
-                    ai_results = self.ai_analyzer.analyze_codebase(all_files)
-                    # AI is the single source for analysis output
+                    ai_results = self.ai_analyzer.analyze_codebase(all_files, repo_info=repo_url)
+                    # Model output is the source of the ranked findings
                     ai_vulns = ai_results.get("vulnerabilities", [])
                     if ai_vulns and isinstance(ai_vulns, list):
                         vulnerabilities = self._deduplicate_vulnerabilities(ai_vulns)
-                        msg = f"AI analysis added {len(ai_vulns)} vulnerabilities"
+                        msg = f"Model analysis added {len(ai_vulns)} findings"
                         print(msg)
                         if progress_callback:
                             progress_callback(f"✅ {msg}")
@@ -128,16 +126,18 @@ class CodeAnalyzer:
                             file_path = str(file_info.get("file_path", "")).strip()
                             file_info["vulnerabilities"] = vuln_map.get(file_path, [])
 
-                    # AI hotspots only
+                    llm_usage = ai_results.get("llm_usage", []) or []
+
+                    # Hotspots reported by the model, ranked by complexity
                     ai_hotspots = ai_results.get("hotspots", [])
                     if ai_hotspots and isinstance(ai_hotspots, list):
                         hotspots = sorted(ai_hotspots, key=lambda x: x.get("complexity", 0), reverse=True)[:10]
-                        msg = f"AI analysis added {len(ai_hotspots)} hotspots"
+                        msg = f"Model analysis added {len(ai_hotspots)} hotspots"
                         print(msg)
                         if progress_callback:
                             progress_callback(f"✅ {msg}")
 
-                    # Extract LLM tech stack and dependencies
+                    # Model-supplied tech stack and dependency insights
                     ai_tech_stack = ai_results.get("tech_stack", {})
                     ai_deps_data = ai_results.get("dependencies", {})
 
@@ -147,7 +147,7 @@ class CodeAnalyzer:
                     graph_data = GraphBuilder(repo_path, all_files).build_graph()
 
                 except Exception as e:
-                    print(f"AI analysis failed, continuing with basic analysis: {e}")
+                    print(f"Model analysis failed, continuing with basic analysis: {e}")
 
             # Remove content from API response to keep payload lightweight.
             for f in all_files:
@@ -176,6 +176,7 @@ class CodeAnalyzer:
                 "vulnerabilities": vulnerabilities,
                 "tech_stack": ai_tech_stack,
                 "ai_dependencies": ai_deps_data,
+                "llm_usage": llm_usage,
             }
             self.ingestion.save_snapshot(repo_id, snapshot)
 
@@ -189,6 +190,7 @@ class CodeAnalyzer:
                 "dependency_manifests": dependency_manifests,
                 "tech_stack": ai_tech_stack,
                 "ai_dependencies": ai_deps_data,
+                "llm_usage": llm_usage,
                 "stats": {
                     "total_files": len(all_files),
                     "languages": self._count_languages(all_files),

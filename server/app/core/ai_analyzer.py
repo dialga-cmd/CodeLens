@@ -1,465 +1,277 @@
-import os
+"""Model-backed repository analysis, built on the shared Token Factory client.
+
+This layer is deliberately thin: it prepares a code summary, asks the heavy model
+for structured findings, and normalises whatever shape comes back. All transport
+concerns (retries, timeouts, JSON repair, key handling) live in
+:mod:`app.core.llm`.
+
+Everything here degrades instead of failing. If no API key is configured, or the
+provider is unreachable, the deterministic analysis performed by
+:class:`app.core.analyzer.CodeAnalyzer` still completes and the run is labelled
+as unverified.
+"""
+
+from __future__ import annotations
+
 import json
 import re
-from typing import List, Dict, Any, Callable, Optional
-from openai import OpenAI, APIError, APIConnectionError, RateLimitError
+from typing import Any, Callable, Sequence
+
+from .llm import ROLE_HEAVY, LLMError, get_llm_client
+from .prompts import load_prompt
+
+_MAX_SUMMARY_FILES = 50
+_MAX_SUMMARY_DETAIL = 20
+_MAX_SNIPPET_LINES = 20
+_MAX_SNIPPET_CHARS = 1200
+
+_EMPTY_RESULT: dict[str, Any] = {
+    "vulnerabilities": [],
+    "hotspots": [],
+    "tech_stack": {},
+    "dependencies": {},
+    "recommendations": "",
+}
+
 
 class AIAnalyzer:
-    def __init__(self):
-        # Use NVIDIA NIM API keys for all analysis
-        nim_keys_env = os.getenv("NIM_API_KEYS", os.getenv("NIM_API_KEY", ""))
-        self.nim_keys = [k.strip() for k in nim_keys_env.split(",") if k.strip()]
+    """Asks the heavy model for findings about an already-parsed repository."""
 
-        if not self.nim_keys:
-            raise ValueError("No API keys found: NIM_API_KEYS required")
+    def __init__(self, role: str = ROLE_HEAVY, model: str | None = None) -> None:
+        self.client = get_llm_client()
+        self.role = role
+        self.model = model
+        self.usage_log: list[dict[str, Any]] = []
+        self._progress_callback: Callable[[str], None] | None = None
 
-        print(f"Initialized AIAnalyzer with {len(self.nim_keys)} NIM keys")
-        # Use NIM for both analysis and chat
-        self.analysis_model = "nvidia/llama-3.3-nemotron-super-49b-v1"  # Using NIM's capable model for analysis
-        self.chat_model = "nvidia/llama-3.3-nemotron-super-49b-v1"  # NVIDIA's chat model
-        self.analysis_base_url = "https://integrate.api.nvidia.com/v1"
-        self.chat_base_url = "https://integrate.api.nvidia.com/v1"
-        self._progress_callback: Optional[Callable[[str], None]] = None
+    # -- availability ------------------------------------------------------ #
 
-    def set_progress_callback(self, callback: Callable[[str], None]):
-        """Set a callback function to report progress to the frontend."""
+    @property
+    def available(self) -> bool:
+        return self.client.configured
+
+    @property
+    def model_id(self) -> str:
+        return self.model or self.client.model_for(self.role)
+
+    # -- progress ---------------------------------------------------------- #
+
+    def set_progress_callback(self, callback: Callable[[str], None] | None) -> None:
         self._progress_callback = callback
 
-    def _report_progress(self, message: str):
-        """Report progress both to console and to the callback."""
-        print(message)
+    def _report(self, message: str) -> None:
+        print(message, flush=True)
         if self._progress_callback:
-            self._progress_callback(message)
-
-    def _get_nim_client(self, key: str) -> OpenAI:
-        """Create a new OpenAI client for NVIDIA NIM API."""
-        return OpenAI(api_key=key, base_url=self.analysis_base_url)
-
-    def _strip_markdown_codeblocks(self, text: str) -> str:
-        """Remove markdown code block wrappers from LLM responses."""
-        text = text.strip()
-        # Match ```json ... ``` or ``` ... ```
-        pattern = r'^```(?:json)?\s*\n?(.*?)\n?\s*```$'
-        match = re.match(pattern, text, re.DOTALL)
-        if match:
-            return match.group(1).strip()
-        return text
-
-    def _safe_int(self, value, default=0):
-        """Try to coerce a value to int, with safe fallbacks."""
-        try:
-            return int(value)
-        except Exception:
-            # Try to extract first integer from string
             try:
-                s = str(value)
-                m = re.search(r"(\d+)", s)
-                if m:
-                    return int(m.group(1))
-            except Exception:
+                self._progress_callback(message)
+            except Exception:  # noqa: BLE001 - progress must never break a run
                 pass
-        return default
 
-    def _safe_parse_json(self, text: str) -> Any:
-        """Parse JSON from LLM response, handling markdown wrappers and common issues."""
-        cleaned = self._strip_markdown_codeblocks(text)
-        try:
-            return json.loads(cleaned)
-        except json.JSONDecodeError:
-            # Try to find JSON object or array in the text
-            # Look for the first { ... } or [ ... ]
-            for start_char, end_char in [('{', '}'), ('[', ']')]:
-                start = cleaned.find(start_char)
-                if start == -1:
-                    continue
-                depth = 0
-                for i in range(start, len(cleaned)):
-                    if cleaned[i] == start_char:
-                        depth += 1
-                    elif cleaned[i] == end_char:
-                        depth -= 1
-                    if depth == 0:
-                        try:
-                            return json.loads(cleaned[start:i+1])
-                        except json.JSONDecodeError:
-                            break
-            raise
+    # -- public API -------------------------------------------------------- #
 
-    def analyze_codebase(self, files: List[Dict], repo_info: str = "") -> Dict[str, Any]:
-        """Analyze codebase for hotspots, vulnerabilities, and insights using AI."""
+    def analyze_codebase(self, files: Sequence[dict[str, Any]], repo_info: str = "") -> dict[str, Any]:
+        """Return vulnerabilities, hotspots, tech stack and dependency insights."""
+        if not self.available:
+            self._report("No NEBIUS_API_KEY configured - skipping model analysis, keeping deterministic results only.")
+            return {**_EMPTY_RESULT, "llm_usage": []}
+
         try:
-            # Prepare code summary for analysis
             code_summary = self._prepare_code_summary(files)
+            if not code_summary:
+                self._report("No readable source files to summarise - skipping model analysis.")
+                return {**_EMPTY_RESULT, "llm_usage": self.usage_log}
 
-            if not code_summary or code_summary == "Complex codebase analysis":
-                self._report_progress("Code summary empty, skipping AI analysis")
-                return {
-                    "vulnerabilities": [],
-                    "hotspots": [],
-                    "recommendations": ""
-                }
+            self._report(f"Asking {self.model_id} for security, dependency and quality findings...")
+            scan = self._run_comprehensive_scan(code_summary, repo_info)
 
-            # Analyze with NIM
-            self._report_progress("🔍 Starting comprehensive AI scan (tech stack, dependencies, security)...")
-            comp_result = self._run_comprehensive_scan(code_summary)
-            vulnerabilities = comp_result.get("vulnerabilities", [])
-            tech_stack = comp_result.get("tech_stack", {})
-            dependencies = comp_result.get("dependencies", {})
-
-            self._report_progress("🔍 Starting AI-powered hotspot analysis...")
+            self._report("Asking for a second opinion on the most complex areas...")
             hotspots = self._identify_hotspots(files, code_summary)
 
             return {
-                "vulnerabilities": vulnerabilities,
+                "vulnerabilities": self._extract_vulnerabilities(scan),
                 "hotspots": hotspots,
-                "tech_stack": tech_stack,
-                "dependencies": dependencies,
-                "recommendations": ""
+                "tech_stack": scan.get("tech_stack", {}) if isinstance(scan, dict) else {},
+                "dependencies": scan.get("dependencies", {}) if isinstance(scan, dict) else {},
+                "recommendations": str(scan.get("summary", "")) if isinstance(scan, dict) else "",
+                "llm_usage": self.usage_log,
             }
-        except (APIError, APIConnectionError, RateLimitError) as e:
-            self._report_progress(f"⚠️ NIM API error: {e}. Continuing with basic analysis.")
-            return {
-                "vulnerabilities": [],
-                "hotspots": [],
-                "tech_stack": {},
-                "dependencies": {},
-                "recommendations": ""
-            }
-        except Exception as e:
-            self._report_progress(f"⚠️ Unexpected error in AI analysis: {e}. Continuing with basic analysis.")
-            return {
-                "vulnerabilities": [],
-                "hotspots": [],
-                "tech_stack": {},
-                "dependencies": {},
-                "recommendations": ""
-            }
+        except LLMError as error:
+            self._report(f"Model analysis unavailable: {error}. Continuing with deterministic results only.")
+            return {**_EMPTY_RESULT, "llm_usage": self.usage_log}
+        except Exception as error:  # noqa: BLE001 - a model pass must not fail the run
+            self._report(f"Unexpected error during model analysis: {error}. Continuing with deterministic results only.")
+            return {**_EMPTY_RESULT, "llm_usage": self.usage_log}
 
-    def _prepare_code_summary(self, files: List[Dict]) -> str:
-        """Create a summary of the codebase for analysis."""
-        summary_parts = []
-        file_count = 0
+    # -- prompts ----------------------------------------------------------- #
 
-        for file in files[:50]:  # Limit to first 50 files for token efficiency
-            if file_count >= 20:  # Analyze max 20 files in detail
+    def _prepare_code_summary(self, files: Sequence[dict[str, Any]]) -> str:
+        """Compact, deterministic description of the repository for the model."""
+        parts: list[str] = []
+        detailed = 0
+
+        for file in files[:_MAX_SUMMARY_FILES]:
+            if detailed >= _MAX_SUMMARY_DETAIL:
                 break
 
-            file_path = file.get("file_path", "")
-            language = file.get("language", "")
-            functions = file.get("functions", [])
-            complexity = file.get("complexity", 0)
+            file_path = str(file.get("file_path", ""))
+            if not file_path:
+                continue
+
             content = str(file.get("content", ""))
-            content_preview = "\n".join(content.splitlines()[:20])
+            preview = "\n".join(content.splitlines()[:_MAX_SNIPPET_LINES])
+            function_names = [
+                str(item.get("name", "unknown")) if isinstance(item, dict) else str(item)
+                for item in list(file.get("functions", []))[:5]
+            ]
 
-            function_names = []
-            for fn in functions[:5]:
-                if isinstance(fn, dict):
-                    function_names.append(fn.get("name", "unknown"))
-                else:
-                    function_names.append(str(fn))
+            parts.append(
+                "\n".join(
+                    [
+                        f"File: {file_path} ({file.get('language', 'unknown')})",
+                        f"Lines: {len(content.splitlines())}",
+                        f"Cyclomatic complexity: {file.get('complexity', 0)}",
+                        f"Functions: {', '.join(function_names) if function_names else 'n/a'}",
+                        f"Imports: {', '.join(str(item) for item in list(file.get('imports', []))[:12]) or 'none'}",
+                        "Snippet:",
+                        preview[:_MAX_SNIPPET_CHARS],
+                    ]
+                )
+            )
+            detailed += 1
 
-            summary_parts.append(f"""
-File: {file_path} ({language})
-Complexity: {complexity}
-Functions: {', '.join(function_names) if function_names else 'N/A'}
-Snippet:
-{content_preview[:1200]}
-""")
-            file_count += 1
+        return "\n\n".join(parts)
 
-        return "\n".join(summary_parts) if summary_parts else "Complex codebase analysis"
+    def _ask_json(self, instruction: str, context: str, temperature: float = 0.2) -> dict[str, Any]:
+        """Send a prompt built from the analysis template and parse the JSON answer."""
+        template = load_prompt("analysis_prompt.txt")
+        user_prompt = f"{template}\n\n{instruction}\n\nRepository evidence:\n{context}"
+        data, result = self.client.chat_json_sync(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a senior application-security reviewer and software architect. "
+                        "You only report what the provided evidence supports."
+                    ),
+                },
+                {"role": "user", "content": user_prompt},
+            ],
+            role=self.role,
+            model=self.model,
+            temperature=temperature,
+        )
+        usage = result.usage_dict()
+        usage["step"] = instruction.split(".")[0][:80]
+        self.usage_log.append(usage)
+        return data if isinstance(data, dict) else {"items": data}
 
-    def _run_comprehensive_scan(self, code_summary: str) -> Dict[str, Any]:
-        """Use AI to identify tech stack, dependencies, and security vulnerabilities."""
-        if not code_summary or len(code_summary.strip()) < 10:
-            self._report_progress("Code summary too short, skipping comprehensive analysis")
-            return {"vulnerabilities": [], "tech_stack": {}, "dependencies": {}}
+    def _run_comprehensive_scan(self, code_summary: str, repo_info: str = "") -> dict[str, Any]:
+        instruction = (
+            "Identify the tech stack, the notable dependencies, the security risks and the code hotspots "
+            "visible in this repository evidence."
+        )
+        if repo_info:
+            instruction = f"{instruction}\nRepository: {repo_info}"
+        return self._ask_json(instruction, code_summary, temperature=0.15)
 
-        # Read the NIM analysis prompt
-        prompt_path = os.path.join(os.path.dirname(__file__), "..", "..", "prompts", "nim_analysis_prompt.txt")
+    def _identify_hotspots(self, files: Sequence[dict[str, Any]], code_summary: str) -> list[dict[str, Any]]:
+        ranked = sorted(
+            (file for file in files if str(file.get("file_path", ""))),
+            key=lambda file: int(file.get("complexity", 0) or 0),
+            reverse=True,
+        )[:30]
+        inventory = json.dumps(
+            [
+                {
+                    "file_path": file.get("file_path"),
+                    "language": file.get("language"),
+                    "complexity": file.get("complexity", 0),
+                    "lines": len(str(file.get("content", "")).splitlines()),
+                }
+                for file in ranked
+            ],
+            indent=2,
+        )
         try:
-            with open(prompt_path, "r") as f:
-                base_prompt = f.read()
-        except FileNotFoundError:
-            self._report_progress("⚠️ NIM prompt file not found, using fallback")
-            base_prompt = "Analyze the following codebase for security vulnerabilities and code quality issues."
+            data = self._ask_json(
+                "Focus on the hotspots listed here: explain why the most complex files are risky to change and "
+                "what refactoring would pay off.",
+                f"Complexity inventory:\n{inventory}\n\nCode evidence:\n{code_summary}",
+            )
+        except LLMError as error:
+            self._report(f"Hotspot pass unavailable: {error}")
+            return []
+        return self._extract_hotspots(data)
 
-        prompt = f"""{base_prompt}
+    # -- normalisation of loosely shaped model output --------------------- #
 
-Code Summary:
-{code_summary}
+    @staticmethod
+    def _safe_int(value: Any, default: int = 0) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            match = re.search(r"(\d+)", str(value))
+            return int(match.group(1)) if match else default
 
-Focus on identifying security vulnerabilities, outdated dependencies, and code quality issues.
-Return ONLY valid JSON matching the structure specified in the prompt guidelines."""
+    def _extract_vulnerabilities(self, parsed: Any) -> list[dict[str, Any]]:
+        """Pull findings out of any of the shapes a model tends to produce."""
+        items: list[Any] = []
 
-        # Try NIM API
-        result = self._try_nim_analysis(prompt, "comprehensive")
-        if result is not None:
-            return result
-
-        self._report_progress("⚠️ NIM analysis did not return comprehensive data")
-        return {"vulnerabilities": [], "tech_stack": {}, "dependencies": {}}
-
-    def _extract_vulnerabilities_from_response(self, parsed: Any) -> List[Dict]:
-        """Extract vulnerability list from various response formats."""
-        # If it's already a list of vulnerability objects
-        if isinstance(parsed, list):
-            clean_findings = []
-            for f in parsed:
-                if isinstance(f, dict):
-                    clean_findings.append({
-                        "name": str(f.get("name", f.get("type", "Unknown Issue"))),
-                        "severity": str(f.get("severity", "MEDIUM")),
-                        "description": str(f.get("description", "")),
-                        "file_path": str(f.get("file_path", f.get("location", ""))),
-                        "line": self._safe_int(f.get("line", 0)),
-                        "snippet": str(f.get("snippet", ""))
-                    })
-            return clean_findings
-
-        # If it's a full analysis object, extract security_risks
-        if isinstance(parsed, dict):
-            vulnerabilities = []
-            # Try security_risks key (from our prompt format)
-            for key in ["security_risks", "vulnerabilities", "vulnerable"]:
-                items = parsed.get(key, [])
-                if isinstance(items, list):
-                    for f in items:
-                        if isinstance(f, dict):
-                            # Parse location into file_path and line
-                            location = str(f.get("location", f.get("file_path", "")))
-                            file_path = location.split(":")[0] if ":" in location else location
-                            line = 0
-                            if ":" in location:
-                                line_candidate = location.split(":")[-1]
-                                line = self._safe_int(line_candidate, 0)
-                            vulnerabilities.append({
-                                "name": str(f.get("name", f.get("type", "Unknown Issue"))),
-                                "severity": str(f.get("severity", "MEDIUM")),
-                                "description": str(f.get("description", "")),
-                                "file_path": file_path,
-                                "line": line,
-                                "snippet": str(f.get("snippet", ""))
-                            })
-                    if vulnerabilities:
-                        break
-
-            # Also check dependencies.vulnerable
-            deps = parsed.get("dependencies", {})
-            if isinstance(deps, dict):
-                for vuln_dep in deps.get("vulnerable", []):
-                    if isinstance(vuln_dep, dict):
-                        vulnerabilities.append({
-                            "name": str(vuln_dep.get("name", "Unknown Package")),
-                            "severity": str(vuln_dep.get("severity", "MEDIUM")),
-                            "description": f"Vulnerable dependency: {vuln_dep.get('vulnerability', 'Unknown CVE')}",
-                            "file_path": "package.json",
-                            "line": 0,
-                            "snippet": ""
-                        })
-
-            return vulnerabilities
-
-        return []
-
-    def _extract_hotspots_from_response(self, parsed: Any) -> List[Dict]:
-        """Extract hotspot list from various response formats."""
-        items = []
-
-        # If it's already a list
         if isinstance(parsed, list):
             items = parsed
-        # If it's an object, try to extract the hotspots key
         elif isinstance(parsed, dict):
-            for key in ["hotspots", "code_hotspots", "complexity_hotspots"]:
-                candidate = parsed.get(key, [])
+            for key in ("security_risks", "vulnerabilities", "vulnerable", "findings"):
+                candidate = parsed.get(key)
+                if isinstance(candidate, list) and candidate:
+                    items = candidate
+                    break
+            else:
+                dependencies = parsed.get("dependencies")
+                if isinstance(dependencies, dict):
+                    items = list(dependencies.get("vulnerable", []) or [])
+
+        findings: list[dict[str, Any]] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            location = str(item.get("location") or item.get("file_path") or "")
+            file_path, _, line_part = location.partition(":")
+            findings.append(
+                {
+                    "name": str(item.get("name") or item.get("type") or "Unspecified issue"),
+                    "severity": str(item.get("severity", "MEDIUM")).upper(),
+                    "description": str(item.get("description", "")),
+                    "file_path": file_path or str(item.get("file_path", "")),
+                    "line": self._safe_int(line_part or item.get("line", 0)),
+                    "snippet": str(item.get("snippet", ""))[:200],
+                    "recommendation": str(item.get("recommendation", "")),
+                    "source": "model",
+                }
+            )
+        return findings
+
+    def _extract_hotspots(self, parsed: Any) -> list[dict[str, Any]]:
+        items: list[Any] = []
+        if isinstance(parsed, list):
+            items = parsed
+        elif isinstance(parsed, dict):
+            for key in ("hotspots", "code_hotspots", "complexity_hotspots", "items"):
+                candidate = parsed.get(key)
                 if isinstance(candidate, list) and candidate:
                     items = candidate
                     break
 
-        formatted = []
+        hotspots: list[dict[str, Any]] = []
         for item in items:
-            if isinstance(item, dict):
-                formatted.append({
+            if not isinstance(item, dict):
+                continue
+            hotspots.append(
+                {
                     "file_path": str(item.get("file_path", "")),
-                    "complexity": self._safe_int(item.get("complexity", item.get("complexity_score", 0))),
-                    "language": item.get("language", "unknown"),
-                    "functions": [],
-                    "classes": [],
+                    "complexity": self._safe_int(item.get("complexity") or item.get("complexity_score", 0)),
+                    "language": str(item.get("language", "unknown")),
                     "reason": str(item.get("reason", "")),
-                    "suggestions": item.get("suggestions", [])
-                })
-
-        return formatted
-
-    def _try_nim_analysis(self, prompt: str, analysis_type: str) -> Optional[Any]:
-        """Try to analyze using NVIDIA NIM API. Only retries on API errors, not parse failures."""
-        last_api_error = None
-
-        for idx, key in enumerate(self.nim_keys):
-            try:
-                self._report_progress(f"🔑 Attempting {analysis_type} analysis with NIM key {idx + 1}/{len(self.nim_keys)}")
-                client = self._get_nim_client(key)
-
-                response = client.chat.completions.create(
-                    model=self.analysis_model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.3,
-                    max_tokens=2000
-                )
-
-                # Handle different response formats from NIM API
-                if isinstance(response, str):
-                    result_text = response.strip()
-                elif hasattr(response, 'choices') and response.choices:
-                    result_text = response.choices[0].message.content.strip()
-                else:
-                    result_text = str(response).strip()
-
-                self._report_progress(f"✅ Successfully got {analysis_type} response from NIM (length: {len(result_text)})")
-
-                # Parse the JSON response
-                try:
-                    parsed = self._safe_parse_json(result_text)
-                except (json.JSONDecodeError, ValueError) as e:
-                    self._report_progress(f"⚠️ Failed to parse NIM {analysis_type} response as JSON: {e}")
-                    # Don't retry other keys for parse failures — the API worked, the output was bad
-                    return []
-
-                # Extract the appropriate data based on analysis type
-                if analysis_type == "comprehensive":
-                    vulns = self._extract_vulnerabilities_from_response(parsed)
-                    tech_stack = parsed.get("tech_stack", {}) if isinstance(parsed, dict) else {}
-                    dependencies = parsed.get("dependencies", {}) if isinstance(parsed, dict) else {}
-                    self._report_progress(f"✅ Extracted tech stack, dependencies, and {len(vulns)} vulnerabilities from NIM response")
-                    return {
-                        "vulnerabilities": vulns,
-                        "tech_stack": tech_stack,
-                        "dependencies": dependencies
-                    }
-                else:
-                    results = self._extract_hotspots_from_response(parsed)
-                    self._report_progress(f"✅ Extracted {len(results)} {analysis_type} from NIM response")
-                    return results
-
-            except (APIError, APIConnectionError, RateLimitError) as e:
-                last_api_error = e
-                self._report_progress(f"❌ NIM API error with key {idx + 1}: {e}")
-                continue  # Try next key only for API errors
-            except Exception as e:
-                self._report_progress(f"❌ Unexpected error with NIM key {idx + 1}: {e}")
-                last_api_error = e
-                continue
-
-        if last_api_error:
-            self._report_progress(f"❌ All NIM API keys failed for {analysis_type}. Last error: {last_api_error}")
-        return None
-
-
-    def analyze_with_nim_chat(self, question: str, repo_context: str = "") -> str:
-        """Use NVIDIA NIM API for conversational analysis of the repository."""
-        try:
-            from openai import OpenAI
-        except ImportError:
-            print("OpenAI package not installed, skipping NIM chat")
-            return "I'm unable to access the conversational analysis feature at the moment."
-
-        # Read the NIM analysis prompt for conversational context
-        prompt_path = os.path.join(os.path.dirname(__file__), "..", "..", "prompts", "nim_chat_prompt.txt")
-        try:
-            with open(prompt_path, "r") as f:
-                base_prompt = f.read()
-        except FileNotFoundError:
-            print("NIM prompt file not found, using fallback")
-            base_prompt = "You are an expert AI assistant specialized in conversational code analysis."
-
-        prompt = f"""{base_prompt}
-
-Repository Context:
-{repo_context}
-
-User Question: {question}
-
-Provide a helpful, accurate response based on the repository analysis. If you don't have enough information to answer fully, say so and suggest what additional information would be helpful."""
-
-        for idx, key in enumerate(self.nim_keys):
-            try:
-                print(f"Attempting conversational analysis with NIM key {idx + 1}/{len(self.nim_keys)}")
-                client = self._get_nim_client(key)
-
-                response = client.chat.completions.create(
-                    model=self.chat_model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.3,
-                    max_tokens=1500
-                )
-
-                result_text = response.choices[0].message.content.strip()
-                print(f"Successfully got conversational response from NIM (length: {len(result_text)})")
-
-                return result_text
-
-            except Exception as e:
-                print(f"NIM chat error with key {idx + 1}: {e}")
-                continue
-
-        return "I'm experiencing technical difficulties with the conversational analysis feature. Please try again later."
-
-    def _identify_hotspots(self, files: List[Dict], code_summary: str) -> List[Dict]:
-        """Use AI to identify code hotspots and complex areas."""
-        if not code_summary or len(code_summary.strip()) < 10:
-            self._report_progress("Code summary too short, skipping hotspot analysis")
-            return []
-
-        # Read the NIM analysis prompt for hotspots section
-        prompt_path = os.path.join(os.path.dirname(__file__), "..", "..", "prompts", "nim_analysis_prompt.txt")
-        try:
-            with open(prompt_path, "r") as f:
-                base_prompt = f.read()
-        except FileNotFoundError:
-            self._report_progress("⚠️ NIM prompt file not found, using fallback")
-            base_prompt = "Analyze the following codebase for code hotspots and complexity issues."
-
-        prompt = f"""{base_prompt}
-
-Files in codebase:
-{json.dumps([{'path': f.get('file_path'), 'complexity': f.get('complexity', 0), 'language': f.get('language')} for f in files[:30]], indent=2)}
-
-Code Summary:
-{code_summary}
-
-Focus on identifying code hotspots, complex functions, and areas needing refactoring.
-Return ONLY valid JSON matching the structure specified in the prompt guidelines."""
-
-        # Try NIM API — only retries on API errors
-        result = self._try_nim_analysis(prompt, "hotspots")
-        if result is not None:
-            return result
-
-        self._report_progress("⚠️ NIM analysis did not return hotspot data")
-        return []
-
-    def _generate_recommendations(self, code_summary: str) -> str:
-        """Generate high-level recommendations for codebase improvement."""
-        prompt = f"""Based on the following codebase analysis, provide 2-3 brief recommendations for improvement.
-Be specific and actionable.
-
-Code Summary:
-{code_summary}
-
-Provide concise recommendations (under 500 characters total)."""
-
-        try:
-            # Use NIM client for recommendations
-            from openai import OpenAI
-            client = OpenAI(api_key=self.nim_keys[0] if self.nim_keys else "", base_url=self.analysis_base_url)
-            response = client.chat.completions.create(
-                model=self.analysis_model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=300
+                    "suggestions": [str(entry) for entry in list(item.get("suggestions", []) or [])],
+                }
             )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            print(f"Error generating recommendations: {e}")
-            return ""
+        return [hotspot for hotspot in hotspots if hotspot["file_path"]]
