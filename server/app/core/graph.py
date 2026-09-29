@@ -29,11 +29,20 @@ EXTERNAL_PREFIXES = (
 
 
 def _norm(path: str) -> str:
-    """Normalise a repository-relative path to forward slashes without ``./``."""
+    """Normalise a repository-relative path to forward slashes without ``./``.
+
+    ``normpath`` is what turns ``source/./utilities.js`` into the same key the
+    walk produced, and it collapses ``a/b/../c`` the way the filesystem would.
+    A path that climbs above the root becomes empty: there is no such file.
+    """
     cleaned = (path or "").replace(os.sep, "/").strip()
+    if not cleaned:
+        return ""
+    cleaned = os.path.normpath(cleaned).replace(os.sep, "/")
     while cleaned.startswith("./"):
         cleaned = cleaned[2:]
-    return cleaned.strip("/")
+    cleaned = cleaned.strip("/")
+    return "" if cleaned in {"", ".", ".."} or cleaned.startswith("../") else cleaned
 
 
 @dataclass

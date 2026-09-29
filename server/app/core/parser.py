@@ -370,6 +370,24 @@ class CodeParser:
 # helpers used by the analyzer
 # --------------------------------------------------------------------------- #
 
+# Machine-written files. They are usually the largest files in a repository and
+# the least useful to a human or a model: they inflate complexity, churn and
+# size without describing anything a developer wrote.
+GENERATED_SUFFIXES = (
+    ".d.ts", ".min.js", ".min.css", ".bundle.js", ".generated.ts", ".generated.js",
+    "_pb2.py", "_pb2_grpc.py", ".pb.go", ".g.dart", ".snap", ".map", ".lock.json",
+)
+GENERATED_MARKERS = ("/vendor/", "/third_party/", "/thirdparty/", "/generated/", "/__generated__/")
+
+
+def is_generated_path(file_name: str, relative_path: str = "") -> bool:
+    """True for declarations, bundles, vendored trees and generated sources."""
+    lowered = (file_name or "").lower()
+    if lowered.endswith(GENERATED_SUFFIXES):
+        return True
+    probe = f"/{(relative_path or file_name).lower()}"
+    return any(marker in probe for marker in GENERATED_MARKERS)
+
 
 def language_for_path(file_path: str) -> str:
     ext = os.path.splitext(file_path)[1].lower().lstrip(".")

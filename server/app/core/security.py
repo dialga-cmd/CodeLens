@@ -81,8 +81,12 @@ class PreScanFinding:
     entropy: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        # The rule id alone is not unique: the same rule fires in many files.
+        # Candidates are keyed by rule, file and line so a model can address
+        # exactly one of them in its verdict.
         payload = {
-            "id": self.id,
+            "id": f"{self.id}:{self.file_path}:{self.line}",
+            "rule": self.id,
             "name": self.name,
             "severity": self.severity,
             "description": self.description,
