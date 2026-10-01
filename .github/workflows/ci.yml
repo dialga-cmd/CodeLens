@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes the in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    name: Server (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11 is what the Dockerfile and runtime.txt target; 3.12 is what most
+        # contributors have locally, and tree-sitter bindings must work on both.
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: server/requirements.txt
+
+      - name: Install
+        working-directory: server
+        # tree-sitter-languages ships native grammars built against one ABI, so
+        # the pins in requirements.txt are load-bearing. Do not unpin them.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Test
+        working-directory: server
+        # No API keys: the suite must pass with NEBIUS_API_KEY and TAVILY_API_KEY
+        # absent, which is the state a judge cloning the repository is in.
+        env:
+          NEBIUS_API_KEY: ""
+          TAVILY_API_KEY: ""
+          FIREBASE_SERVICE_ACCOUNT: ""
+        run: pytest tests/ -q
+
+      - name: Import check
+        working-directory: server
+        run: python -c "import main; print(len(main.app.routes), 'routes')"
+
+  client:
+    name: Client (Node 20)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install
+        working-directory: client
+        run: npm ci
+
+      - name: Type check
+        working-directory: client
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: client
+        run: npm run build
+
+  secrets:
+    name: No committed credentials
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Look for keys in tracked files
+        run: |
+          set -euo pipefail
+          patterns='nebius_[A-Za-z0-9]{20,}|tvly-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{30,}|xox[abposr]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+          # The scanner tests contain deliberate examples of every one of these
+          # shapes, so they are the only place a match is allowed to appear.
+          matches=$(git grep -InE "$patterns" -- . \
+            ':!server/tests/test_security.py' \
+            ':!docs/*' || true)
+          if [ -n "$matches" ]; then
+            echo "::error::Credential-shaped text found in tracked files:"
+            echo "$matches"
+            exit 1
+          fi
+          echo "No credential-shaped text in tracked files."
+
+      - name: No committed env files
+        run: |
+          set -euo pipefail
+          tracked=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$' || true)
+          if [ -n "$tracked" ]; then
+            echo "::error::Real .env files are tracked:"
+            echo "$tracked"
+            exit 1
+          fi
+          echo "Only .env.example files are tracked."
