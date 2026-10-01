@@ -19,6 +19,7 @@ from app.core.analyzer import CodeAnalyzer
 from app.core.auth import auth_enabled, auth_warnings, initialize_firebase, verify_token
 from app.core.chat_context import guess_language, read_repo_file, resolve_repo_file
 from app.core.chat_service import ChatService
+from app.core import demo
 from app.core.fix_advisor import FixAdvisor
 from app.core.ingestion import RepoURLError, normalize_repo_url
 from app.core.limits import AnalysisRegistry, RateLimits, TooManyAnalyses
@@ -147,6 +148,35 @@ async def public_config():
             "chat_tools": llm.configured,
         },
     }
+
+
+@app.get("/api/demo")
+async def demo_catalogue():
+    """The stored analyses the demo button can load, with no clone and no model calls."""
+    return {"available": demo.catalogue()}
+
+
+@app.get("/api/demo/{slug}")
+async def demo_analysis(slug: str):
+    """One stored analysis, exactly as the pipeline produced it."""
+    try:
+        return demo.get_demo(slug)
+    except demo.DemoNotAvailable as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.get("/api/analysis/{repo_id}")
+async def stored_analysis(repo_id: str, user: dict = Depends(verify_token)):
+    """Re-read a stored analysis.
+
+    The client keeps the result in session storage, which a reload or a shared
+    link loses. The snapshot is on disk, so the same repository can be reopened
+    without paying for the analysis again.
+    """
+    snapshot = analyzer.ingestion.load_snapshot(repo_id)
+    if not snapshot:
+        raise HTTPException(status_code=404, detail="No stored analysis for that repository.")
+    return analyzer.result_from_snapshot(snapshot)
 
 
 @app.get("/api/models")

@@ -1,0 +1,32 @@
+[
+ {
+  "slug": "flask",
+  "label": "Flask - Python web framework",
+  "repo_url": "https://github.com/pallets/flask",
+  "snapshot": "flask.snapshot.json",
+  "head_sha": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+  "analyzed_at": "",
+  "generated_at": "2026-10-01T09:10:11+00:00",
+  "stats": {
+   "files": 96,
+   "hotspots": 8,
+   "findings": 74,
+   "graph_edges": 195
+  }
+ },
+ {
+  "slug": "zod",
+  "label": "Zod - TypeScript schema library",
+  "repo_url": "https://github.com/colinhacks/zod",
+  "snapshot": "zod.snapshot.json",
+  "head_sha": "004d800c9e3cd4c79930f55aa4ad080225b22efd",
+  "analyzed_at": "",
+  "generated_at": "2026-10-01T09:10:24+00:00",
+  "stats": {
+   "files": 250,
+   "hotspots": 8,
+   "findings": 37,
+   "graph_edges": 138
+  }
+ }
+]

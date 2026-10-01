@@ -131,7 +131,7 @@ class CodeAnalyzer:
                     f"This repository is unchanged since it was analysed ({cached['head_sha'][:7]}); "
                     "reusing that analysis. Ask for a refresh to run it again."
                 )
-                return self._result_from_snapshot(cached, cached=True)
+                return self.result_from_snapshot(cached, cached=True)
 
         repo_path = self.ingestion.clone_repo(repo_url, report)
         report("Repository cloned. Reading source files...")
@@ -260,10 +260,10 @@ class CodeAnalyzer:
             elapsed=time.perf_counter() - started,
         )
         self.ingestion.save_snapshot(repo_id, snapshot)
-        return self._result_from_snapshot(snapshot, cached=False)
+        return self.result_from_snapshot(snapshot, cached=False)
 
     @staticmethod
-    def _result_from_snapshot(snapshot: dict[str, Any], cached: bool) -> dict[str, Any]:
+    def result_from_snapshot(snapshot: dict[str, Any], cached: bool = False) -> dict[str, Any]:
         """The API payload, built from the snapshot either way.
 
         A run that reused a stored analysis and a run that just performed one
