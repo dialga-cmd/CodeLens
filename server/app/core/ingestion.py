@@ -55,25 +55,46 @@ class RepoTooLargeError(ValueError):
     """The clone exceeded the per-repository size budget."""
 
 
+# `git@github.com:owner/repo.git` is what GitHub's "Copy clone URL" button hands
+# over, and `www.github.com` is what some people have in their address bar.
+SCP_LIKE = re.compile(r"^(?:git@)?github\.com:(?P<path>[^/]+/[^/]+?)(?:\.git)?/?$", re.IGNORECASE)
+ALLOWED_HOSTS = {"github.com", "www.github.com"}
+
+
 def normalize_repo_url(repo_url: str) -> str:
     """Return the canonical ``https://github.com/owner/repo`` form of a URL.
 
     Rejects what cannot be a public GitHub repository rather than passing it to
     git: other hosts, credentials in the URL, ports, query strings, fragments,
     path traversal and anything that is not exactly two path segments.
+
+    Owner and repository are lowercased because GitHub treats them as
+    case-insensitive, and the repo id is derived from this string: without it
+    ``github.com/Pallets/Flask`` would be cached separately from
+    ``github.com/pallets/flask`` and every analysis would be repeated.
     """
     candidate = (repo_url or "").strip()
     if not candidate:
         raise RepoURLError("A repository URL is required.")
+
+    scp = SCP_LIKE.match(candidate)
+    if scp:
+        candidate = f"https://github.com/{scp.group('path')}"
 
     parsed = urlparse(candidate)
     if parsed.scheme != "https":
         raise RepoURLError("Only https:// repository URLs are supported.")
     if parsed.username or parsed.password:
         raise RepoURLError("Credentials must not be part of the repository URL.")
-    if parsed.hostname is None or parsed.hostname.lower() != "github.com":
+    if parsed.hostname is None or parsed.hostname.lower() not in ALLOWED_HOSTS:
         raise RepoURLError("Only github.com repositories are supported.")
-    if parsed.port:
+    try:
+        port = parsed.port
+    except ValueError:
+        # urlparse only rejects a non-numeric port when the attribute is read,
+        # so this is where `github.com:notaport/repo` has to be turned away.
+        raise RepoURLError("The repository URL must not specify a port.") from None
+    if port:
         raise RepoURLError("The repository URL must not specify a port.")
     if parsed.query or parsed.fragment:
         raise RepoURLError("The repository URL must not carry a query string or fragment.")
@@ -81,8 +102,8 @@ def normalize_repo_url(repo_url: str) -> str:
     segments = [segment for segment in parsed.path.split("/") if segment]
     if len(segments) != 2:
         raise RepoURLError("The URL must be https://github.com/<owner>/<repository>.")
-    owner, repository = segments[0], segments[1]
-    if repository.lower().endswith(".git"):
+    owner, repository = segments[0].lower(), segments[1].lower()
+    if repository.endswith(".git"):
         repository = repository[:-4]
 
     for label, value in (("owner", owner), ("repository name", repository)):

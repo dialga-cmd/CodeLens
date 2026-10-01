@@ -264,12 +264,14 @@ RULES: list[Rule] = [
 _COMPILED = [(rule, rule.compiled()) for rule in RULES]
 
 # Assignment patterns worth an entropy check: these are the lines where a
-# leaked key actually appears.
+# leaked key actually appears. This has to be a single-line pattern: it is
+# matched against one line at a time, and the multi-line form used to end in a
+# literal newline, so it never matched anything and the entropy detector was
+# dead code.
 SECRET_ASSIGNMENT = re.compile(
-    r"""(?i)\b([A-Za-z0-9_]*(?:key|secret|token|password|passwd|credential|auth)[A-Za-z0-9_]*)
-        \s*[:=]\s*
-        ["']([^"'\n]{ENTROPY_MIN_LENGTH,})["']
-    """.replace("{ENTROPY_MIN_LENGTH,}", f"{{{ENTROPY_MIN_LENGTH},}}")
+    r"(?i)\b([A-Za-z0-9_]*(?:key|secret|token|password|passwd|credential|auth)[A-Za-z0-9_]*)"
+    r"\s*[:=]\s*"
+    rf"[\"']([^\"'\n]{{{ENTROPY_MIN_LENGTH},}})[\"']"
 )
 
 # Values that look like paths, URLs or format strings are not secrets.
@@ -348,7 +350,7 @@ class SecurityScanner:
                 if _NOT_SECRET.match(value) or LOW_SIGNAL_CONTEXT.search(line):
                     continue
                 entropy = shannon_entropy(value)
-                if not _looks_random(value, entropy):
+                if not self._looks_random(value, entropy):
                     continue
                 findings.append(
                     PreScanFinding(
@@ -372,7 +374,15 @@ class SecurityScanner:
 
     @staticmethod
     def _looks_random(value: str, entropy: float) -> bool:
-        """High entropy, or long enough and random-looking to be worth a look."""
+        """High entropy, or long enough and random-looking to be worth a look.
+
+        Whitespace disqualifies a value outright. English prose scores around
+        4.1 bits per character, which clears the entropy bar on its own, so
+        without this an error message or a sentence assigned to anything named
+        ``*_token`` would be reported as a leaked key.
+        """
+        if not value or any(char.isspace() for char in value):
+            return False
         if entropy >= ENTROPY_THRESHOLD:
             return True
         if len(value) >= ENTROPY_LONG_VALUE_LENGTH and entropy >= ENTROPY_LONG_VALUE_THRESHOLD:

@@ -184,10 +184,11 @@ def extract_json(text: str) -> Any:
     if unfenced and unfenced not in candidates:
         candidates.append(unfenced)
 
-    for opener in ("{", "["):
-        start = unfenced.find(opener)
-        if start == -1:
-            continue
+    # Try the earliest opening bracket of either kind. Scanning for `{` first
+    # would return a single object from the middle of an array of findings, so
+    # "here are the findings: [{...}, {...}]" would come back as one finding.
+    starts = [position for position in (unfenced.find("{"), unfenced.find("[")) if position != -1]
+    for start in sorted(starts):
         sliced = _scan_balanced(unfenced, start)
         if sliced:
             candidates.append(sliced)
