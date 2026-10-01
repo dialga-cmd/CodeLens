@@ -1,733 +1,1144 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowLeft,
+  Bot,
+  Check,
+  ChevronDown,
   Code2,
   Cpu,
+  FileCode,
   Flame,
   GitBranch,
+  Globe,
   Loader2,
   Package,
+  Search,
   ShieldAlert,
-  LogOut,
-  ArrowLeft,
+  Terminal,
+  Wrench,
   X,
-  FileCode,
 } from "lucide-react";
+
 import GraphView from "@/components/GraphView";
 import AIChat from "@/components/AIChat";
 import { useAuth } from "@/hooks/useAuth";
+import { api, type AnalysisResult, type Finding, type ProposedFix, type RepoFile } from "@/lib/api";
+import { lastAnalysis, readStashedResults, stashResults } from "@/lib/session";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+type LoadState = "loading" | "ready" | "missing";
 
-type Vulnerability = {
-  id: string;
-  name: string;
-  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | string;
-  description: string;
-  file_path: string;
-  line: number;
-  snippet: string;
-};
-
-type AnalyzedFile = {
-  file_path: string;
-  language: string;
-  functions: Array<{ name: string }>;
-  classes: Array<{ name: string }>;
-  complexity: number;
-  vulnerabilities?: Vulnerability[];
-};
-
+/**
+ * The report.
+ *
+ * Everything here is read back from one analysis object, which can arrive three
+ * ways: straight off the analysis stream, out of session storage after a
+ * navigation, or re-fetched from the API by repository id when the URL is
+ * reloaded. Whichever it is, the page says which, because a report that cannot
+ * say how fresh it is is not evidence of anything.
+ */
 export default function ResultsPage() {
-  const { user, logout } = useAuth();
+  const { getIdToken, logout, user, isGuest } = useAuth();
   const router = useRouter();
-  const [results, setResults] = useState<any>(null);
-  const [repoUrl, setRepoUrl] = useState("");
-  const [displayedHotspots, setDisplayedHotspots] = useState(5);
-  const [displayedFindings, setDisplayedFindings] = useState(5);
-  const [displayedDependencies, setDisplayedDependencies] = useState(8);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState("");
-  const [previewFile, setPreviewFile] = useState<{ path: string; language: string; content: string } | null>(null);
+
+  const [results, setResults] = useState<AnalysisResult | null>(null);
+  const [state, setState] = useState<LoadState>("loading");
+  const [loadError, setLoadError] = useState("");
+  const [origin, setOrigin] = useState<"stream" | "stored" | "server">("stream");
+  const [tab, setTab] = useState<"overview" | "findings" | "dependencies">("overview");
+
+  // The id is remembered so a reload can ask the API for the same analysis.
+  const { repoId } = useMemo(() => lastAnalysis(), []);
 
   useEffect(() => {
-    const resultsStr = sessionStorage.getItem("analysisResults");
-    const repoUrlStr = sessionStorage.getItem("repoUrl");
+    let cancelled = false;
 
-    if (!resultsStr) {
-      router.push("/dashboard");
+    const stashed = readStashedResults<AnalysisResult>();
+    if (stashed?.repo_id) {
+      setResults(stashed);
+      setOrigin("stream");
+      setState("ready");
       return;
     }
 
-    try {
-      setResults(JSON.parse(resultsStr));
-      setRepoUrl(repoUrlStr || "");
-    } catch (e) {
-      router.push("/dashboard");
+    if (!repoId) {
+      setState("missing");
+      return;
     }
+
+    api
+      .analysis(repoId, getIdToken)
+      .then((analysis) => {
+        if (cancelled) return;
+        stashResults(analysis);
+        setResults(analysis);
+        setOrigin("server");
+        setState("ready");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(error instanceof Error ? error.message : "That analysis could not be loaded.");
+        setState("missing");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [repoId, getIdToken]);
+
+  const startOver = useCallback(() => {
+    router.push("/dashboard");
   }, [router]);
 
-  const allDependencies = useMemo(() => {
-    // Build dependencies list from both dependency_manifests and ai_dependencies if available
-    const vulnerableMap = new Map();
-    const outdatedMap = new Map();
-    const deps = new Map<string, any>();
-
-    if (results?.ai_dependencies) {
-      results.ai_dependencies.vulnerable?.forEach((d: any) => {
-        if (!d || !d.name) return;
-        vulnerableMap.set(d.name, d);
-        if (!deps.has(d.name)) {
-          deps.set(d.name, {
-            name: d.name,
-            version: d.version || d.current || "",
-            isVulnerable: true,
-            isOutdated: false,
-            vulnerabilityInfo: d,
-            outdatedInfo: null,
-          });
-        } else {
-          const e = deps.get(d.name);
-          e.isVulnerable = true;
-          e.vulnerabilityInfo = d;
-        }
-      });
-
-      results.ai_dependencies.outdated?.forEach((d: any) => {
-        if (!d || !d.name) return;
-        outdatedMap.set(d.name, d);
-        if (!deps.has(d.name)) {
-          deps.set(d.name, {
-            name: d.name,
-            version: d.current || d.version || "",
-            isVulnerable: false,
-            isOutdated: true,
-            vulnerabilityInfo: null,
-            outdatedInfo: d,
-          });
-        } else {
-          const e = deps.get(d.name);
-          e.isOutdated = true;
-          e.outdatedInfo = d;
-        }
-      });
-    }
-
-    if (results?.dependency_manifests) {
-      results.dependency_manifests.forEach((manifest: any) => {
-        manifest.dependencies?.forEach((dep: any) => {
-          if (!dep || !dep.name) return;
-          if (!deps.has(dep.name)) {
-            deps.set(dep.name, {
-              name: dep.name,
-              version: dep.version || "",
-              isVulnerable: vulnerableMap.has(dep.name),
-              isOutdated: outdatedMap.has(dep.name),
-              vulnerabilityInfo: vulnerableMap.get(dep.name),
-              outdatedInfo: outdatedMap.get(dep.name),
-            });
-          } else {
-            const e = deps.get(dep.name);
-            e.version = e.version || dep.version || "";
-          }
-        });
-      });
-    }
-
-    if (deps.size === 0) return [];
-
-    // Convert to array and sort (vulnerable first, then outdated, then alphabetical)
-    return Array.from(deps.values()).sort((a, b) => {
-      if (a.isVulnerable && !b.isVulnerable) return -1;
-      if (!a.isVulnerable && b.isVulnerable) return 1;
-      if (a.isOutdated && !b.isOutdated) return -1;
-      if (!a.isOutdated && b.isOutdated) return 1;
-      return a.name.localeCompare(b.name);
-    });
-  }, [results]);
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#00ff41]" size={32} />
-      </div>
-    );
+  if (state === "loading") {
+    return <Splash label="Loading analysis" />;
   }
 
-  if (!results) {
+  if (state === "missing" || !results) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#00ff41]" size={32} />
-      </div>
+      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#050505] px-6 text-center">
+        <AlertTriangle size={32} className="text-amber-400" aria-hidden />
+        <div>
+          <h1 className="text-xl font-bold">No analysis to show</h1>
+          <p className="mt-2 max-w-md text-sm text-[#8a8a8a]">
+            {loadError
+              ? loadError
+              : "Nothing is stored for this browser yet. Point CodeLens at a repository and it will show up here."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={startOver}
+          className="glow-button inline-flex items-center gap-2 rounded-sm bg-[#00ff41] px-6 py-3 text-sm font-extrabold text-black"
+        >
+          Analyze a repository
+        </button>
+      </main>
     );
   }
-
-  const handleLogout = async () => {
-    await logout();
-    router.push("/");
-  };
-
-  const handleNewAnalysis = () => {
-    sessionStorage.removeItem("analysisResults");
-    sessionStorage.removeItem("repoUrl");
-    router.push("/dashboard");
-  };
-
-  const handleGraphNodeClick = async (node: any) => {
-    const filePath = String(node?.path || node?.id || "");
-    if (!filePath || node?.isCentral) return;
-
-    try {
-      setPreviewOpen(true);
-      setPreviewLoading(true);
-      setPreviewError("");
-      setPreviewFile(null);
-
-      const token = await user.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/repo/file`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ repo_id: results.repo_id, file_path: filePath }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || data.error) {
-        throw new Error(data.error || "Could not load file contents.");
-      }
-
-      setPreviewFile({
-        path: data.file_path || filePath,
-        language: data.language || String(node?.language || "text"),
-        content: data.content || "",
-      });
-    } catch (error: any) {
-      setPreviewError(error?.message || "Could not load file contents.");
-    } finally {
-      setPreviewLoading(false);
-    }
-  };
-
-  const files: AnalyzedFile[] = results?.files || [];
-  const vulnerabilities: Vulnerability[] = results?.vulnerabilities || [];
-  const hotspots: AnalyzedFile[] = results?.hotspots || [];
-  const graphLinks = results?.stats?.graph_links ?? results?.graph?.links?.length ?? 0;
-  const criticalHigh = (results?.stats?.critical_vulnerabilities || 0) + (results?.stats?.high_vulnerabilities || 0);
 
   return (
     <main className="min-h-screen bg-[#050505] text-[#f0f0f0]">
-      {/* Header */}
-      <header className="border-b border-[#222] px-6 py-4 flex justify-between items-center">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Code2 className="text-[#00ff41]" size={24} />
-            <h1 className="text-2xl font-bold tracking-tighter">
-              CODELENS <span className="text-xs bg-[#003b11] text-[#00ff41] px-2 py-0.5 rounded ml-2">BETA</span>
-            </h1>
-          </div>
-          {repoUrl && <p className="text-[#888] text-xs font-mono">{repoUrl}</p>}
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={handleNewAnalysis}
-            className="flex items-center gap-2 text-xs border border-[#222] px-4 py-2 rounded hover:bg-[#111] transition-all"
-          >
-            <ArrowLeft size={14} />
-            New Analysis
-          </button>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-xs border border-red-900/30 text-red-500 bg-red-500/5 px-4 py-2 rounded hover:bg-red-500/10 transition-all"
-          >
-            <LogOut size={14} />
-            Logout
-          </button>
-        </div>
-      </header>
+      <ReportHeader
+        results={results}
+        origin={origin}
+        isGuest={isGuest}
+        signedInAs={user?.displayName || user?.email || ""}
+        onStartOver={startOver}
+        onSignOut={async () => {
+          await logout();
+          router.push("/");
+        }}
+      />
 
-      {/* Main Content */}
-      <div className="p-8 grid grid-cols-[320px_1fr_340px] gap-8 min-h-[calc(100vh-90px)]">
-        {/* Left Sidebar - Stats */}
-        <div className="space-y-4 overflow-y-auto pr-2">
-          <h2 className="text-xs font-bold text-[#666] uppercase tracking-widest px-3 mb-6">Overview</h2>
-
-          <StatCard
-            icon={<Code2 size={18} />}
-            label="Files"
-            value={results.stats.total_files}
-            subLabel="analyzed"
-          />
-          <StatCard
-            icon={<Package size={18} />}
-            label="Dependencies"
-            value={results.stats.dependencies || 0}
-            subLabel="total"
-          />
-          <StatCard
-            icon={<GitBranch size={18} />}
-            label="Graph Edges"
-            value={graphLinks}
-            subLabel="connections"
-          />
-          <StatCard
-            icon={<ShieldAlert size={18} />}
-            label="Findings"
-            value={results.stats.total_vulnerabilities}
-            subLabel={`${criticalHigh} critical/high`}
-            tone={criticalHigh ? "danger" : "default"}
-          />
-          <StatCard
-            icon={<Flame size={18} />}
-            label="Hotspots"
-            value={results.stats.hotspot_count}
-            subLabel="complex areas"
-          />
-          <StatCard
-            icon={<Cpu size={18} />}
-            label="Languages"
-            value={Object.keys(results.stats.languages).length}
-            subLabel="used"
-          />
-          {results?.tech_stack?.frameworks && results.tech_stack.frameworks.length > 0 && (
-            <StatCard
-              icon={<Cpu size={18} />}
-              label="Frameworks"
-              value={results.tech_stack.frameworks.length}
-              subLabel="identified"
-              tone="purple"
-            />
-          )}
-          {results?.ai_dependencies?.vulnerable && results.ai_dependencies.vulnerable.length > 0 && (
-            <StatCard
-              icon={<ShieldAlert size={18} />}
-              label="Vuln. Packages"
-              value={results.ai_dependencies.vulnerable.length}
-              subLabel="critical/high"
-              tone="danger"
-            />
-          )}
-          {results?.ai_dependencies?.outdated && results.ai_dependencies.outdated.length > 0 && (
-            <StatCard
-              icon={<Package size={18} />}
-              label="Outdated"
-              value={results.ai_dependencies.outdated.length}
-              subLabel="packages"
-              tone="warning"
-            />
-          )}
-
-          {/* Files tree inside left sidebar */}
-          <div>
-            <h2 className="text-xs font-bold text-[#666] uppercase tracking-widest px-3 mt-2 mb-4">Files</h2>
-            <div className="bg-[#0a0a0a] border border-[#222] rounded-xl p-3 max-h-[520px] overflow-auto">
-              {files.length > 0 ? (
-                <div className="text-[13px] text-[#e5e5e5]">
-                  <FileTree files={files} />
-                </div>
-              ) : (
-                <p className="text-[11px] text-[#555] text-center py-6">No files available</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Center - Graph & Chat */}
-        <div className="flex flex-col gap-4 h-full min-w-0 min-h-0">
-          {/* Graph */}
-          <div className="bg-[#0a0a0a] border border-[#222] rounded-xl overflow-hidden shadow-lg shrink-0">
-            <div className="bg-[#111] border-b border-[#222] px-5 py-3.5">
-              <h3 className="text-sm font-bold text-[#888] uppercase tracking-widest flex items-center gap-2.5">
-                <GitBranch size={15} className="text-[#00ff41]" /> Dependency Graph
-              </h3>
-            </div>
-            <div className="h-[460px] bg-[#0a0a0a]">
-              <GraphView data={results.graph} onNodeClick={handleGraphNodeClick} />
-            </div>
-          </div>
-
-          {/* AI Chat */}
-          <div className="bg-[#0a0a0a] border border-[#222] rounded-xl overflow-hidden shadow-lg flex-1 flex flex-col min-h-0">
-            <div className="bg-[#111] border-b border-[#222] px-5 py-3.5 shrink-0">
-              <h3 className="text-sm font-bold text-[#888] uppercase tracking-widest flex items-center gap-2.5">
-                <Code2 size={15} className="text-[#00ff41]" /> AI Assistant
-              </h3>
-            </div>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <AIChat repoId={results.repo_id} user={user} className="h-full" />
-            </div>
-          </div>
-        </div>
-
-        {/* Right Sidebar - Findings, Hotspots, Dependencies, Tech Stack */}
-        <div className="space-y-4 overflow-y-auto pr-2">
-          <h2 className="text-xs font-bold text-[#666] uppercase tracking-widest px-3 mb-6">Details</h2>
-
-          {/* Security Findings */}
-          <div className="bg-[#0a0a0a] border border-red-500/30 rounded-xl overflow-hidden hover:border-red-500/20 transition-all">
-            <div className="bg-[#111] border-b border-[#222] px-5 py-3">
-              <h3 className="text-sm font-bold text-[#888] uppercase tracking-widest flex items-center gap-2.5">
-                <AlertTriangle size={14} className="text-red-500" /> Security Findings
-              </h3>
-            </div>
-            <div className="max-h-[320px] overflow-y-auto">
-              {vulnerabilities.length > 0 ? (
-                <div className="space-y-3 p-5">
-                  {vulnerabilities.slice(0, displayedFindings).map((finding, i) => (
-                    <div key={`${finding.file_path}-${finding.line}-${i}`} className="border-l-2 border-red-500/30 pl-4 py-3">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-[12px] font-bold text-[#e5e5e5] truncate flex-1">{finding.name}</p>
-                        <SeverityBadge severity={finding.severity} />
-                      </div>
-                      <p className="text-[10px] text-[#666] font-mono">{finding.file_path}:{finding.line}</p>
-                    </div>
-                  ))}
-                  {vulnerabilities.length > displayedFindings && (
-                    <button
-                      onClick={() => setDisplayedFindings(displayedFindings + 5)}
-                      className="w-full text-[11px] text-red-500 hover:text-red-500/80 text-center py-3 hover:bg-red-500/5 rounded transition-all"
-                    >
-                      +{vulnerabilities.length - displayedFindings} more
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[11px] text-[#555] text-center py-6">No security issues found</p>
-              )}
-            </div>
-          </div>
-
-          {/* Hotspots */}
-          <div className="bg-[#0a0a0a] border border-orange-500/30 rounded-xl overflow-hidden hover:border-orange-500/20 transition-all">
-            <div className="bg-[#111] border-b border-[#222] px-5 py-3">
-              <h3 className="text-sm font-bold text-[#888] uppercase tracking-widest flex items-center gap-2.5">
-                <Flame size={14} className="text-orange-500" /> Hotspots
-              </h3>
-            </div>
-            <div className="max-h-[320px] overflow-y-auto">
-              {hotspots.length > 0 ? (
-                <div className="space-y-3 p-5">
-                  {hotspots.slice(0, displayedHotspots).map((file, idx) => (
-                    <div key={file.file_path} className="border-l-2 border-orange-500/30 pl-4 py-3">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-[13px] text-[#e5e5e5] font-bold flex-1">{file.file_path.split('/').pop()}</p>
-                        <span className="text-[12px] bg-[#00ff41]/20 text-[#00ff41] px-2 py-0.5 rounded font-bold shrink-0">#{idx + 1}</span>
-                      </div>
-                      <p className="text-[11px] text-[#666] text-center">{file.file_path}</p>
-                    </div>
-                  ))}
-                  {hotspots.length > displayedHotspots && (
-                    <button
-                      onClick={() => setDisplayedHotspots(displayedHotspots + 5)}
-                      className="w-full text-[11px] text-[#00ff41] hover:text-[#00ff41]/80 text-center py-3 hover:bg-[#00ff41]/5 rounded transition-all"
-                    >
-                      +{hotspots.length - displayedHotspots} more
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[11px] text-[#555] text-center py-6">No hotspots found</p>
-              )}
-            </div>
-          </div>
-
-          {/* Dependencies */}
-          <div className="bg-[#0a0a0a] border border-blue-500/30 rounded-xl overflow-hidden hover:border-blue-500/20 transition-all">
-            <div className="bg-[#111] border-b border-[#222] px-5 py-3">
-              <h3 className="text-sm font-bold text-[#888] uppercase tracking-widest flex items-center gap-2.5">
-                <Package size={14} className="text-blue-500" /> Dependencies ({allDependencies.length})
-              </h3>
-            </div>
-            <div className="max-h-[320px] overflow-y-auto">
-              {allDependencies.length > 0 ? (
-                <div className="space-y-1 p-5">
-                  {allDependencies.slice(0, displayedDependencies).map((dep: any, i: number) => (
-                    <div key={`dep-${i}`} className="flex items-center justify-between gap-3 py-2 border-b border-[#111] last:border-0">
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] text-[#e5e5e5] truncate font-medium flex items-center gap-2">
-                          {dep.name}
-                          {dep.isVulnerable && <span className="w-1.5 h-1.5 rounded-full bg-red-500" title="Vulnerable"></span>}
-                          {dep.isOutdated && !dep.isVulnerable && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" title="Outdated"></span>}
-                        </span>
-                        {(dep.isVulnerable || dep.isOutdated) && (
-                          <span className="text-[9px] text-[#888] mt-0.5 truncate">
-                            {dep.isVulnerable ? dep.vulnerabilityInfo?.severity || dep.vulnerabilityInfo?.vulnerability : `${dep.outdatedInfo?.current || dep.version} → ${dep.outdatedInfo?.latest}`}
-                          </span>
-                        )}
-                      </div>
-                      <span className={`px-2 py-1 rounded shrink-0 font-mono text-[9px] font-bold ${dep.isVulnerable ? 'text-red-400 bg-red-500/10' : dep.isOutdated ? 'text-yellow-400 bg-yellow-500/10' : 'text-[#666] bg-[#111]'}`}>
-                        {dep.version}
-                      </span>
-                    </div>
-                  ))}
-                  {allDependencies.length > displayedDependencies && (
-                    <button
-                      onClick={() => setDisplayedDependencies(displayedDependencies + 8)}
-                      className="w-full text-[11px] text-blue-500 hover:text-blue-500/80 text-center py-3 hover:bg-blue-500/5 rounded transition-all"
-                    >
-                      +{allDependencies.length - displayedDependencies} more
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[11px] text-[#555] text-center py-6">No dependencies found</p>
-              )}
-            </div>
-          </div>
-
-          {/* Tech Stack */}
-          <div className="bg-[#0a0a0a] border border-purple-500/30 rounded-xl overflow-hidden hover:border-purple-500/20 transition-all">
-            <div className="bg-[#111] border-b border-[#222] px-5 py-3">
-              <h3 className="text-sm font-bold text-[#888] uppercase tracking-widest flex items-center gap-2.5">
-                <Cpu size={14} className="text-purple-500" /> Tech Stack
-              </h3>
-            </div>
-            <div className="max-h-[320px] overflow-y-auto">
-              {results?.tech_stack && Object.keys(results.tech_stack).length > 0 ? (
-                <div className="space-y-4 p-5">
-                  {Object.entries(results.tech_stack).map(([category, items]: [string, any]) => {
-                    if (!Array.isArray(items) || items.length === 0) return null;
-                    return (
-                      <div key={category}>
-                        <div className="text-[10px] text-[#888] font-bold uppercase tracking-widest mb-2">{category.replace('_', ' ')}</div>
-                        <div className="flex flex-wrap gap-2">
-                          {items.map((item: string, idx: number) => (
-                            <span key={`${item}-${idx}`} className="text-[#e5e5e5] bg-[#111] border border-[#222] px-2 py-1 rounded text-[10px] font-medium">
-                              {item}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-[11px] text-[#555] text-center py-6">No tech stack data</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {previewOpen && (
-        <div className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-5xl h-[80vh] bg-[#0a0a0a] border border-[#222] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            <div className="px-4 py-3 border-b border-[#222] flex items-center justify-between bg-[#111]">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 text-[#00ff41] text-sm font-bold">
-                  <FileCode size={14} /> File Preview
-                </div>
-                <p className="text-[11px] text-[#888] font-mono truncate">
-                  {previewFile?.path || "Loading file..."}
-                </p>
-              </div>
-              <button
-                onClick={() => setPreviewOpen(false)}
-                className="w-9 h-9 rounded-lg border border-[#222] bg-[#0a0a0a] text-[#888] hover:text-white hover:border-[#00ff41]/50 transition-all flex items-center justify-center"
-                aria-label="Close file preview"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-hidden">
-              {previewLoading ? (
-                <div className="h-full flex items-center justify-center text-[#00ff41] gap-3">
-                  <Loader2 className="animate-spin" size={20} />
-                  Loading file contents...
-                </div>
-              ) : previewError ? (
-                <div className="h-full flex items-center justify-center p-6 text-center text-red-400">
-                  <div>
-                    <p className="font-bold mb-2">Could not open file</p>
-                    <p className="text-sm text-red-300/80">{previewError}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-full flex flex-col">
-                  <div className="px-4 py-2 border-b border-[#222] text-[11px] text-[#666] font-mono bg-[#050505] flex items-center justify-between gap-3">
-                    <span>{previewFile?.language || "text"}</span>
-                    <span>{previewFile?.content?.length || 0} chars</span>
-                  </div>
-                  <pre className="flex-1 min-h-0 overflow-auto p-4 text-[12px] leading-6 font-mono text-[#e5e5e5] whitespace-pre break-words bg-[#050505]">
-                    <code>{previewFile?.content || "No file contents available."}</code>
-                  </pre>
-                </div>
-              )}
-            </div>
-          </div>
+      {results.demo && (
+        <div className="border-b border-amber-500/20 bg-amber-500/5 px-6 py-3 text-xs text-amber-200/90">
+          <strong className="font-bold">Stored analysis.</strong> This is a real run of the
+          pipeline, kept in the repository at commit{" "}
+          <code className="font-mono">{results.demo.head_sha?.slice(0, 7) || "unknown"}</code>.{" "}
+          {results.demo.live_required_for?.length
+            ? `${results.demo.live_required_for.join(", ")} need a live run`
+            : "Everything here needs a live run"}{" "}
+          to show, because the clone is not part of the stored analysis - run it yourself for the
+          full experience.
         </div>
       )}
+
+      {results.cached && origin === "server" && (
+        <div className="border-b border-white/10 bg-[#0a0a0a] px-6 py-2 text-xs text-[#6a6a6a]">
+          Re-opened from the stored snapshot. The analysis did not run again.
+        </div>
+      )}
+
+      <nav className="flex gap-1 overflow-x-auto border-b border-white/10 px-4 md:px-6">
+        {(
+          [
+            ["overview", "Overview", Cpu],
+            ["findings", "Findings", ShieldAlert],
+            ["dependencies", "Dependencies", Package],
+          ] as const
+        ).map(([key, label, Icon]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            aria-current={tab === key ? "page" : undefined}
+            className={`flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm transition-colors ${
+              tab === key
+                ? "border-[#00ff41] text-[#00ff41]"
+                : "border-transparent text-[#7a7a7a] hover:text-white"
+            }`}
+          >
+            <Icon size={15} aria-hidden />
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:p-6">
+        <div className="min-w-0 space-y-4">
+          {tab === "overview" && (
+            <>
+              <GraphPanel results={results} />
+              <ChatPanel results={results} getIdToken={getIdToken} isDemo={Boolean(results.demo)} />
+            </>
+          )}
+
+          {tab === "findings" && (
+            <FindingsPanel
+              results={results}
+              getIdToken={getIdToken}
+              isDemo={Boolean(results.demo)}
+            />
+          )}
+
+          {tab === "dependencies" && (
+            <>
+              <DependenciesPanel results={results} />
+              <ChatPanel results={results} getIdToken={getIdToken} isDemo={Boolean(results.demo)} />
+            </>
+          )}
+        </div>
+
+        <aside className="min-w-0 space-y-4">
+          <OverviewPanel results={results} />
+          <FindingsSummary results={results} />
+          {tab === "overview" && (
+            <>
+              <ArchitecturePanel results={results} />
+              <HotspotsPanel results={results} />
+              <DependenciesPanel results={results} compact />
+            </>
+          )}
+          {tab === "findings" && (
+            <ChatPanel results={results} getIdToken={getIdToken} isDemo={Boolean(results.demo)} />
+          )}
+          {tab === "dependencies" && <HotspotsPanel results={results} />}
+        </aside>
+      </div>
     </main>
   );
 }
 
-function StatCard({ icon, label, value, subLabel, tone = "default" }: any) {
-  const isDanger = tone === "danger";
-  const isWarning = tone === "warning";
-  const isPurple = tone === "purple";
+// --------------------------------------------------------------------------- //
+// header
+// --------------------------------------------------------------------------- //
 
-  let borderColor = "border-[#222]";
-  let iconBg = "bg-[#00ff41]/10 text-[#00ff41]";
-  let hoverBorder = "hover:border-[#00ff41]/30";
-
-  if (isDanger) {
-    borderColor = "border-red-500/30";
-    iconBg = "bg-red-500/10 text-red-400";
-    hoverBorder = "hover:border-red-500/50";
-  } else if (isWarning) {
-    borderColor = "border-yellow-500/30";
-    iconBg = "bg-yellow-500/10 text-yellow-400";
-    hoverBorder = "hover:border-yellow-500/50";
-  } else if (isPurple) {
-    borderColor = "border-purple-500/30";
-    iconBg = "bg-purple-500/10 text-purple-400";
-    hoverBorder = "hover:border-purple-500/50";
-  }
+function ReportHeader({
+  results,
+  origin,
+  isGuest,
+  signedInAs,
+  onStartOver,
+  onSignOut,
+}: {
+  results: AnalysisResult;
+  origin: "stream" | "stored" | "server";
+  isGuest: boolean;
+  signedInAs: string;
+  onStartOver: () => void;
+  onSignOut: () => Promise<void>;
+}) {
+  const stats = results.stats || {};
+  const label =
+    origin === "stream" ? "fresh run" : origin === "server" ? "re-opened" : "restored";
 
   return (
-    <div className={`bg-[#0a0a0a] border rounded-xl p-5 transition-all ${borderColor} ${hoverBorder}`}>
-      <div className="flex items-start gap-3.5">
-        <div className={`p-3 rounded-lg ${iconBg}`}>
-          {icon}
+    <header className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-4 py-4 md:px-6">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Code2 className="text-[#00ff41]" size={20} aria-hidden />
+          <h1 className="text-lg font-bold tracking-tight">Analysis</h1>
+          <span className="rounded border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-[#6a6a6a]">
+            {label}
+          </span>
+          {results.head_sha && (
+            <span className="font-mono text-[10px] text-[#4d4d4d]">
+              {results.head_sha.slice(0, 7)}
+            </span>
+          )}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] text-[#666] uppercase font-bold tracking-wide">{label}</p>
-          <p className="text-3xl font-bold mt-2">{value}</p>
-          <p className="text-[10px] text-[#555] mt-2">{subLabel}</p>
-        </div>
+        <a
+          href={results.repo_url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 block max-w-full truncate font-mono text-xs text-[#6a6a6a] hover:text-[#00ff41]"
+        >
+          {results.repo_url}
+        </a>
+        <p className="mt-1 text-[11px] text-[#4d4d4d]">
+          {isGuest
+            ? "Analysed as a guest"
+            : `Analysed as ${signedInAs || "a signed-in user"}`}
+          {" · "}
+          {stats.total_files ?? 0} files · {stats.total_vulnerabilities ?? 0} findings ·{" "}
+          {stats.hotspot_count ?? 0} hotspots
+        </p>
       </div>
-    </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onStartOver}
+          className="inline-flex items-center gap-2 rounded border border-white/10 px-3 py-2 text-xs text-[#8a8a8a] transition-colors hover:border-[#00ff41]/40 hover:text-[#00ff41]"
+        >
+          <ArrowLeft size={14} aria-hidden /> New analysis
+        </button>
+        {!isGuest && (
+          <button
+            type="button"
+            onClick={() => void onSignOut()}
+            className="rounded border border-white/10 px-3 py-2 text-xs text-[#8a8a8a] transition-colors hover:border-red-500/40 hover:text-red-400"
+          >
+            Sign out
+          </button>
+        )}
+      </div>
+    </header>
   );
 }
 
-function SeverityBadge({ severity }: { severity: string }) {
-  const classes: Record<string, string> = {
-    CRITICAL: "bg-red-500/15 text-red-300 border-red-500/30",
-    HIGH: "bg-orange-500/15 text-orange-300 border-orange-500/30",
-    MEDIUM: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
-    LOW: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  };
-  return <span className={`text-[8px] border px-1.5 py-0.5 rounded font-bold ${classes[severity] || "bg-[#111] text-[#777] border-[#222]"}`}>{severity}</span>;
+function Splash({ label }: { label: string }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center gap-3 bg-[#050505] text-[#00ff41]">
+      <Loader2 className="animate-spin" size={20} aria-hidden />
+      <span className="text-sm">{label}...</span>
+    </main>
+  );
 }
 
-// --- File tree builder & renderer ---
-type TreeNode = {
-  name: string;
-  path?: string;
-  children?: TreeNode[];
-  language?: string;
-  vulnerabilities?: any[];
-  isFile?: boolean;
-};
+// --------------------------------------------------------------------------- //
+// panels
+// --------------------------------------------------------------------------- //
 
-function buildFileTree(files: AnalyzedFile[]): TreeNode[] {
-  const rootMap: Map<string, any> = new Map();
-
-  for (const f of files) {
-    const parts = f.file_path.split("/");
-    let cur = rootMap;
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      const isLast = i === parts.length - 1;
-      if (!cur.has(part)) {
-        cur.set(part, { _meta: { name: part, children: new Map(), isFile: false } });
-      }
-      const entry = cur.get(part);
-      if (isLast) {
-        // mark as file
-        entry._meta.isFile = true;
-        entry._meta.path = f.file_path;
-        entry._meta.language = f.language;
-        entry._meta.vulnerabilities = f.vulnerabilities || [];
-      }
-      cur = entry._meta.children;
-    }
-  }
-
-  function mapMapToArray(map: Map<string, any>): TreeNode[] {
-    const arr: TreeNode[] = [];
-    for (const [key, value] of map.entries()) {
-      const meta = value._meta;
-      const node: TreeNode = {
-        name: meta.name,
-        path: meta.path,
-        language: meta.language,
-        vulnerabilities: meta.vulnerabilities,
-        isFile: meta.isFile,
-      };
-      const childrenArr = mapMapToArray(meta.children);
-      if (childrenArr.length) node.children = childrenArr.sort((a, b) => (a.isFile === b.isFile ? a.name.localeCompare(b.name) : a.isFile ? 1 : -1));
-      arr.push(node);
-    }
-    // sort folders first then files
-    return arr.sort((a, b) => {
-      if ((a.isFile ? 1 : 0) !== (b.isFile ? 1 : 0)) return a.isFile ? 1 : -1;
-      return a.name.localeCompare(b.name);
-    });
-  }
-
-  return mapMapToArray(rootMap);
+function Panel({
+  title,
+  icon,
+  children,
+  actions,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <section className="panel overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-white/10 bg-[#111] px-4 py-3">
+        {icon}
+        <h2 className="text-xs font-bold uppercase tracking-widest text-[#8a8a8a]">{title}</h2>
+        {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
+      </div>
+      {children}
+    </section>
+  );
 }
 
-function langColor(language?: string, hasVulns?: boolean) {
-  if (hasVulns) return "#ef4444";
-  switch ((language || "").toLowerCase()) {
-    case "python": return "#3776ab";
-    case "javascript": return "#f7df1e";
-    case "typescript": return "#3178c6";
-    case "framework": return "#a855f7";
-    case "database": return "#eab308";
-    case "package": return "#3b82f6";
-    default: return "#00ff41";
-  }
-}
-
-function FileTree({ files }: { files: AnalyzedFile[] }) {
-  const tree = buildFileTree(files);
+function GraphPanel({ results }: { results: AnalysisResult }) {
+  const [selected, setSelected] = useState<{ path: string; language: string } | null>(null);
 
   return (
-    <div className="space-y-1 text-sm">
-      {tree.map((node) => (
-        <TreeNodeView key={node.name + (node.path || "")} node={node} depth={0} />
+    <Panel
+      title="Dependency graph"
+      icon={<GitBranch size={14} className="text-[#00ff41]" aria-hidden />}
+      actions={<span className="hidden text-[10px] text-[#4d4d4d] sm:inline">click a file</span>}
+    >
+      <div className="h-[420px] bg-[#0a0a0a] md:h-[520px]">
+        <GraphView
+          data={results.graph}
+          onNodeClick={(node: any) =>
+            setSelected({
+              path: String(node?.path || node?.id || ""),
+              language: String(node?.language || ""),
+            })
+          }
+        />
+      </div>
+      {selected && (
+        <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-2 text-xs">
+          <span className="min-w-0 truncate font-mono text-[#8a8a8a]">{selected.path}</span>
+          <span className="flex shrink-0 items-center gap-2">
+            <span className="text-[10px] uppercase tracking-widest text-[#4d4d4d]">
+              {selected.language}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="text-[#4d4d4d] hover:text-[#00ff41]"
+            >
+              clear
+            </button>
+          </span>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function OverviewPanel({ results }: { results: AnalysisResult }) {
+  const stats = results.stats || {};
+  const critical = (stats.critical_vulnerabilities || 0) + (stats.high_vulnerabilities || 0);
+
+  const cards: Array<{ label: string; value: number | string; note: string; tone?: string }> = [
+    { label: "Files analysed", value: stats.total_files ?? 0, note: "read from the clone" },
+    { label: "Import edges", value: stats.graph_links ?? 0, note: "resolved to real files" },
+    {
+      label: "Findings",
+      value: stats.total_vulnerabilities ?? 0,
+      note: `${critical} critical or high`,
+      tone: critical ? "text-red-400" : "",
+    },
+    { label: "Hotspots", value: stats.hotspot_count ?? 0, note: "ranked by measured signal" },
+    { label: "Dependencies", value: stats.dependencies ?? 0, note: "parsed from manifests" },
+    { label: "Languages", value: Object.keys(stats.languages || {}).length, note: "by file count" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      {cards.map((card) => (
+        <div key={card.label} className="panel p-4">
+          <p className="text-[10px] uppercase tracking-widest text-[#4d4d4d]">{card.label}</p>
+          <p className={`mt-1 text-2xl font-bold ${card.tone || "text-white"}`}>{card.value}</p>
+          <p className="mt-1 text-[10px] text-[#5a5a5a]">{card.note}</p>
+        </div>
       ))}
     </div>
   );
 }
 
-function TreeNodeView({ node, depth }: { node: TreeNode; depth: number }) {
-  const [open, setOpen] = useState(true);
-  const hasChildren = node.children && node.children.length > 0;
-  const isFile = !!node.isFile;
-  const vulnCount = (node.vulnerabilities || []).length;
-  const color = langColor(node.language, vulnCount > 0);
+function FindingsSummary({ results }: { results: AnalysisResult }) {
+  const findings = results.vulnerabilities || [];
+  const bySeverity = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const finding of findings) {
+      const key = String(finding.severity || "UNKNOWN").toUpperCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [findings]);
+
+  const summary = results.security_summary || {};
 
   return (
-    <div>
-      <div className="flex items-center gap-2 cursor-default" style={{ paddingLeft: depth * 12 }}>
-        {hasChildren ? (
-          <button onClick={() => setOpen(!open)} className="text-[11px] text-[#888] w-4 h-4 flex items-center justify-center">{open ? '▾' : '▸'}</button>
-        ) : <div style={{ width: 16 }} />}
+    <Panel
+      title="Security pre-scan"
+      icon={<ShieldAlert size={14} className="text-red-400" aria-hidden />}
+      actions={
+        <span className="text-[10px] text-[#4d4d4d]">{findings.length} total</span>
+      }
+    >
+      <div className="space-y-4 p-4">
+        {findings.length === 0 ? (
+          <p className="text-xs text-[#5a5a5a]">
+            No rule matched. That means these 18 patterns are not present, not that the code is
+            safe - the checks are deterministic pattern matches and a model reviews them.
+          </p>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {bySeverity.map(([severity, count]) => (
+              <li key={severity}>
+                <SeverityBadge severity={severity} count={count} />
+              </li>
+            ))}
+          </ul>
+        )}
 
-        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+        {summary && Object.keys(summary).length > 0 && (
+          <dl className="space-y-1 border-t border-white/5 pt-3 text-[11px]">
+            {Object.entries(summary)
+              .filter(([, value]) => typeof value === "string" || typeof value === "number")
+              .slice(0, 6)
+              .map(([key, value]) => (
+                <div key={key} className="flex justify-between gap-3">
+                  <dt className="text-[#5a5a5a]">{key.replace(/_/g, " ")}</dt>
+                  <dd className="text-right font-mono text-[#8a8a8a]">{String(value)}</dd>
+                </div>
+              ))}
+          </dl>
+        )}
 
-        <div className={`truncate ${isFile ? 'text-[13px]' : 'text-[12px] text-[#cfcfcf] font-medium'}`}>
-          {node.name}{isFile && node.path ? <span className="text-[11px] text-[#666] font-mono ml-2">{node.path.split('/').pop()}</span> : null}
-        </div>
-        {isFile && vulnCount > 0 && <span className="ml-auto text-[11px] text-red-400 font-bold">{vulnCount}</span>}
+        {findings.some((finding) => finding.triage && finding.triage !== "pending") && (
+          <p className="border-t border-white/5 pt-3 text-[11px] leading-relaxed text-[#5a5a5a]">
+            Some findings were triaged by the model. That is the model's judgement about
+            reachability and impact; the pattern match itself was made by the static rules.
+          </p>
+        )}
       </div>
-      {hasChildren && open && (
-        <div className="mt-1">
-          {node.children!.map((c) => (
-            <TreeNodeView key={(c.path || c.name)} node={c} depth={depth + 1} />
+    </Panel>
+  );
+}
+
+function FindingsPanel({
+  results,
+  getIdToken,
+  isDemo,
+}: {
+  results: AnalysisResult;
+  getIdToken: () => Promise<string | null>;
+  isDemo: boolean;
+}) {
+  const findings = results.vulnerabilities || [];
+  const [selected, setSelected] = useState<Finding | null>(null);
+  const [filter, setFilter] = useState("all");
+
+  const severities = useMemo(
+    () => [...new Set(findings.map((finding) => String(finding.severity || "").toUpperCase()))],
+    [findings]
+  );
+  const shown = filter === "all" ? findings : findings.filter((f) => String(f.severity).toUpperCase() === filter);
+
+  return (
+    <Panel
+      title={`Findings · ${findings.length}`}
+      icon={<ShieldAlert size={14} className="text-red-400" aria-hidden />}
+      actions={
+        <div className="flex gap-1">
+          {["all", ...severities.slice(0, 3)].map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`rounded px-2 py-1 text-[10px] uppercase tracking-wide transition-colors ${
+                filter === key
+                  ? "bg-[#00ff41]/15 text-[#00ff41]"
+                  : "text-[#5a5a5a] hover:text-white"
+              }`}
+            >
+              {key}
+            </button>
           ))}
         </div>
+      }
+    >
+      {shown.length === 0 ? (
+        <p className="p-6 text-center text-xs text-[#5a5a5a]">
+          {findings.length === 0
+            ? "No rule matched this repository. The model still reviews the code, and the result is in the chat."
+            : "Nothing with that severity."}
+        </p>
+      ) : (
+        <ul className="divide-y divide-white/5">
+          {shown.map((finding, index) => (
+            <li key={finding.id || `${finding.file_path}:${finding.line}:${index}`}>
+              <button
+                type="button"
+                onClick={() => setSelected(finding)}
+                className="flex w-full items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-white/[0.02]"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[#e5e5e5]">{finding.name}</p>
+                  <p className="mt-1 truncate font-mono text-[11px] text-[#5a5a5a]">
+                    {finding.file_path}:{finding.line}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {finding.research?.sources?.length ? (
+                    <Globe size={13} className="text-sky-400" aria-label="has web sources" />
+                  ) : null}
+                  {finding.triage && finding.triage !== "pending" && (
+                    <span className="rounded bg-[#00ff41]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#00ff41]">
+                      {finding.triage}
+                    </span>
+                  )}
+                  <SeverityBadge severity={String(finding.severity || "").toUpperCase()} />
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {selected && (
+        <FindingDetail
+          finding={selected}
+          repoId={results.repo_id}
+          getIdToken={getIdToken}
+          isDemo={isDemo}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </Panel>
+  );
+}
+
+/** One finding in full: why it matched, what the model said, and the patch. */
+function FindingDetail({
+  finding,
+  repoId,
+  getIdToken,
+  isDemo,
+  onClose,
+}: {
+  finding: Finding;
+  repoId: string;
+  getIdToken: () => Promise<string | null>;
+  isDemo: boolean;
+  onClose: () => void;
+}) {
+  const [fix, setFix] = useState<ProposedFix | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [fixError, setFixError] = useState("");
+
+  const askForFix = async () => {
+    setBusy(true);
+    setFixError("");
+    setFix(null);
+    try {
+      const payload = await api.proposeFix(
+        {
+          repo_id: repoId,
+          finding_id: finding.id,
+          file_path: finding.file_path,
+          line: Number(finding.line) || 0,
+        },
+        getIdToken
+      );
+      if (payload.error) {
+        setFixError(payload.error);
+      } else if (payload.fix) {
+        setFix(payload.fix);
+      } else {
+        setFixError("The advisor returned no patch for this finding.");
+      }
+    } catch (error) {
+      setFixError(error instanceof Error ? error.message : "Patch generation failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="border-t border-white/10 bg-[#0a0a0a]">
+      <div className="flex items-start justify-between gap-3 border-b border-white/5 p-4">
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-white">{finding.name}</h3>
+          <p className="mt-1 break-all font-mono text-[11px] text-[#5a5a5a]">
+            {finding.file_path}:{finding.line}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close finding"
+          className="shrink-0 rounded border border-white/10 p-1.5 text-[#5a5a5a] hover:text-[#00ff41]"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="space-y-4 p-4 text-xs leading-relaxed">
+        <p className="text-[#a0a0a0]">{finding.description}</p>
+
+        {finding.snippet && (
+          <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded border border-white/10 bg-[#050505] p-3 font-mono text-[11px] text-[#8a8a8a]">
+            {finding.snippet}
+          </pre>
+        )}
+
+        {finding.recommendation && (
+          <p className="border-l-2 border-[#00ff41]/40 pl-3 text-[#8a8a8a]">
+            <strong className="text-[#e5e5e5]">Fix:</strong> {finding.recommendation}
+          </p>
+        )}
+
+        {finding.triage && finding.triage !== "pending" && (
+          <div className="rounded border border-white/10 p-3">
+            <p className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#4d4d4d]">
+              <Bot size={12} aria-hidden /> Model triage: {finding.triage}
+            </p>
+            {finding.severity_reason && (
+              <p className="mt-1 text-[#8a8a8a]">{finding.severity_reason}</p>
+            )}
+            <p className="mt-2 text-[10px] text-[#4d4d4d]">
+              Model judgement. The detection below it was made by the static rules.
+            </p>
+          </div>
+        )}
+
+        {finding.research && (finding.research.answer || finding.research.sources?.length) && (
+          <div className="rounded border border-sky-500/20 bg-sky-500/5 p-3">
+            <p className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-sky-300">
+              <Globe size={12} aria-hidden /> Checked against the web
+            </p>
+            {finding.research.answer && (
+              <p className="mt-1 text-[#a0a0a0]">{finding.research.answer}</p>
+            )}
+            <SourceLinks sources={finding.research.sources || []} />
+          </div>
+        )}
+
+        <div className="border-t border-white/5 pt-3">
+          {fix ? (
+            <FixView fix={fix} />
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => void askForFix()}
+                disabled={busy || isDemo}
+                className="inline-flex items-center gap-2 rounded border border-[#00ff41]/40 px-3 py-2 text-xs font-bold text-[#00ff41] transition-colors hover:bg-[#00ff41]/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy ? (
+                  <Loader2 size={14} className="animate-spin" aria-hidden />
+                ) : (
+                  <Wrench size={14} aria-hidden />
+                )}
+                {busy ? "Writing a patch" : "Ask the Fix Advisor"}
+              </button>
+              <p className="mt-2 text-[10px] leading-relaxed text-[#4d4d4d]">
+                {isDemo
+                  ? "Unavailable for a stored analysis: the patch is checked against the clone, which is not stored."
+                  : "Writes a unified diff and checks it applies to the clone before showing it."}
+              </p>
+            </>
+          )}
+          {fixError && (
+            <p role="alert" className="mt-2 text-[11px] text-amber-300">
+              {fixError}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FixView({ fix }: { fix: ProposedFix }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(fix.diff);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard access can be denied; the diff is on screen either way.
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <p
+        className={`flex items-center gap-2 text-[11px] font-bold ${
+          fix.applies ? "text-[#00ff41]" : "text-amber-300"
+        }`}
+      >
+        {fix.applies ? <Check size={13} aria-hidden /> : <AlertTriangle size={13} aria-hidden />}
+        {fix.applies ? "Applies cleanly to the analysed commit" : "Does not apply"}
+      </p>
+      <p className="text-[11px] text-[#5a5a5a]">{fix.validation}</p>
+
+      <pre className="max-h-72 overflow-auto rounded border border-white/10 bg-[#050505] p-3 font-mono text-[11px] leading-relaxed text-[#8a8a8a]">
+        {fix.diff}
+      </pre>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void copy()}
+          className="inline-flex items-center gap-1.5 rounded border border-white/10 px-2.5 py-1.5 text-[11px] text-[#8a8a8a] hover:text-[#00ff41]"
+        >
+          {copied ? <Check size={12} aria-hidden /> : <FileCode size={12} aria-hidden />}
+          {copied ? "Copied" : "Copy diff"}
+        </button>
+        <span className="font-mono text-[10px] text-[#4d4d4d]">{fix.model}</span>
+      </div>
+
+      {fix.explanation && <p className="text-[#8a8a8a]">{fix.explanation}</p>}
+
+      {fix.risk && fix.risk !== "low" && (
+        <div className="rounded border border-amber-500/20 bg-amber-500/5 p-3 text-[11px]">
+          <p className="font-bold text-amber-200">Risk: {fix.risk}</p>
+          {(fix.risk_notes || []).map((note, index) => (
+            <p key={index} className="mt-1 text-[#a0a0a0]">
+              {note}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {(fix.alternatives || []).length > 0 && (
+        <details className="rounded border border-white/10 p-3 text-[11px]">
+          <summary className="cursor-pointer text-[#8a8a8a]">
+            {fix.alternatives.length} alternative approach
+            {fix.alternatives.length === 1 ? "" : "es"} considered
+          </summary>
+          <ul className="mt-2 space-y-1 text-[#6a6a6a]">
+            {fix.alternatives.map((alternative, index) => (
+              <li key={index}>- {alternative}</li>
+            ))}
+          </ul>
+        </details>
       )}
     </div>
   );
 }
+
+function HotspotsPanel({ results }: { results: AnalysisResult }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const hotspots = results.hotspots || [];
+
+  return (
+    <Panel
+      title={`Hotspots · ${hotspots.length}`}
+      icon={<Flame size={14} className="text-orange-400" aria-hidden />}
+    >
+      {hotspots.length === 0 ? (
+        <p className="p-6 text-center text-xs text-[#5a5a5a]">
+          Nothing scored high enough to be a hotspot in this repository.
+        </p>
+      ) : (
+        <ol className="divide-y divide-white/5">
+          {hotspots.map((hotspot, index) => {
+            const isOpen = open === hotspot.file_path;
+            return (
+              <li key={hotspot.file_path}>
+                <button
+                  type="button"
+                  onClick={() => setOpen(isOpen ? null : hotspot.file_path)}
+                  aria-expanded={isOpen}
+                  className="flex w-full items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-white/[0.02]"
+                >
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-[#e5e5e5]">
+                      <span className="shrink-0 font-mono text-xs text-[#00ff41]">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="truncate">{hotspot.file_path}</span>
+                    </p>
+                    <p className="mt-1 flex flex-wrap gap-x-3 font-mono text-[10px] text-[#5a5a5a]">
+                      <span>complexity {hotspot.complexity}</span>
+                      <span>fan-in {hotspot.fan_in}</span>
+                      <span>fan-out {hotspot.fan_out}</span>
+                      <span>{hotspot.commits} commits</span>
+                    </p>
+                  </div>
+                  <ChevronDown
+                    size={15}
+                    className={`mt-1 shrink-0 text-[#4d4d4d] transition-transform ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                    aria-hidden
+                  />
+                </button>
+                {isOpen && (
+                  <div className="space-y-3 bg-[#0a0a0a] px-4 pb-4 pl-10 text-[11px]">
+                    <ul className="space-y-1 text-[#8a8a8a]">
+                      {(hotspot.reasons || []).map((reason, reasonIndex) => (
+                        <li key={reasonIndex}>- {reason}</li>
+                      ))}
+                    </ul>
+                    {hotspot.functions?.length > 0 && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-[#4d4d4d]">
+                          most complex functions
+                        </p>
+                        <ul className="mt-1 space-y-0.5 font-mono text-[10px] text-[#6a6a6a]">
+                          {hotspot.functions.slice(0, 5).map((fn, fnIndex) => (
+                            <li key={`${fn.name}-${fnIndex}`} className="truncate">
+                              {fn.name} · complexity {fn.complexity} · line {fn.start_line}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </Panel>
+  );
+}
+
+function DependenciesPanel({
+  results,
+  compact = false,
+}: {
+  results: AnalysisResult;
+  compact?: boolean;
+}) {
+  const manifests = results.dependency_manifests || [];
+  const rows = useMemo(() => {
+    const seen = new Set<string>();
+    const list: Array<{
+      key: string;
+      name: string;
+      version: string;
+      ecosystem: string;
+      declared_in: string;
+      severity?: string;
+      sources?: { title: string; url: string }[];
+      reason?: string;
+    }> = [];
+
+    for (const manifest of manifests) {
+      for (const dependency of manifest.dependencies || []) {
+        const name = String(dependency.name || "");
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        list.push({
+          key: `${manifest.file_path}:${name}`,
+          name,
+          version: String(dependency.version || dependency.declared_spec || ""),
+          ecosystem: manifest.ecosystem || dependency.ecosystem || "",
+          declared_in: manifest.file_path,
+          severity: dependency.severity,
+          sources: dependency.sources,
+          reason: dependency.reason || dependency.summary,
+        });
+      }
+    }
+
+    const vulnerable = list.filter((row) => row.severity);
+    return [...vulnerable, ...list.filter((row) => !row.severity)].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [manifests]);
+
+  const researched = results.dependency_research || {};
+  const notes = Object.entries(researched).filter(
+    ([, value]) => value && typeof value === "object"
+  );
+
+  return (
+    <Panel
+      title={`Dependencies · ${rows.length}`}
+      icon={<Package size={14} className="text-sky-400" aria-hidden />}
+      actions={
+        manifests.length > 0 ? (
+          <span className="hidden text-[10px] text-[#4d4d4d] sm:inline">
+            {manifests.map((m) => m.file_path).join(", ")}
+          </span>
+        ) : null
+      }
+    >
+      {rows.length === 0 ? (
+        <p className="p-6 text-center text-xs text-[#5a5a5a]">
+          No dependency manifests were found in this repository.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-left text-[11px]">
+            <thead className="border-b border-white/10 text-[10px] uppercase tracking-widest text-[#4d4d4d]">
+              <tr>
+                <th scope="col" className="px-4 py-2 font-normal">Package</th>
+                <th scope="col" className="px-4 py-2 font-normal">Version</th>
+                <th scope="col" className="px-4 py-2 font-normal">Ecosystem</th>
+                {!compact && <th scope="col" className="px-4 py-2 font-normal">Declared in</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {rows.slice(0, compact ? 8 : rows.length).map((row) => (
+                <tr key={row.key} className="align-top">
+                  <td className="px-4 py-2">
+                    <span className="font-semibold text-[#e5e5e5]">{row.name}</span>
+                    {row.severity && (
+                      <span className="ml-2 rounded bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-300">
+                        {row.severity}
+                      </span>
+                    )}
+                    {row.sources?.length ? (
+                      <span className="ml-2 inline-flex items-center gap-1 text-[9px] text-sky-400">
+                        <Globe size={9} aria-hidden /> sourced
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-2 font-mono text-[#8a8a8a]">{row.version || "-"}</td>
+                  <td className="px-4 py-2 text-[#6a6a6a]">{row.ecosystem || "-"}</td>
+                  {!compact && (
+                    <td className="px-4 py-2 font-mono text-[#4d4d4d]">{row.declared_in}</td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {notes.length > 0 && (
+        <div className="space-y-3 border-t border-white/10 p-4">
+          <p className="text-[10px] uppercase tracking-widest text-[#4d4d4d]">
+            Researched verdicts
+          </p>
+          {notes.slice(0, compact ? 2 : 6).map(([name, value]) => {
+            const record = value as Record<string, unknown>;
+            return (
+              <div key={name} className="text-[11px]">
+                <p className="font-semibold text-[#e5e5e5]">{name}</p>
+                {typeof record.reason === "string" && (
+                  <p className="mt-0.5 text-[#8a8a8a]">{record.reason}</p>
+                )}
+                <SourceLinks sources={(record.sources as any[]) || []} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function ArchitecturePanel({ results }: { results: AnalysisResult }) {
+  const architecture = results.architecture || {};
+  const stack = results.tech_stack || {};
+  const stackEntries = Object.entries(stack).filter(
+    ([, value]) => Array.isArray(value) && value.length > 0
+  );
+
+  return (
+    <Panel
+      title="Architecture"
+      icon={<Cpu size={14} className="text-purple-400" aria-hidden />}
+      actions={
+        architecture.generated_by ? (
+          <span className="hidden max-w-[160px] truncate font-mono text-[10px] text-[#4d4d4d] sm:inline">
+            {architecture.generated_by}
+          </span>
+        ) : null
+      }
+    >
+      <div className="space-y-4 p-4 text-xs leading-relaxed">
+        {architecture.summary ? (
+          <p className="text-[#a0a0a0]">{architecture.summary}</p>
+        ) : (
+          <p className="text-[#5a5a5a]">
+            No architecture summary in this analysis. It is written by the large model, so an
+            instance without model access produces the measurements but not the narrative.
+          </p>
+        )}
+
+        {architecture.pattern && (
+          <p>
+            <span className="text-[#4d4d4d]">Pattern: </span>
+            <span className="text-[#8a8a8a]">{architecture.pattern}</span>
+          </p>
+        )}
+
+        {(architecture.layers || []).length > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-[#4d4d4d]">Layers</p>
+            <ul className="mt-1 space-y-1">
+              {(architecture.layers || []).map((layer, index) => (
+                <li key={`${layer.name}-${index}`} className="text-[#8a8a8a]">
+                  <span className="font-semibold text-[#e5e5e5]">{layer.name}</span>
+                  {layer.responsibility && <span> - {layer.responsibility}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {(architecture.risks || []).length > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-[#4d4d4d]">
+              Risks called out
+            </p>
+            <ul className="mt-1 space-y-1">
+              {(architecture.risks || []).map((risk, index) => (
+                <li key={index} className="text-[#8a8a8a]">
+                  {risk.file_path && <span className="font-mono text-[#5a5a5a]">{risk.file_path}: </span>}
+                  {risk.risk}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {stackEntries.length > 0 && (
+          <div className="border-t border-white/5 pt-3">
+            {stackEntries.map(([category, items]) => (
+              <div key={category} className="mb-2 last:mb-0">
+                <p className="text-[10px] uppercase tracking-widest text-[#4d4d4d]">
+                  {category.replace(/_/g, " ")}
+                </p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {(items as string[]).map((item, index) => (
+                    <span
+                      key={`${item}-${index}`}
+                      className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-[#8a8a8a]"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Panel>
+  );
+}
+
+function ChatPanel({
+  results,
+  getIdToken,
+  isDemo,
+}: {
+  results: AnalysisResult;
+  getIdToken: () => Promise<string | null>;
+  isDemo: boolean;
+}) {
+  return (
+    <Panel
+      title="Ask the repository"
+      icon={<Bot size={14} className="text-[#00ff41]" aria-hidden />}
+      actions={<span className="hidden text-[10px] text-[#4d4d4d] sm:inline">fast model · tools</span>}
+    >
+      <div className="h-[420px]">
+        <AIChat repoId={results.repo_id} getIdToken={getIdToken} disabled={isDemo} />
+      </div>
+    </Panel>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// shared bits
+// --------------------------------------------------------------------------- //
+
+function SeverityBadge({ severity, count }: { severity: string; count?: number }) {
+  const tones: Record<string, string> = {
+    CRITICAL: "border-red-500/40 bg-red-500/10 text-red-300",
+    HIGH: "border-orange-500/40 bg-orange-500/10 text-orange-300",
+    MEDIUM: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
+    LOW: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+  };
+  const tone = tones[severity] || "border-white/10 bg-white/5 text-[#8a8a8a]";
+  return (
+    <span
+      className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${tone}`}
+    >
+      {severity}
+      {count !== undefined ? ` ${count}` : ""}
+    </span>
+  );
+}
+
+function SourceLinks({ sources }: { sources: { title: string; url: string }[] }) {
+  if (!sources.length) return null;
+  return (
+    <ul className="mt-2 space-y-1">
+      {sources.slice(0, 4).map((source, index) => (
+        <li key={`${source.url}-${index}`}>
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-start gap-1.5 text-[10px] text-sky-400 underline decoration-dotted underline-offset-2 hover:text-sky-300"
+          >
+            <Globe size={10} className="mt-0.5 shrink-0" aria-hidden />
+            <span className="break-all">{source.title || source.url}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export { Search, Terminal };

@@ -1,286 +1,263 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import * as THREE from "three";
 
-// ForceGraph3D is not SSR friendly
+// ForceGraph3D touches `window` on import, so it cannot be part of a server render.
 const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), { ssr: false });
 
-export default function GraphView({ data, onNodeClick }: { data: any; onNodeClick?: (node: any) => void }) {
-  const fgRef = useRef<any>();
+/** Colour by the language of the file, so a mixed repository is readable at a glance. */
+const LANGUAGE_COLOURS: Record<string, string> = {
+  python: "#3776ab",
+  javascript: "#f7df1e",
+  typescript: "#3178c6",
+  tsx: "#6ba2e8",
+  go: "#00add8",
+  java: "#e76f00",
+  rust: "#dea584",
+  c: "#555f6d",
+  cpp: "#f34b7d",
+  c_sharp: "#178600",
+  ruby: "#cc342d",
+  php: "#777bb4",
+  kotlin: "#a97bff",
+  swift: "#f05138",
+  scala: "#dc322f",
+  lua: "#000080",
+  elixir: "#6e4a7e",
+  perl: "#0298c3",
+  r: "#198ce7",
+  bash: "#89e051",
+};
+const FALLBACK_COLOUR = "#00ff41";
+
+/** Fan-in needed before a node is given a text label, so a big graph stays legible. */
+const LABEL_FAN_IN_THRESHOLD = 3;
+/** Below this many nodes, everything is labelled - there is room. */
+const LABEL_EVERYTHING_UNDER = 40;
+
+
+
+/**
+ * The dependency graph, as the pipeline computed it.
+ *
+ * Node size is fan-in - how many other files import this one - because that is
+ * the number that predicts blast radius, and colour is the file's language.
+ * Files with findings are outlined rather than recoloured: a repository that
+ * legitimately contains a security scanner should not read as a wall of red.
+ *
+ * Nothing is added to the graph to make it look fuller. If the analysis resolved
+ * two edges, there are two edges on screen.
+ */
+export default function GraphView({
+  data,
+  onNodeClick,
+}: {
+  data?: { nodes?: any[]; links?: any[] };
+  onNodeClick?: (node: any) => void;
+}) {
+  const graphRef = useRef<any>(null);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
 
-  // Extract unique languages from the data for dynamic legend
-  const uniqueLanguages = useMemo(() => {
-    if (!data || !data.nodes) return [];
-    const languages = new Set<string>();
-    data.nodes.forEach((node: any) => {
-      if (!node.isCentral) {
-        languages.add(String(node.language || ""));
-      }
-    });
-    return Array.from(languages).filter(Boolean).sort();
-  }, [data]);
+  const graph = useMemo(() => {
+    const sourceNodes = Array.isArray(data?.nodes) ? data!.nodes : [];
+    const sourceLinks = Array.isArray(data?.links) ? data!.links : [];
 
-  // Enhance graph data with central "User sees this" node and connections
-  const enhancedGraphData = useMemo(() => {
-    if (!data) return { nodes: [], links: [] };
-
-    // Create central node
-    const centralNode = {
-      id: "central-user-view",
-      name: "Repository Overview",
-      path: "Entry point",
-      language: "central",
-      complexity: 1,
-      vulnerabilities: 0,
-      val: 28,
-      boxWidth: 42,
-      boxHeight: 18,
-      boxDepth: 8,
-      isSummary: true,
-      isCentral: true
-    };
-
-    // Create links FROM file nodes TO central node (arrows point toward central)
-    const centralLinks = data.nodes.map((node: any) => ({
-      source: node.id,
-      target: "central-user-view",
-      // Links point toward the central "User Sees This" node
-    }));
-
-    // Combine original data with central node and links
-    return {
-      nodes: [centralNode, ...data.nodes],
-      links: [...centralLinks, ...data.links]
-    };
-  }, [data]);
-
-  // Center the graph initially after it mounts and data is available
-  useEffect(() => {
-    if (mounted && fgRef.current && enhancedGraphData && enhancedGraphData.nodes.length > 0) {
-      // Position camera to look at the center of the graph (where central node is)
-      fgRef.current.cameraPosition(
-        { x: 0, y: 0, z: 220 }, // pull back to show more of the graph by default
-        { x: 0, y: 0, z: 0 },  // look at origin (where central node will be)
-        1500  // smooth transition duration
-      );
-
-      fgRef.current.d3Force?.("charge")?.strength(-2400);
-      fgRef.current.d3Force?.("collision")?.radius((node: any) => {
-        if (node.isCentral) return 40;
-        return Math.max(18, Math.min(32, 16 + String(node.name || "").length * 0.35));
-      });
-      fgRef.current.d3Force?.("link")?.distance((link: any) => {
-        const sourceIsCentral = link.source?.isCentral || link.target?.isCentral;
-        return sourceIsCentral ? 280 : 180;
-      });
+    const degree = new Map<string, { fanIn: number; fanOut: number }>();
+    for (const node of sourceNodes) {
+      const id = String(node?.id ?? "");
+      if (id) degree.set(id, { fanIn: 0, fanOut: 0 });
     }
-  }, [mounted, enhancedGraphData]);
+    for (const link of sourceLinks) {
+      // Force-graph mutates `source`/`target` from ids into objects after layout,
+      // so both shapes have to be handled.
+      const source = typeof link?.source === "object" ? link.source?.id : link?.source;
+      const target = typeof link?.target === "object" ? link.target?.id : link?.target;
+      if (degree.has(String(source))) degree.get(String(source))!.fanOut += 1;
+      if (degree.has(String(target))) degree.get(String(target))!.fanIn += 1;
+    }
 
-  if (!mounted) return <div className="h-full w-full bg-black/50 animate-pulse flex items-center justify-center">Centering...</div>;
+    const maxFanIn = Math.max(1, ...[...degree.values()].map((value) => value.fanIn));
+
+    const nodes = sourceNodes.map((node: any) => {
+      const id = String(node?.id ?? "");
+      const counts = degree.get(id) ?? { fanIn: 0, fanOut: 0 };
+      const findings = Number(node?.finding_count ?? 0);
+      const language = String(node?.language ?? "").toLowerCase();
+      return {
+        ...node,
+        id,
+        fanIn: counts.fanIn,
+        fanOut: counts.fanOut,
+        findings,
+        // Area grows with fan-in, so the most depended-upon files read as anchors.
+        val: 1 + (counts.fanIn / maxFanIn) * 7,
+        colour: LANGUAGE_COLOURS[language] ?? FALLBACK_COLOUR,
+      };
+    });
+
+    const links = sourceLinks
+      .filter((link: any) => link?.source !== undefined && link?.target !== undefined)
+      .map((link: any) => ({ source: link.source, target: link.target }));
+
+    return { nodes, links };
+  }, [data]);
+
+  // The layout only needs configuring once the graph exists and the canvas is up.
+  useEffect(() => {
+    if (!mounted || !graphRef.current || graph.nodes.length === 0) return;
+    const control = graphRef.current;
+    control.cameraPosition({ x: 0, y: 0, z: 260 }, { x: 0, y: 0, z: 0 }, 1200);
+    control.d3Force?.("charge")?.strength(-260);
+    control.d3Force?.("link")?.distance(70);
+    control.d3Force?.("collision")?.radius((node: any) => 6 + Math.sqrt(node.val) * 3);
+  }, [mounted, graph]);
+
+  const legend = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const node of graph.nodes) {
+      const language = String(node.language ?? "").toLowerCase() || "other";
+      counts.set(language, (counts.get(language) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [graph]);
+
+  if (!mounted) {
+    return (
+      <div className="grid h-full w-full place-items-center bg-[#0a0a0a] text-xs text-[#4d4d4d]">
+        Preparing the graph...
+      </div>
+    );
+  }
+
+  if (graph.nodes.length === 0) {
+    return (
+      <div className="grid h-full w-full place-items-center bg-[#0a0a0a] px-6 text-center text-xs text-[#5a5a5a]">
+        No files were analysed, so there is nothing to lay out.
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full w-full relative flex items-center justify-center">
+    <div className="relative h-full w-full">
       <ForceGraph3D
-        ref={fgRef}
-        graphData={enhancedGraphData}
+        ref={graphRef}
+        graphData={graph}
         backgroundColor="#0a0a0a"
-        nodeLabel={(node: any) => {
-          if (node.isCentral) {
-            return "Repository Overview";
-          }
-          const vulnerabilityText = node.vulnerabilities > 0 ? `\nSecurity findings: ${node.vulnerabilities}` : "";
-          return `${node.name}\n${node.path || ""}${vulnerabilityText}`;
-        }}
+        // Labelling every node turns a large graph into noise, so only the most
+        // depended-upon files are named and the rest are found by hovering.
+        nodeLabel={(node: any) =>
+          `${node.path ?? node.name}\n${node.language ?? "unknown"} · imported by ${
+            node.fanIn
+          }, imports ${node.fanOut}${node.findings ? `\n${node.findings} finding(s)` : ""}`
+        }
         nodeVal={(node: any) => node.val}
-        nodeThreeObject={(node: any) => createNodeCard(node)}
-        nodeThreeObjectExtend={false}
-        linkDirectionalArrowLength={4}
-        linkDirectionalArrowRelPos={0.5}
-        linkCurvature={0.15}
+        nodeColor={(node: any) => node.colour}
+        nodeRelSize={4}
+        // A 3D graph draws nodes as spheres, so labels have to be 3D objects too.
+        // Only the most depended-upon files get one, or the view becomes a wall
+        // of overlapping text.
+        nodeThreeObject={(node: any) => buildNode(node, graph.nodes.length)}
         linkColor={(link: any) => {
-          const source = link.source;
-          const target = link.target;
-          const sourceIsCentral = source?.isCentral || source?.id === "central-user-view";
-          const targetIsCentral = target?.isCentral || target?.id === "central-user-view";
-
-          if (sourceIsCentral || targetIsCentral) {
-            return "rgba(0, 255, 65, 0.55)";
-          }
-
-          const sourceFinding = Number(source?.vulnerabilities || 0);
-          const targetFinding = Number(target?.vulnerabilities || 0);
-          if (sourceFinding > 0 || targetFinding > 0) {
-            return "rgba(239, 68, 68, 0.7)";
-          }
-
-          return "rgba(0, 255, 65, 0.2)";
+          const touched = [link.source, link.target].filter(Boolean);
+          const hasFindings = touched.some((node: any) => Number(node?.findings) > 0);
+          return hasFindings ? "rgba(239, 68, 68, 0.45)" : "rgba(0, 255, 65, 0.16)";
         }}
-        linkWidth={({ source, target }: any) => {
-          // Make links to/from central node slightly wider
-          const sourceIsCentral = source.id === "central-user-view" || source.isCentral;
-          const targetIsCentral = target.id === "central-user-view" || target.isCentral;
-
-          if (sourceIsCentral || targetIsCentral) {
-            // Wider links for central connections
-            return Math.sqrt(source.val * target.val) * 0.15;
-          }
-          return Math.sqrt(source.val * target.val) * 0.1;
-        }}
+        linkWidth={0.6}
+        linkDirectionalArrowLength={3}
+        linkDirectionalArrowRelPos={0.9}
         onNodeClick={(node: any) => {
-          // Don't allow clicking on central node to avoid confusion
-          if (node.isCentral) return;
-
-          // Aim at node from outside
-          const distance = 40;
-          const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
-
-          fgRef.current.cameraPosition(
-            { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new pos
-            node, // lookAt ({ x, y, z })
-            3000  // ms transition duration
+          const distance = 60;
+          const ratio = 1 + distance / (Math.hypot(node.x, node.y, node.z) || 1);
+          graphRef.current?.cameraPosition(
+            { x: node.x * ratio, y: node.y * ratio, z: node.z * ratio },
+            node,
+            900
           );
-
-          if (onNodeClick) {
-            onNodeClick(node);
-          }
+          onNodeClick?.(node);
         }}
       />
-      {/* Dynamic Language Legend */}
-      <div className="absolute bottom-4 left-4 text-[10px] uppercase tracking-widest text-[#444] bg-black/50 p-2 border border-[#222]">
-        <div className="flex flex-col items-start gap-1">
-          <div className="text-[9px] text-[#00ff41] font-bold">Nodes:</div>
-          <div className="flex flex-wrap gap-2">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-sm bg-[#00ff41]" />
-              <span className="text-[9px]">Files</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-sm bg-red-500" />
-              <span className="text-[9px]">Findings</span>
-            </div>
-          </div>
-        </div>
+
+      <div className="pointer-events-none absolute bottom-3 left-3 rounded border border-white/10 bg-black/70 px-2.5 py-2 text-[9px] uppercase tracking-widest text-[#555]">
+        <p className="text-[#00ff41]">Size = imported by</p>
+        <ul className="mt-1 space-y-0.5">
+          {legend.map(([language, count]) => (
+            <li key={language} className="flex items-center gap-1.5 normal-case tracking-normal">
+              <span
+                aria-hidden
+                className="inline-block h-2 w-2 rounded-sm"
+                style={{ background: LANGUAGE_COLOURS[language] ?? FALLBACK_COLOUR }}
+              />
+              <span className="text-[#7a7a7a]">{language}</span>
+              <span className="text-[#4d4d4d]">{count}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="pointer-events-none absolute bottom-3 right-3 text-right text-[9px] uppercase tracking-widest text-[#444]">
+        <p>{graph.nodes.length} files · {graph.links.length} imports</p>
+        <p>drag to orbit · scroll to zoom</p>
       </div>
     </div>
   );
 }
 
-function createNodeCard(node: any) {
-  const width = node.isCentral ? 42 : Math.max(28, Math.min(42, 24 + String(node.name || "").length * 0.6));
-  const height = node.isCentral ? 16 : Math.max(16, Math.min(24, 14 + Math.max(0, String(node.path || "").split("/").length - 1) * 1.2));
-  const depth = node.isCentral ? 8 : 5;
+/**
+ * One node: a sphere sized by fan-in, a red shell when it has findings, and a
+ * sprite label for the files worth naming.
+ */
+function buildNode(node: any, nodeCount: number): THREE.Object3D {
+  const group = new THREE.Group();
+  const radius = 1.6 + Math.sqrt(Math.max(0.1, node.val)) * 1.5;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = 1024;
-  canvas.height = 512;
-  const context = canvas.getContext("2d");
-  if (!context) return new THREE.Group();
+  const shell = new THREE.Mesh(
+    new THREE.SphereGeometry(radius, 16, 12),
+    new THREE.MeshBasicMaterial({ color: node.colour, transparent: true, opacity: 0.9 })
+  );
+  group.add(shell);
 
-  const isFinding = Number(node.vulnerabilities || 0) > 0;
-  const fill = isFinding ? "rgba(220, 38, 38, 0.98)" : node.isCentral ? "rgba(0, 88, 28, 0.98)" : "rgba(14, 42, 96, 0.98)";
-  const border = isFinding ? "rgba(255, 205, 205, 0.98)" : node.isCentral ? "rgba(0, 255, 65, 0.95)" : "rgba(96, 165, 250, 0.95)";
-
-  roundRect(context, 18, 20, canvas.width - 36, canvas.height - 40, 36);
-  context.fillStyle = fill;
-  context.fill();
-  context.lineWidth = 12;
-  context.strokeStyle = border;
-  context.stroke();
-
-  context.fillStyle = isFinding ? "#fff7f7" : "#f8fbff";
-  context.font = node.isCentral ? "bold 40px Inter, sans-serif" : "bold 34px Inter, sans-serif";
-  context.textBaseline = "top";
-  wrapText(context, String(node.name || "Untitled"), 64, 64, canvas.width - 128, 44, 2);
-
-  context.fillStyle = isFinding ? "#fff7f7" : "#cfe1ff";
-  context.font = node.isCentral ? "28px Inter, sans-serif" : "24px Inter, sans-serif";
-  const pathText = String(node.path || node.id || "");
-  wrapText(context, pathText, 64, 160, canvas.width - 128, 30, 3);
-
-  if (isFinding) {
-    context.fillStyle = "#fff7f7";
-    context.font = "bold 24px Inter, sans-serif";
-    context.fillText(`Findings: ${Number(node.vulnerabilities || 0)}`, 64, 292);
-  } else {
-    context.fillStyle = "#dbeafe";
-    context.font = "bold 22px Inter, sans-serif";
-    context.fillText(String(node.language || "file").toUpperCase(), 64, 292);
+  if (Number(node.findings) > 0) {
+    // A separate wireframe shell rather than a recolour: the language colour
+    // still identifies the file, and the finding count stays legible.
+    const outline = new THREE.Mesh(
+      new THREE.SphereGeometry(radius * 1.45, 12, 8),
+      new THREE.MeshBasicMaterial({ color: "#ef4444", wireframe: true, transparent: true, opacity: 0.45 })
+    );
+    group.add(outline);
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
+  const worthLabelling = node.fanIn >= LABEL_FAN_IN_THRESHOLD || nodeCount <= LABEL_EVERYTHING_UNDER;
+  const label = String(node.name ?? "");
+  if (label && worthLabelling) {
+    const sprite = makeLabelSprite(label.length > 20 ? `${label.slice(0, 19)}…` : label);
+    sprite.position.y = radius + 2.4;
+    sprite.scale.set(11, 2.6, 1);
+    group.add(sprite);
+  }
 
-  const material = new THREE.MeshBasicMaterial({
-    map: texture,
-    transparent: true,
-    opacity: 1,
-    depthWrite: false,
-  });
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  const mesh = new THREE.Mesh(geometry, material);
-
-  const borderMaterial = new THREE.LineBasicMaterial({ color: border, transparent: true, opacity: 1 });
-  const borderMesh = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(width + 0.8, height + 0.8, depth + 0.8)), borderMaterial);
-
-  const group = new THREE.Group();
-  group.add(mesh);
-  group.add(borderMesh);
   return group;
 }
 
-function roundRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.lineTo(x + width - radius, y);
-  context.quadraticCurveTo(x + width, y, x + width, y + radius);
-  context.lineTo(x + width, y + height - radius);
-  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  context.lineTo(x + radius, y + height);
-  context.quadraticCurveTo(x, y + height, x, y + height - radius);
-  context.lineTo(x, y + radius);
-  context.quadraticCurveTo(x, y, x + radius, y);
-  context.closePath();
-}
-
-function wrapText(
-  context: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  lineHeight: number,
-  maxLines: number,
-) {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let current = "";
-
-  words.forEach((word) => {
-    const trial = current ? `${current} ${word}` : word;
-    if (context.measureText(trial).width <= maxWidth || !current) {
-      current = trial;
-    } else {
-      lines.push(current);
-      current = word;
-    }
-  });
-
-  if (current) lines.push(current);
-  const displayLines = lines.slice(0, maxLines);
-
-  displayLines.forEach((line, index) => {
-    context.fillText(line, x, y + index * lineHeight);
-  });
-
-  if (lines.length > maxLines) {
-    context.fillText("...", x, y + (maxLines - 1) * lineHeight);
+function makeLabelSprite(text: string): THREE.Sprite {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.font = "44px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(210, 210, 210, 0.85)";
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
   }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false })
+  );
 }

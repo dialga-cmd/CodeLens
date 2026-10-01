@@ -74,10 +74,30 @@ __pycache__/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
+# dotenv environment variables files. The *.example templates are committed,
+# the values never are. server/.env and client/.env.local are the two the
+# README tells you to create.
 .env
+.env.*
+!.env.example
+client/.env.local
+client/.env*.local
 
 # dataconnect generated files
 .dataconnect
 
+# Firebase service account and any other credential material
 serviceAccountKey.json
+*.serviceaccount.json
+*-service-account.json
+
+# Next.js build output, which is a build artefact
+client/out/
+client/.next/
+out/
+client/tsconfig.tsbuildinfo
+
+# Playwright output from the end-to-end test
+test-results/
+playwright-report/
+docs/screenshots/*.tmp.png

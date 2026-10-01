@@ -1,382 +1,401 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState, useTransition } from "react";
-import { cn } from "@/lib/utils";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Bot,
-    SendIcon,
-    LoaderIcon,
-    Sparkles,
-    User as UserIcon,
+  Bot,
+  FileCode,
+  Loader2,
+  SendHorizontal,
+  Sparkles,
+  User as UserIcon,
+  Wrench,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import * as React from "react";
-import { User as FirebaseUser } from "firebase/auth";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+import { API_BASE_URL, type ChatSource } from "@/lib/api";
+
+type Role = "user" | "assistant";
 
 interface Message {
-  role: "user" | "assistant";
+  id: string;
+  role: Role;
   content: string;
+  sources?: ChatSource[];
+  tools?: string[];
+  pending?: boolean;
+  failed?: boolean;
 }
 
-interface UseAutoResizeTextareaProps {
-    minHeight: number;
-    maxHeight?: number;
-}
+const SUGGESTIONS = [
+  "Where is authentication handled?",
+  "Which file should I read first to understand the entry point?",
+  "What are the riskiest places to change?",
+];
 
-function useAutoResizeTextarea({
-    minHeight,
-    maxHeight,
-}: UseAutoResizeTextareaProps) {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+/**
+ * Ask the analysed repository a question.
+ *
+ * Answers come back as a stream on the fast model, and the server sends one
+ * `sources` event before the first token naming the files the answer is based
+ * on - including any the model fetched with a tool mid-answer. Those links are
+ * rendered under the message rather than mentioned in prose, because "the model
+ * says" and "the model read" are different claims and the second one should be
+ * checkable.
+ */
+export default function AIChat({
+  repoId,
+  getIdToken,
+  disabled = false,
+  className,
+}: {
+  repoId: string;
+  getIdToken: () => Promise<string | null>;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [value, setValue] = useState("");
+  const [streaming, setStreaming] = useState(false);
+  const [error, setError] = useState("");
 
-    const adjustHeight = useCallback(
-        (reset?: boolean) => {
-            const textarea = textareaRef.current;
-            if (!textarea) return;
+  const streamRef = useRef<AbortController | null>(null);
+  const logRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const sequence = useRef(0);
 
-            if (reset) {
-                textarea.style.height = `${minHeight}px`;
-                return;
+  useEffect(() => {
+    const element = logRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [messages, streaming]);
+
+  // Closing the tab mid-answer should close the request, not leak it.
+  useEffect(() => () => streamRef.current?.abort(), []);
+
+  const ask = useCallback(
+    async (question: string) => {
+      const trimmed = question.trim();
+      if (!trimmed || streaming) return;
+
+      const turn = ++sequence.current;
+      setError("");
+      setValue("");
+      setStreaming(true);
+      setMessages((current) => [
+        ...current,
+        { id: `u-${turn}`, role: "user", content: trimmed },
+        { id: `a-${turn}`, role: "assistant", content: "", pending: true },
+      ]);
+
+      const controller = new AbortController();
+      streamRef.current = controller;
+
+      const patch = (id: string, changes: Partial<Message>) =>
+        setMessages((current) =>
+          current.map((message) => (message.id === id ? { ...message, ...changes } : message))
+        );
+
+      const answerId = `a-${turn}`;
+
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        const token = await getIdToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const response = await fetch(`${API_BASE_URL}/chat/stream`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ repo_id: repoId, query: trimmed }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok || !response.body) {
+          let detail = `The assistant answered with ${response.status}.`;
+          try {
+            const payload = await response.json();
+            if (typeof payload?.detail === "string") detail = payload.detail;
+          } catch {
+            // A non-JSON body is reported by status, which is enough.
+          }
+          throw new Error(detail);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          // Server-Sent Events arrive as blocks separated by a blank line.
+          const blocks = buffer.split("\n\n");
+          buffer = blocks.pop() ?? "";
+
+          for (const block of blocks) {
+            let name = "message";
+            let data = "";
+            for (const line of block.split("\n")) {
+              if (line.startsWith("event:")) name = line.slice(6).trim();
+              else if (line.startsWith("data:")) data += line.slice(5).trim();
+            }
+            if (!data) continue;
+
+            let payload: any;
+            try {
+              payload = JSON.parse(data);
+            } catch {
+              continue;
             }
 
-            textarea.style.height = `${minHeight}px`;
-            const newHeight = Math.max(
-                minHeight,
-                Math.min(
-                    textarea.scrollHeight,
-                    maxHeight ?? Number.POSITIVE_INFINITY
+            if (name === "sources") {
+              patch(answerId, {
+                sources: payload.sources || [],
+                tools: (payload.tools_used || []).map((tool: any) =>
+                  typeof tool === "string" ? tool : String(tool?.name || "tool")
+                ),
+              });
+            } else if (name === "delta") {
+              setMessages((current) =>
+                current.map((message) =>
+                  message.id === answerId
+                    ? { ...message, content: message.content + String(payload.text ?? "") }
+                    : message
                 )
-            );
-
-            textarea.style.height = `${newHeight}px`;
-        },
-        [minHeight, maxHeight]
-    );
-
-    useEffect(() => {
-        const textarea = textareaRef.current;
-        if (textarea) {
-            textarea.style.height = `${minHeight}px`;
+              );
+            } else if (name === "error") {
+              throw new Error(String(payload.message || "The assistant failed."));
+            } else if (name === "done" && payload.ok === false) {
+              throw new Error("The assistant stopped before finishing the answer.");
+            }
+          }
         }
-    }, [minHeight]);
 
-    return { textareaRef, adjustHeight };
-}
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === answerId
+              ? {
+                  ...message,
+                  pending: false,
+                  content:
+                    message.content.trim() ||
+                    "The model returned an empty answer. Try naming a file or a directory.",
+                }
+              : message
+          )
+        );
+      } catch (cause) {
+        if ((cause as Error)?.name === "AbortError") {
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === answerId
+                ? { ...message, pending: false, content: message.content || "Stopped." }
+                : message
+            )
+          );
+        } else {
+          const reason = cause instanceof Error ? cause.message : "The assistant is unavailable.";
+          setError(reason);
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === answerId
+                ? { ...message, pending: false, failed: true, content: message.content || reason }
+                : message
+            )
+          );
+        }
+      } finally {
+        streamRef.current = null;
+        setStreaming(false);
+      }
+    },
+    [getIdToken, repoId, streaming]
+  );
 
-interface TextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  containerClassName?: string;
-  showRing?: boolean;
-}
+  const busy = streaming;
+  const canAsk = useMemo(() => Boolean(repoId) && !disabled, [repoId, disabled]);
 
-const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, containerClassName, showRing = true, ...props }, ref) => {
-    const [isFocused, setIsFocused] = React.useState(false);
-    
-    return (
-      <div className={cn(
-        "relative",
-        containerClassName
-      )}>
-        <textarea
-          className={cn(
-            "flex min-h-[80px] w-full rounded-md border border-[#222] bg-transparent px-3 py-2 text-sm",
-            "transition-all duration-200 ease-in-out",
-            "placeholder:text-[#666]",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            showRing ? "focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0" : "",
-            className
-          )}
-          ref={ref}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          {...props}
-        />
-        
-        {showRing && isFocused && (
-          <motion.span 
-            className="absolute inset-0 rounded-md pointer-events-none ring-2 ring-offset-0 ring-violet-500/30"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          />
-        )}
+  return (
+    <section
+      className={`panel flex h-full min-h-0 flex-col overflow-hidden ${className ?? ""}`}
+      aria-label="Ask questions about this repository"
+    >
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#111] px-4 py-2.5">
+        <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#8a8a8a]">
+          <Sparkles size={13} className="text-[#00ff41]" aria-hidden />
+          Ask the repository
+        </h3>
+        <span className="text-[10px] text-[#4d4d4d]">reads real files</span>
       </div>
-    )
-  }
-)
-Textarea.displayName = "Textarea"
 
-export default function AIChat({ repoId, user, className }: { repoId: string, user: FirebaseUser, className?: string }) {
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [value, setValue] = useState("");
-    const [isTyping, setIsTyping] = useState(false);
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const { textareaRef, adjustHeight } = useAutoResizeTextarea({
-        minHeight: 40,
-        maxHeight: 120,
-    });
-    const [inputFocused, setInputFocused] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, isTyping]);
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            // Adjust position relative to the chat container
-            const rect = document.getElementById("chat-container")?.getBoundingClientRect();
-            if (rect) {
-                setMousePosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-            }
-        };
-
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-        };
-    }, []);
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            if (value.trim()) {
-                handleSendMessage();
-            }
-        }
-    };
-
-    const handleSendMessage = async () => {
-        if (!value.trim() || isTyping) return;
-
-        const query = value.trim();
-        const userMessage: Message = { role: "user", content: query };
-        setMessages(prev => [...prev, userMessage]);
-        setValue("");
-        adjustHeight(true);
-        setIsTyping(true);
-
-        try {
-            const token = await user.getIdToken();
-            const response = await fetch(`${API_BASE_URL}/chat`, {
-                method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({ repo_id: repoId, query }),
-            });
-
-            const data = await response.json();
-            const assistantMessage: Message = { role: "assistant", content: data.answer };
-            setMessages(prev => [...prev, assistantMessage]);
-        } catch (error) {
-            setMessages(prev => [...prev, { role: "assistant", content: "Error: Could not reach the AI server." }]);
-        } finally {
-            setIsTyping(false);
-        }
-    };
-
-    return (
-        <div id="chat-container" className={`panel h-full min-h-0 flex flex-col bg-[#050505] border-[#222] relative overflow-hidden ${className ?? ""}`}>
-            <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-0 left-1/4 w-64 h-64 bg-[#00ff41]/5 rounded-full mix-blend-normal filter blur-[100px] animate-pulse" />
-                <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-[#00ff41]/5 rounded-full mix-blend-normal filter blur-[100px] animate-pulse delay-700" />
+      <div
+        ref={logRef}
+        role="log"
+        aria-live="polite"
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 text-xs"
+      >
+        {messages.length === 0 && (
+          <div className="flex h-full flex-col items-center justify-center gap-4 py-6 text-center">
+            <div className="grid h-14 w-14 place-items-center rounded-full border border-[#00ff41]/20 bg-[#00ff41]/10">
+              <Bot size={26} className="text-[#00ff41]" aria-hidden />
             </div>
-
-            <div className="p-3 border-b border-[#222] flex items-center justify-between relative z-10 bg-black/40 backdrop-blur-md">
-                <h3 className="text-xs font-bold text-[#444] uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles size={14} className="text-[#00ff41]" /> Code Intelligence Chat
-                </h3>
-                <span className="text-[10px] text-[#00ff41] bg-[#003b11] px-2 py-0.5 rounded border border-[#00ff41]/30 shadow-[0_0_10px_rgba(0,255,65,0.2)]">Repo Context</span>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 font-mono text-[11px] relative z-10 scrollbar-thin scrollbar-thumb-[#222] scrollbar-track-transparent">
-                {messages.length === 0 && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="h-full flex flex-col items-center justify-center space-y-4 mt-8"
+            <p className="max-w-sm text-[#7a7a7a]">
+              {disabled
+                ? "This is a stored analysis. The clone it was made from is not kept, so the assistant cannot read files from it - run the analysis yourself for the full assistant."
+                : "Questions are answered from this analysis, and the model reads files through tools when the summary is not enough. Every file it used is listed under its answer."}
+            </p>
+            {!disabled && (
+              <ul className="space-y-2">
+                {SUGGESTIONS.map((suggestion) => (
+                  <li key={suggestion}>
+                    <button
+                      type="button"
+                      onClick={() => void ask(suggestion)}
+                      disabled={busy}
+                      className="rounded border border-white/10 px-3 py-1.5 text-[11px] text-[#6a6a6a] transition-colors hover:border-[#00ff41]/40 hover:text-[#00ff41] disabled:opacity-50"
                     >
-                        <div className="w-16 h-16 rounded-full bg-[#00ff41]/10 flex items-center justify-center border border-[#00ff41]/20 shadow-[0_0_30px_rgba(0,255,65,0.1)]">
-                            <Bot size={32} className="text-[#00ff41]" />
-                        </div>
-                        <h1 className="text-lg font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white/90 to-white/40">
-                            How can I help you analyze this repo today?
-                        </h1>
-                    </motion.div>
-                )}
-                
-                {messages.map((msg, i) => (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        key={i} 
-                        className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
-                    >
-                        {msg.role === "assistant" && (
-                            <div className="w-6 h-6 rounded-full bg-[#111] border border-[#222] flex items-center justify-center text-[#00ff41] shrink-0 shadow-[0_0_10px_rgba(0,255,65,0.1)]">
-                                <Bot size={12} />
-                            </div>
-                        )}
-                        <div className={`max-w-[85%] min-w-0 break-words p-3 rounded-2xl ${
-                            msg.role === "user" 
-                            ? "bg-[#00ff41]/10 text-[#00ff41] border border-[#00ff41]/20 rounded-tr-sm shadow-[0_0_15px_rgba(0,255,65,0.05)]" 
-                            : "bg-[#111]/80 backdrop-blur-sm text-[#ddd] border border-[#222] rounded-tl-sm shadow-xl"
-                        }`}>
-                            {msg.role === "assistant" ? (
-                                <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-[#050505] prose-pre:border prose-pre:border-[#333] prose-pre:p-3 prose-pre:overflow-x-auto prose-code:text-[#00ff41] prose-a:text-[#00ff41]">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {msg.content}
-                                    </ReactMarkdown>
-                                </div>
-                            ) : (
-                                msg.content
-                            )}
-                        </div>
-                        {msg.role === "user" && (
-                            <div className="w-6 h-6 rounded-full bg-[#222] border border-[#333] flex items-center justify-center text-[#888] shrink-0">
-                                <UserIcon size={12} />
-                            </div>
-                        )}
-                    </motion.div>
+                      {suggestion}
+                    </button>
+                  </li>
                 ))}
-                
-                <AnimatePresence>
-                    {isTyping && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="flex gap-3"
-                        >
-                            <div className="w-6 h-6 rounded-full bg-[#111] border border-[#222] flex items-center justify-center text-[#00ff41] shrink-0 shadow-[0_0_10px_rgba(0,255,65,0.1)]">
-                                <Bot size={12} />
-                            </div>
-                            <div className="bg-[#111]/80 backdrop-blur-sm border border-[#222] rounded-2xl rounded-tl-sm p-3 flex items-center gap-2 text-sm text-[#00ff41]/70 w-24 shadow-xl">
-                                <TypingDots />
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                <div ref={messagesEndRef} />
-            </div>
-
-            <div className="p-4 relative z-20">
-                <motion.div 
-                    className="relative backdrop-blur-2xl bg-[#0a0a0a]/80 rounded-2xl border border-[#222] shadow-2xl overflow-hidden"
-                    initial={{ scale: 0.98 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.1 }}
-                >
-                    <div className="p-2">
-                        <Textarea
-                            ref={textareaRef}
-                            value={value}
-                            onChange={(e) => {
-                                setValue(e.target.value);
-                                adjustHeight();
-                            }}
-                            onKeyDown={handleKeyDown}
-                            onFocus={() => setInputFocused(true)}
-                            onBlur={() => setInputFocused(false)}
-                            placeholder="Ask CodeLens a question..."
-                            containerClassName="w-full"
-                            className={cn(
-                                "w-full px-3 py-2",
-                                "resize-none",
-                                "bg-transparent",
-                                "border-none",
-                                "text-white/90 text-sm font-mono",
-                                "focus:outline-none",
-                                "placeholder:text-white/20",
-                                "min-h-[40px]"
-                            )}
-                            style={{
-                                overflow: "hidden",
-                            }}
-                            showRing={false}
-                        />
-                    </div>
-
-                    <div className="p-2 border-t border-[#222] flex items-center justify-end bg-[#050505]/50">
-                        <motion.button
-                            type="button"
-                            onClick={handleSendMessage}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            disabled={isTyping || !value.trim()}
-                            className={cn(
-                                "px-4 py-1.5 rounded-xl text-xs font-bold transition-all uppercase tracking-wider",
-                                "flex items-center gap-2",
-                                value.trim()
-                                    ? "bg-[#00ff41] text-black shadow-[0_0_15px_rgba(0,255,65,0.4)]"
-                                    : "bg-[#111] text-[#444] border border-[#222]"
-                            )}
-                        >
-                            {isTyping ? (
-                                <LoaderIcon className="w-3 h-3 animate-[spin_2s_linear_infinite]" />
-                            ) : (
-                                <SendIcon className="w-3 h-3" />
-                            )}
-                            <span>Send</span>
-                        </motion.button>
-                    </div>
-                </motion.div>
-            </div>
-
-            {inputFocused && (
-                <motion.div 
-                    className="absolute w-[30rem] h-[30rem] rounded-full pointer-events-none z-0 opacity-[0.03] bg-gradient-to-r from-[#00ff41] via-[#00cc33] to-[#009922] blur-[64px]"
-                    animate={{
-                        x: mousePosition.x - 240,
-                        y: mousePosition.y - 240,
-                    }}
-                    transition={{
-                        type: "spring",
-                        damping: 25,
-                        stiffness: 150,
-                        mass: 0.5,
-                    }}
-                />
+              </ul>
             )}
-        </div>
-    );
-}
+          </div>
+        )}
 
-function TypingDots() {
-    return (
-        <div className="flex items-center ml-1">
-            {[1, 2, 3].map((dot) => (
-                <motion.div
-                    key={dot}
-                    className="w-1 h-1 bg-[#00ff41]/90 rounded-full mx-0.5"
-                    initial={{ opacity: 0.3 }}
-                    animate={{ 
-                        opacity: [0.3, 0.9, 0.3],
-                        scale: [0.85, 1.1, 0.85]
-                    }}
-                    transition={{
-                        duration: 1.2,
-                        repeat: Infinity,
-                        delay: dot * 0.15,
-                        ease: "easeInOut",
-                    }}
-                    style={{
-                        boxShadow: "0 0 4px rgba(0, 255, 65, 0.3)"
-                    }}
-                />
-            ))}
+        {messages.map((message) => (
+          <article
+            key={message.id}
+            className={`flex gap-2.5 ${message.role === "user" ? "justify-end" : ""}`}
+          >
+            {message.role === "assistant" && (
+              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-white/10 bg-[#111] text-[#00ff41]">
+                <Bot size={12} aria-hidden />
+              </span>
+            )}
+
+            <div
+              className={`min-w-0 max-w-[85%] rounded-lg border px-3 py-2 leading-relaxed ${
+                message.role === "user"
+                  ? "rounded-tr-sm border-[#00ff41]/20 bg-[#00ff41]/10 text-[#00ff41]"
+                  : message.failed
+                    ? "rounded-tl-sm border-red-500/30 bg-red-500/5 text-red-300"
+                    : "rounded-tl-sm border-white/10 bg-[#111] text-[#d0d0d0]"
+              }`}
+            >
+              {message.role === "assistant" ? (
+                <>
+                  <div className="prose prose-invert prose-xs max-w-none prose-p:my-1 prose-pre:overflow-x-auto prose-pre:rounded prose-pre:border prose-pre:border-white/10 prose-pre:bg-[#050505] prose-code:text-[#00ff41] prose-a:text-[#00ff41]">
+                    {message.content ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    ) : (
+                      <span className="text-[#5a5a5a]">
+                        {message.pending ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Loader2 size={12} className="animate-spin" aria-hidden />
+                            reading the repository
+                          </span>
+                        ) : (
+                          "..."
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  {(message.tools?.length || message.sources?.length) && (
+                    <div className="mt-2 border-t border-white/10 pt-2">
+                      {!!message.tools?.length && (
+                        <p className="flex items-center gap-1.5 text-[10px] text-[#5a5a5a]">
+                          <Wrench size={10} aria-hidden />
+                          {message.tools.join(", ")}
+                        </p>
+                      )}
+                      {!!message.sources?.length && (
+                        <ul className="mt-1 space-y-1">
+                          {message.sources.slice(0, 8).map((source, index) => (
+                            <li key={`${source.path}-${index}`}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setValue(`Tell me about ${source.path}`);
+                                  textareaRef.current?.focus();
+                                }}
+                                className="flex max-w-full items-center gap-1.5 text-left font-mono text-[10px] text-[#6a6a6a] hover:text-[#00ff41]"
+                              >
+                                <FileCode size={10} className="shrink-0" aria-hidden />
+                                <span className="truncate">{source.path}</span>
+                                <span className="shrink-0 text-[#333]">{source.source}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="whitespace-pre-wrap break-words">{message.content}</p>
+              )}
+            </div>
+
+            {message.role === "user" && (
+              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-white/10 bg-[#111] text-[#8a8a8a]">
+                <UserIcon size={12} aria-hidden />
+              </span>
+            )}
+          </article>
+        ))}
+      </div>
+
+      {error && !disabled && (
+        <p role="alert" className="shrink-0 border-t border-white/10 px-4 py-2 text-[11px] text-amber-300">
+          {error}
+        </p>
+      )}
+
+      <form
+        className="shrink-0 border-t border-white/10 bg-[#050505] p-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void ask(value);
+        }}
+      >
+        <div className="flex items-end gap-2">
+          <label htmlFor="codelens-chat-input" className="sr-only">
+            Ask a question about this repository
+          </label>
+          <textarea
+            id="codelens-chat-input"
+            ref={textareaRef}
+            rows={1}
+            value={value}
+            disabled={!canAsk || busy}
+            placeholder={disabled ? "Stored analyses cannot be questioned" : "Ask about this codebase"}
+            onChange={(event) => setValue(event.target.value)}
+            onKeyDown={(event) => {
+              // Enter sends; Shift+Enter is a newline, as in any chat window.
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void ask(value);
+              }
+            }}
+            className="max-h-32 min-h-[38px] flex-1 resize-none rounded border border-white/10 bg-transparent px-3 py-2 text-xs text-white placeholder:text-[#4d4d4d] focus:border-[#00ff41]/50 focus:outline-none disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={!canAsk || busy || !value.trim()}
+            aria-label="Send question"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded bg-[#00ff41] text-black transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {busy ? (
+              <Loader2 size={15} className="animate-spin" aria-hidden />
+            ) : (
+              <SendHorizontal size={15} aria-hidden />
+            )}
+          </button>
         </div>
-    );
+      </form>
+    </section>
+  );
 }

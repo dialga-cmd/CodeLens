@@ -56,10 +56,13 @@ export default function DottedSurface() {
     const points = new THREE.Points(particles, material);
     scene.add(points);
 
-    // Animation
+    // Animation. The frame id is kept so the loop can actually be stopped on
+    // unmount - a requestAnimationFrame left running keeps a WebGL context and
+    // its GPU buffers alive for the life of the tab.
+    let frame = 0;
     let time = 0;
     const animate = () => {
-      requestAnimationFrame(animate);
+      frame = requestAnimationFrame(animate);
       time += 0.02;
 
       const positions = particles.attributes.position.array as Float32Array;
@@ -92,8 +95,11 @@ export default function DottedSurface() {
     window.addEventListener("resize", handleResize);
 
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener("resize", handleResize);
       container.removeChild(renderer.domElement);
+      particles.dispose();
+      material.dispose();
       renderer.dispose();
     };
   }, []);

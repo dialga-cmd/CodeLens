@@ -1,177 +1,112 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, ArrowRight } from "lucide-react";
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { Search, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
- 
+
+/**
+ * The repository input: one field, one action, keyboard accessible.
+ *
+ * The field is a real `<form>` with a labelled input and a submit button, so
+ * Enter works, a screen reader announces the label, and the error state below it
+ * is announced too - none of which a div with an onClick would give.
+ */
 export function GlowingInput({
-  placeholder = "Make a country song about ....",
-  value = "",
-  onChange = () => {},
+  label = "Public GitHub repository URL",
+  placeholder = "https://github.com/pallets/flask",
+  value,
+  onChange,
   onSubmit,
-  showButton = true,
+  disabled = false,
+  busy = false,
+  error = "",
+  id = "codelens-repo-input",
 }: {
+  label?: string;
   placeholder?: string;
-  value?: string;
-  onChange?: (value: string) => void;
-  onSubmit?: (value: string) => void;
-  showButton?: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (value: string) => void;
+  disabled?: boolean;
+  busy?: boolean;
+  error?: string;
+  id?: string;
 }) {
-  const [internalValue, setInternalValue] = useState(value || "");
-  const [isFocused, setIsFocused] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const typingTimer = useRef<number | null>(null);
+  const [focused, setFocused] = useState(false);
+  const errorId = `${id}-error`;
 
-  // Update internal value when prop changes
-  useEffect(() => {
-    setInternalValue(value || "");
-  }, [value]);
-
-  const canSubmit = internalValue.trim().length > 0;
-
-  const handleSubmit = () => {
-    if (!canSubmit) return;
-    onSubmit?.(internalValue.trim());
-    // Remove console.log if you wire up onSubmit
-    if (!onSubmit) console.log("Submitted:", internalValue.trim());
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const trimmed = value.trim();
+    if (trimmed && !disabled && !busy) onSubmit(trimmed);
   };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    setInternalValue(inputValue);
-    onChange(inputValue);
-    setIsTyping(true);
-    if (typingTimer.current) window.clearTimeout(typingTimer.current);
-    typingTimer.current = window.setTimeout(() => setIsTyping(false), 700);
-  };
-
-  // cleanup any pending timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (typingTimer.current) window.clearTimeout(typingTimer.current);
-    };
-  }, []);
 
   return (
-    <div className="relative">
-      {/* LEFT light trail */}
-        <motion.div
-          aria-hidden
-          className="absolute -left-80 top-1/2 -translate-y-1/2 w-80 h-16 blur-2xl"
-          style={{
-            background:
-              "linear-gradient(90deg, rgba(0,255,65,0.70), rgba(0,255,65,0.18), rgba(0,0,0,0))",
-          }}
-          animate={{ opacity: isFocused ? 0.85 : 0.45 }}
-          transition={{ type: "spring", stiffness: 80, damping: 20 }}
-        />
+    <form onSubmit={submit} className="w-full" noValidate>
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
 
-        {/* RIGHT light trail */}
-        <motion.div
+      <motion.div
+        animate={{
+          boxShadow: focused
+            ? "0 0 110px -30px rgba(0,255,65,0.75)"
+            : "0 0 70px -35px rgba(0,255,65,0.5)",
+        }}
+        transition={{ type: "spring", stiffness: 80, damping: 22 }}
+        className="relative flex items-center gap-3 w-full px-4 py-3 md:px-5 rounded-full bg-gradient-to-r from-slate-950 to-slate-900 ring-1 ring-white/10"
+      >
+        <span
           aria-hidden
-          className="absolute -right-80 top-1/2 -translate-y-1/2 w-80 h-16 blur-2xl"
-          style={{
-            background:
-              "linear-gradient(270deg, rgba(0,255,65,0.70), rgba(0,255,65,0.18), rgba(0,0,0,0))",
-          }}
-          animate={{ opacity: isFocused ? 0.85 : 0.45 }}
-          transition={{ type: "spring", stiffness: 80, damping: 20, delay: 0.05 }}
-        />
-
-        {/* PILL / PROMPT BAR */}
-        <motion.div
-          className="group relative flex items-center w-[760px] max-w-[92vw] px-5 py-3 md:px-6 md:py-4 rounded-full bg-gradient-to-r from-slate-950 to-slate-900 ring-1 ring-white/10 shadow-[0_0_100px_-25px_rgba(0,255,65,0.65)] transition-shadow"
-          initial={{ boxShadow: "0 0 80px -30px rgba(0,255,65,0.55)" }}
-          animate={{
-            boxShadow: isFocused
-              ? "0 0 140px -25px rgba(0,255,65,0.85)"
-              : "0 0 90px -30px rgba(0,255,65,0.6)",
-          }}
-          whileHover={{ scale: 1.01 }}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 ring-1 ring-white/10"
         >
-          {/* inner edge + top highlight */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/5" />
-          <div aria-hidden className="pointer-events-none absolute left-4 right-4 top-1 h-px bg-gradient-to-r from-transparent via-[#00ff41]/60 to-transparent opacity-80" />
+          <Search className="h-4 w-4 text-[#00ff41]" />
+        </span>
 
-          {/* left icon chip */}
-          <motion.div
-            className="mr-3 grid h-10 w-10 place-items-center rounded-full bg-white/5 ring-1 ring-white/10"
-            animate={{
-              scale: isFocused ? 1.05 : 1,
-              filter: isFocused ? "drop-shadow(0 0 10px rgba(0,255,65,0.7))" : "none",
-            }}
-          >
-            <Sparkles className="h-5 w-5 text-[#00ff41]" />
-          </motion.div>
+        <input
+          id={id}
+          type="url"
+          inputMode="url"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={placeholder}
+          disabled={disabled || busy}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+          autoComplete="off"
+          spellCheck={false}
+          className="min-w-0 flex-1 bg-transparent text-slate-100 outline-none text-base md:text-lg placeholder:text-slate-500 disabled:opacity-60"
+        />
 
-          {/* Accessible label for screen readers */}
-          <label htmlFor="ai-prompt" className="sr-only">
-            Prompt
-          </label>
+        <button
+          type="submit"
+          disabled={!value.trim() || disabled || busy}
+          aria-label={busy ? "Analysis in progress" : "Analyze repository"}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#00ff41] text-black ring-4 ring-[#00ff41]/20 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+        </button>
+      </motion.div>
 
-          {/* INPUT (you can type here) */}
-          <input
-            id="ai-prompt"
-            type="text"
-            value={internalValue}
-            onChange={handleInputChange}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSubmit();
-            }}
-            placeholder={placeholder}
-            className="flex-1 bg-transparent placeholder-slate-300/70 text-slate-100 outline-none text-lg md:text-xl caret-[#00ff41]/90"
-            autoComplete="off"
-            spellCheck={false}
-          />
-
-          {/* action button */}
-          <motion.button
-            type="button"
-            aria-label="Generate"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="relative cursor-pointer grid h-12 w-12 place-items-center rounded-full bg-[#00ff41] text-black shadow-lg ring-4 ring-[#00ff41]/20 focus:outline-none focus:ring-4 disabled:opacity-60 disabled:cursor-not-allowed"
-            whileHover={{ scale: canSubmit ? 1.06 : 1 }}
-            whileTap={{ scale: canSubmit ? 0.96 : 1 }}
-            animate={{
-              boxShadow: canSubmit
-                ? "0 0 40px rgba(0,255,65,0.45)"
-                : "0 0 12px rgba(0,255,65,0.15)",
-            }}
-            transition={{ type: "spring", stiffness: 260, damping: 16 }}
-          >
-            {/* The ArrowRight "runs" to the right while typing */}
-            <motion.span
-              className="grid"
-              animate={
-                isTyping
-                  ? { x: [0, 6, 12] }
-                  : { x: 0 }
-              }
-              transition={
-                isTyping
-                  ? { duration: 0.8, repeat: Infinity, ease: "easeIn" }
-                  : { duration: 0.2 }
-              }
-            >
-              <ArrowRight className="h-6 w-6" />
-            </motion.span>
-            {/* bright rim */}
-            <span aria-hidden className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/30" />
-          </motion.button>
-
-          {/* end hot-spots (bright cores) */}
-          <motion.div
-            aria-hidden
-            className="pointer-events-none absolute -left-2 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-[#00ff41]/90 blur-xl"
-            animate={{ opacity: isFocused ? 1 : 0.7 }}
-          />
-          <motion.div
-            aria-hidden
-            className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-[#00ff41]/90 blur-xl"
-            animate={{ opacity: isFocused ? 1 : 0.7 }}
-          />
-        </motion.div>
-    </div>
+      {/* Announced by screen readers when it appears, and visible either way. */}
+      <p
+        id={errorId}
+        role={error ? "alert" : undefined}
+        className={`mt-3 text-sm ${error ? "text-red-400" : "text-transparent h-0 overflow-hidden"}`}
+      >
+        {error || "placeholder"}
+      </p>
+    </form>
   );
 }
+
+/** Legacy alias kept so existing imports keep working. */
+export const PromptInput = GlowingInput;
+
+export default GlowingInput;
