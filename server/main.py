@@ -16,7 +16,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from app.core.ai_analyzer import AIAnalyzer
 from app.core.analyzer import CodeAnalyzer
-from app.core.auth import initialize_firebase, verify_token
+from app.core.auth import auth_enabled, auth_warnings, initialize_firebase, verify_token
 from app.core.chat_context import guess_language, read_repo_file, resolve_repo_file
 from app.core.chat_service import ChatService
 from app.core.fix_advisor import FixAdvisor
@@ -106,9 +106,46 @@ async def health_check():
             "models": {"heavy": llm.heavy_model, "fast": llm.fast_model},
         },
         "research": {"configured": analyzer.research.available},
+        "auth": {"mode": "firebase" if auth_enabled() else "guest", "required": auth_enabled()},
         "storage": analyzer.ingestion.stats(),
         "jobs": analysis_registry.describe(),
         "rate_limits": rate_limits.describe(),
+    }
+
+
+@app.get("/api/config")
+async def public_config():
+    """What this deployment can do, for the client to show before anything is analysed.
+
+    Public on purpose: a judge opening the demo should be told immediately that
+    the instance has no model key, rather than being told by an empty answer.
+    """
+    llm = get_llm_client()
+    return {
+        "auth": {
+            "mode": "firebase" if auth_enabled() else "guest",
+            "required": auth_enabled(),
+            "warnings": auth_warnings(),
+        },
+        "models": {
+            "heavy": llm.heavy_model,
+            "fast": llm.fast_model,
+            "configured": llm.configured,
+            "provider": "Nebius Token Factory",
+        },
+        "research": {
+            "provider": "Tavily",
+            "configured": analyzer.research.available,
+        },
+        "rate_limits": rate_limits.describe(),
+        "capabilities": {
+            "static_analysis": True,
+            "model_review": llm.configured,
+            "dependency_research": analyzer.research.available,
+            "fix_advisor": llm.configured,
+            "chat": llm.configured,
+            "chat_tools": llm.configured,
+        },
     }
 
 

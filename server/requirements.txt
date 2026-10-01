@@ -1,14 +1,16 @@
-# For CPU only: pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
-fastapi
-uvicorn
+# Server runtime. Pinned where a version is load-bearing, ranged where the
+# library is stable and the pin would only create upgrade work.
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30
+python-dotenv>=1.0
+pydantic>=2.13,<3
+httpx>=0.27
+sse-starlette>=2.1
+openai>=1.60
+firebase-admin>=6.5
+GitPython>=3.1.43
+
+# Parsing. Both are pinned: tree-sitter-languages ships native grammars built
+# against a specific tree-sitter ABI, and a mismatched pair fails to import.
 tree-sitter==0.20.4
 tree-sitter-languages==1.10.2
-GitPython
-pydantic>=2.13,<3
-python-dotenv
-httpx
-sse-starlette
-firebase-admin
-openai
-firebase-admin
-openai
