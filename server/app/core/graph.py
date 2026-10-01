@@ -21,11 +21,37 @@ from typing import Any, Iterable, Sequence
 
 SOURCE_EXTENSIONS = (".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".go", ".rs", ".java", ".rb", ".php", ".cs", ".kt", ".lua")
 
+# What a TypeScript/JS specifier says vs. what the file is called in the
+# repository. NodeNext and bundler resolutions both require the emitted
+# extension in the import, which is not the extension on disk.
+_EMITTED_TO_SOURCE_EXTENSION = {
+    ".js": ".ts",
+    ".jsx": ".tsx",
+    ".mjs": ".mts",
+    ".cjs": ".cts",
+}
+
 # Import prefixes that are always external, never a file in the repository.
 EXTERNAL_PREFIXES = (
     "node:", "http://", "https://", "data:", "file:", "fs", "path", "os",
     "react", "next", "vue", "svelte", "angular", "lodash", "axios", "express",
 )
+
+
+def _finding_count(file: dict[str, Any]) -> int:
+    """How many findings belong to one file.
+
+    A file carries the full list when it comes straight from the parser and only
+    a count once it has been serialised into a snapshot, so both shapes have to
+    be read rather than assuming one.
+    """
+    raw = file.get("vulnerabilities")
+    if isinstance(raw, (list, tuple)):
+        return len(raw)
+    if isinstance(raw, int):
+        return raw
+    count = file.get("finding_count")
+    return count if isinstance(count, int) else 0
 
 
 def _norm(path: str) -> str:
@@ -162,7 +188,7 @@ class GraphBuilder:
                 language=str(file.get("language", "unknown")),
                 complexity=int(file.get("complexity", 0) or 0),
                 loc=int(file.get("loc", 0) or 0),
-                finding_count=len(file.get("vulnerabilities", []) or []),
+                finding_count=_finding_count(file),
             )
 
         links: list[dict[str, str]] = []
@@ -170,17 +196,25 @@ class GraphBuilder:
 
         for file in self.files:
             source = _norm(str(file["file_path"]))
+            if source not in nodes:
+                continue
             node = nodes[source]
             imports = file.get("imports") or file.get("import_source_imports") or []
+            if not isinstance(imports, (list, tuple, set)):
+                imports = []
             for specifier in imports:
-                target = self._resolve(str(specifier), source)
+                try:
+                    target = self._resolve(str(specifier), source)
+                except Exception:
+                    continue
                 if target and target != source and target in nodes:
                     key = (source, target)
                     if key in seen_links:
                         continue
                     seen_links.add(key)
                     node.dependencies.append(target)
-                    nodes[target].dependents.append(source)
+                    if target in nodes:
+                        nodes[target].dependents.append(source)
                     links.append({"source": source, "target": target})
                 elif not target:
                     node.external_imports.append(str(specifier))
@@ -206,7 +240,23 @@ class GraphBuilder:
     def _with_extensions(self, base: str) -> list[str]:
         stem = base.rstrip("/")
         candidates = [f"{stem}{ext}" for ext in SOURCE_EXTENSIONS]
+        # Python names a package's module `__init__.py`; JS names it `index.js`.
+        # Both spellings are needed, because both are what real repositories use.
+        candidates += [f"{stem}/__init__.py"]
         candidates += [f"{stem}/index{ext}" for ext in SOURCE_EXTENSIONS]
+
+        # TypeScript's NodeNext convention writes the *output* extension in the
+        # specifier: `import { x } from "./external.js"` names a file that is
+        # `external.ts` in the repository. Without this swap every TypeScript
+        # import looks external and the graph comes out empty - which is exactly
+        # what a monorepo written this way should not produce.
+        for emitted, authored in _EMITTED_TO_SOURCE_EXTENSION.items():
+            if stem.endswith(emitted):
+                trimmed = stem[: -len(emitted)]
+                candidates = (
+                    [f"{trimmed}{authored}", f"{trimmed}/index{authored}"] + candidates
+                )
+
         return candidates
 
     def _suffix_lookup(self, dotted_or_slashed: str) -> str | None:
