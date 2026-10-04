@@ -388,6 +388,11 @@ Platform documentation consulted is listed with sources in
 contribute a CVE identifier, a version number or a file path; those are read from
 the code or from Tavily.
 
+Every behaviour claim above is traced to a request in
+[`docs/TEST_REPORT.md`](docs/TEST_REPORT.md), including the thirteen failures
+that only appeared once it was run against the live API. If you are submitting
+this project, [`SUBMISSION.md`](SUBMISSION.md) has the links and the video script.
+
 ## Licence
 
 [MIT](LICENSE) © 2026 Aditya Raj
