@@ -48,12 +48,19 @@ GROUNDING_QUERIES: dict[str, str] = {
     "weak_hash": "password hashing recommendation argon2 scrypt OWASP",
     "insecure_random": "cryptographically secure random number generation OWASP",
     "unsafe_deserialization": "insecure deserialization pickle yaml load OWASP",
-    "insecure_eval": "code injection eval exec dynamic code execution OWASP",
-    "disabled_tls_verification": "disabling TLS certificate verification risks OWASP",
-    "xss": "cross-site scripting prevention output encoding OWASP",
+    "code_execution": "code injection eval exec dynamic code execution OWASP",
+    "insecure_transport": "disabling TLS certificate verification risks OWASP",
+    "xss_innerhtml": "cross-site scripting prevention output encoding OWASP",
     "open_redirect": "open redirect prevention unvalidated redirects OWASP",
     "cors_wildcard": "CORS misconfiguration wildcard origins OWASP",
-    "unsigned_jwt": "JSON web token verification algorithm confusion OWASP",
+    "jwt_none_algorithm": "JSON web token verification algorithm confusion OWASP",
+    # Credential rules that are not all OWASP-shaped: the authoritative answer
+    # for "is this key live and should I revoke it" is the provider's own page.
+    "aws_access_key": "AWS access key ID compromised revoke IAM credentials rotation",
+    "private_key_block": "private key committed to source repository remove rotate OWASP",
+    "github_token": "GitHub personal access token leaked revoke secret rotation",
+    "slack_token": "Slack token leaked revoke app credentials rotation",
+    "debug_mode": "Python Flask debug mode production security stack trace disclosure",
 }
 
 _CVE_RE = re.compile(r"CVE-\d{4}-\d{4,7}", re.IGNORECASE)
