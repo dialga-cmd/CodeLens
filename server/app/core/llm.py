@@ -53,6 +53,55 @@ _JSON_ONLY_INSTRUCTION = (
     "Do not wrap it in markdown, do not add commentary, and do not add trailing commas."
 )
 
+# A model asked for tools sometimes writes the call out as text instead of
+# returning it as a structured one, and it does so in one of a few shapes. This
+# is the markup form observed live from Nemotron-3_5-Lightning, which pads its
+# tags with a zero-width space to keep them out of markdown rendering.
+_TOOL_CALL_TEXT = re.compile(
+    r"<[\u200b\u200c\u200d\ufeff]?\s*/?\s*(?:tool_calls?|function_calls?|recipient|tool_use)\b"
+    r"|<\s*/?\s*function[= ]"
+    r"|^\s*<\s*parameter="
+    r"|^\s*recipient\s*:\s*\w+",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def is_tool_call_text(text: str, names: Sequence[str] = ()) -> bool:
+    """True when ``text`` is a written-out tool call rather than an answer.
+
+    Chat streams this straight to the user, so a text-form tool call would be
+    shown as the answer to their question. Two shapes matter, both seen live:
+
+    * tagged markup - ``<tool_call><function=search_code>...``, with a
+      zero-width space inside the tags to keep them out of markdown rendering;
+    * a bare call expression - ``search_code({"query": "hotspot"})`` - which is
+      how the model repeated the evidence label back at us.
+
+    The tag check is deliberately narrow, so an answer that merely mentions
+    "function" is not mistaken for a call. The bare form can only be recognised
+    for names passed in, which is why the caller supplies the tools it offered.
+    """
+    if _TOOL_CALL_TEXT.search(text or ""):
+        return True
+
+    for name in names:
+        # No space before the parenthesis: a written-out call is `search_code({...})`,
+        # while `search_code (query=...)` is prose about a tool and is left alone.
+        if re.search(rf"(?<![\w.]){re.escape(name)}\(", text or "", re.IGNORECASE):
+            return True
+    return False
+
+
+def _tool_names(tools: Sequence[Any]) -> list[str]:
+    """The function names in a tool schema list, for recognising text-form calls."""
+    names: list[str] = []
+    for tool in tools or ():
+        function = tool.get("function") if isinstance(tool, dict) else None
+        name = (function or {}).get("name") if isinstance(function, dict) else None
+        if name:
+            names.append(str(name))
+    return names
+
 
 def with_json_instruction(messages: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
     """Return ``messages`` with the JSON-only instruction folded into the system turn."""
@@ -784,7 +833,43 @@ class LLMClient:
                 )
         else:
             # Loop budget exhausted: ask once more, without tools, for a wrap-up.
+            #
+            # Dropping `tools` is not enough on its own. Asked "every place that calls
+            # app.logger.error", Nemotron kept asking for a variant of the same search
+            # until the rounds ran out, and then - still holding the tools in its head -
+            # answered in the markup form it would have used for a call, so the user read
+            # a literal "<tool_call><function=search_code>..." block where the answer
+            # should have been.
+            #
+            # So the wrap-up is an instruction, not just a missing parameter, and the
+            # result is checked: if it still comes back as a tool request there is no
+            # answer here to show, and that is said rather than papered over.
+            conversation.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "Answer now, in prose, using only what the tool results above already show. "
+                        "Do not request another tool call, and do not write out a tool call. If the "
+                        "results do not answer the question, say what they did show and what is "
+                        "still missing."
+                    ),
+                }
+            )
             result = await self.chat(conversation, role=role, model=model, temperature=temperature)
+            if result is not None and is_tool_call_text(result.text, _tool_names(tools)):
+                result = ChatResult(
+                    text=(
+                        f"The model used all {max(1, max_rounds)} look-ups it was allowed and was "
+                        "still asking for another one, so there is nothing here to show rather "
+                        "than something invented."
+                    ),
+                    model=result.model,
+                    prompt_tokens=result.prompt_tokens,
+                    completion_tokens=result.completion_tokens,
+                    latency_s=result.latency_s,
+                    attempts=result.attempts,
+                    finish_reason=result.finish_reason,
+                )
 
         if result is None:
             raise LLMError("tool loop ended without a final answer")

@@ -25,12 +25,18 @@ from .chat_context import (
     select_context_files,
 )
 from .code_tools import TOOL_SCHEMAS, CodeTools
-from .llm import ROLE_FAST, LLMError, get_llm_client
+from .llm import ROLE_FAST, LLMError, is_tool_call_text, get_llm_client
 from .prompts import load_prompt
 
 CHAT_ROLE = ROLE_FAST
 MAX_TOOL_ROUNDS = 4
 MAX_PLANNING_ROUNDS = 2
+TOOL_NAMES = [str(tool["function"]["name"]) for tool in TOOL_SCHEMAS if "function" in tool]
+
+# How much of a streamed answer is held back while deciding whether the text so
+# far is turning into a tool call. Long enough for any tag this project has to
+# recognise, short enough that nobody notices the delay.
+_HOLD_BACK = 48
 
 SYSTEM_PROMPT = (
     "You are CodeLens, an assistant that answers questions about one specific codebase. "
@@ -143,8 +149,17 @@ class ChatService:
 
         # The planning round produced tool output, not an answer. Replay the
         # findings as plain context and let the streamed turn write the answer.
+        #
+        # The label deliberately does not read like a call. It used to be
+        # "Tool search_code({"query": ...}) returned:", and the model answered the
+        # streamed turn by echoing that line back: the user got
+        # 'search_code({"query": "from werkzeug", "max_results": 100})' and no
+        # answer. Naming the tool and its arguments in a sentence does not give
+        # the model a template to repeat.
         evidence = "\n".join(
-            f"Tool {record.name}({json.dumps(record.arguments, default=str)[:200]}) returned:\n{record.result_preview}"
+            f"Results from the {record.name} tool ("
+            + ", ".join(f"{key}={value!r}" for key, value in list(record.arguments.items())[:4])
+            + f"):\n{record.result_preview}"
             for record in tool_calls
         )
         return context, evidence[:6000], used_files, [record.to_dict() for record in tool_calls]
@@ -169,14 +184,58 @@ class ChatService:
         }
 
         messages = self._messages(query, context, used_files, extra_evidence=evidence)
+        # No tools are offered in this turn, so the only reason to write one out
+        # is that the model still has the planning round's results in mind. Say so.
+        messages[0]["content"] += (
+            " Answer in prose. No tools are available in this turn: do not write out a tool call, "
+            "in any syntax."
+        )
+
+        pending = ""
+        wrote_anything = False
         try:
             async for delta in self.client.chat_stream(messages, role=CHAT_ROLE, temperature=0.3):
-                yield {"event": "delta", "data": json.dumps({"text": delta})}
+                pending += delta
+                safe, pending = _split_safe(pending)
+                if safe:
+                    wrote_anything = True
+                    yield {"event": "delta", "data": json.dumps({"text": safe})}
         except LLMError as error:
             yield {"event": "error", "data": json.dumps({"message": str(error)})}
             yield {"event": "done", "data": json.dumps({"ok": False})}
             return
 
+        if is_tool_call_text(pending, TOOL_NAMES):
+            # The whole turn was a written-out tool call. Say so rather than
+            # streaming function markup at someone who asked a question.
+            if wrote_anything:
+                yield {
+                    "event": "error",
+                    "data": json.dumps(
+                        {
+                            "message": "The answer was cut off: the model wrote a tool call "
+                            "instead of an answer, and no tools are available in this turn."
+                        }
+                    ),
+                }
+                yield {"event": "done", "data": json.dumps({"ok": False})}
+                return
+
+            yield {
+                "event": "delta",
+                "data": json.dumps(
+                    {
+                        "text": "The model answered with a tool call instead of an answer. No "
+                        "tools were available in this turn, so there is nothing here to show "
+                        "rather than something invented."
+                    }
+                ),
+            }
+            yield {"event": "done", "data": json.dumps({"ok": True})}
+            return
+
+        if pending:
+            yield {"event": "delta", "data": json.dumps({"text": pending})}
         yield {"event": "done", "data": json.dumps({"ok": True})}
 
     # -- reporting --------------------------------------------------------- #
@@ -193,3 +252,26 @@ class ChatService:
             seen.add(path)
             sources.append({"path": path, "source": "tool"})
         return sources
+
+
+def _split_safe(buffer: str) -> tuple[str, str]:
+    """Split a streamed answer into the part that is safe to emit and the rest.
+
+    A tool call written as text starts with ``<`` and often a ``recipient:``, and
+    it can be split across deltas in any place - ``<`` in one delta and
+    ``tool_call>`` in the next is the normal case. So nothing from the first
+    ``<`` (or the first line-initial ``recipient:``) inside the held-back window
+    is emitted, because it might still turn into a tag. Everything before that is
+    known not to start one.
+    """
+    floor = max(0, len(buffer) - _HOLD_BACK)
+    cut = len(buffer)
+    for index in range(floor, len(buffer)):
+        if buffer[index] == "<":
+            cut = index
+            break
+    if cut == len(buffer):
+        head, _, rest = buffer.partition("\n")
+        if not head.strip().lower().startswith("recipient") and "recipient" in head.lower():
+            cut = len(buffer) - len(rest) - 1
+    return buffer[:cut], buffer[cut:]
