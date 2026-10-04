@@ -38,13 +38,20 @@ DEFAULT_LIMITS = {
 
 
 def parse_limit(value: str | None, fallback: tuple[int, int]) -> tuple[int, int]:
-    """Read a ``"count/window"`` limit, ignoring anything malformed."""
+    """Read a ``"count/window"`` limit, ignoring anything malformed.
+
+    The suffix ``describe()`` prints is accepted, because that string is what a
+    reader copies out of ``/health`` and pastes into the environment. Rejecting
+    it would make the limiter silently keep its default with no warning anywhere,
+    which is the worst way for a limit to misbehave.
+    """
     if not value:
         return fallback
-    match = re.fullmatch(r"\s*(\d+)\s*/\s*(\d+)\s*", value)
+    match = re.fullmatch(r"\s*(\d+)\s*/\s*(\d+)\s*([smh]?)\s*", value.strip().lower())
     if not match:
         return fallback
-    count, window = int(match.group(1)), int(match.group(2))
+    count, window, unit = int(match.group(1)), int(match.group(2)), match.group(3)
+    window *= {"s": 1, "m": 60, "h": 3600, "": 1}[unit]
     return (count, window) if count > 0 and window > 0 else fallback
 
 
