@@ -77,3 +77,59 @@ def test_grounding_spends_its_budget_on_findings_that_survived(monkeypatch):
         "sql_injection:app.py:1",
         "path_traversal:app.py:1",
     ]
+
+def _snapshot_with_analysis() -> dict:
+    return {
+        "repo_url": "https://github.com/pallets/flask",
+        "head_sha": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+        "stats": {"total_files": 96, "total_loc": 18352, "hotspot_count": 8, "dismissed_findings": 71},
+        "hotspots": [{"file_path": "src/flask/app.py", "score": 0.751, "complexity": 129, "commits": 11, "findings": 6}],
+        "vulnerabilities": [
+            {"file_path": "src/flask/sessions.py", "line": 277, "severity": "HIGH", "rule": "weak_hash", "triage": "confirmed"},
+            {"file_path": "tests/test_basic.py", "line": 12, "severity": "LOW", "rule": "debug_mode", "triage": "dismissed"},
+        ],
+    }
+
+
+def test_the_digest_carries_the_measurements_a_file_scoped_question_needs():
+    """Asked "which file has the worst hotspot score" over file context, the model
+    answered that hotspot data did not exist. It was in the snapshot, unshown."""
+    from app.core.chat_context import build_analysis_digest
+
+    digest = build_analysis_digest(_snapshot_with_analysis())
+
+    assert "src/flask/app.py" in digest
+    assert "8 hotspots" in digest
+    assert "71 dismissed" in digest
+
+
+def test_the_digest_lists_only_findings_that_survived_triage():
+    from app.core.chat_context import build_analysis_digest
+
+    digest = build_analysis_digest(_snapshot_with_analysis())
+
+    assert "src/flask/sessions.py:277" in digest
+    assert "tests/test_basic.py" not in digest
+
+
+def test_file_scoped_context_includes_the_digest():
+    from app.core.chat_context import build_file_context
+
+    snapshot = _snapshot_with_analysis()
+    snapshot["repo_path"] = ""
+    snapshot["files"] = [{"file_path": "src/flask/app.py", "language": "python", "complexity": 129, "loc": 1628}]
+
+    context, _ = build_file_context(snapshot, [{"file_path": "src/flask/app.py"}], "explain the hotspot")
+
+    assert "Top ranked hotspots" in context
+    assert "src/flask/app.py" in context
+
+
+def test_the_digest_stays_small_enough_to_prefix_every_prompt():
+    from app.core.chat_context import build_analysis_digest
+
+    snapshot = _snapshot_with_analysis()
+    snapshot["hotspots"] = [{"file_path": f"f{i}.py", "score": 0.1} for i in range(50)]
+    snapshot["vulnerabilities"] = [{"file_path": f"g{i}.py", "line": i, "severity": "LOW", "triage": "confirmed"} for i in range(90)]
+
+    assert len(build_analysis_digest(snapshot)) < 3000

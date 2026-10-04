@@ -279,6 +279,9 @@ def build_file_context(
 
     context_paths: list[str] = []
     sections: list[str] = []
+    digest = build_analysis_digest(snapshot)
+    if digest:
+        sections.append(digest)
     if len(selected_targets) > 1:
         sections.append(
             f"Matched {len(selected_targets)} files for this request. Reading the strongest matches and their "
@@ -345,6 +348,61 @@ def build_graph_neighbors(snapshot: dict[str, Any]) -> dict[str, set[str]]:
         neighbors.setdefault(source, set()).add(target)
         neighbors.setdefault(target, set()).add(source)
     return neighbors
+
+
+def build_analysis_digest(snapshot: dict[str, Any]) -> str:
+    """The measurements the pipeline computed, in a form that fits in any prompt.
+
+    A question about a file still needs the numbers computed for it. Asked "which
+    file has the worst hotspot score" over a file-scoped context, the model
+    searched the tree, found nothing, and answered that the data did not exist -
+    while eight ranked hotspots were sitting in the snapshot it was never shown.
+
+    This is deliberately compact: the counts, the top hotspots and the findings
+    that survived triage, nothing that belongs in a single file's context.
+    """
+    stats = snapshot.get("stats") or {}
+    lines: list[str] = []
+
+    if stats:
+        measured = [
+            f"{stats[key]} {label}"
+            for key, label in (
+                ("total_files", "files"),
+                ("total_loc", "lines"),
+                ("hotspot_count", "hotspots"),
+                ("total_vulnerabilities", "findings"),
+                ("dismissed_findings", "dismissed by the model"),
+                ("vulnerable_dependencies", "dependencies with advisories"),
+            )
+            if stats.get(key) is not None
+        ]
+        if measured:
+            lines.append("Analysis measurements: " + ", ".join(measured))
+
+    hotspots = [item for item in (snapshot.get("hotspots") or [])[:5] if isinstance(item, dict)]
+    if hotspots:
+        lines.append("Top ranked hotspots:")
+        lines.extend(
+            f"- {item.get('file_path')} (score {item.get('score')}, complexity {item.get('complexity')}, "
+            f"{item.get('commits', 0)} commits, {item.get('findings', 0)} findings)"
+            for item in hotspots
+        )
+
+    findings = [
+        item
+        for item in (snapshot.get("vulnerabilities") or [])
+        if isinstance(item, dict) and item.get("triage") != "dismissed"
+    ]
+    if findings:
+        lines.append("Findings that survived triage:")
+        lines.extend(
+            f"- [{item.get('severity', '?')}] {item.get('rule', '?')} at {item.get('file_path')}:{item.get('line')} "
+            f"({item.get('triage', 'pending')})"
+            for item in findings[:8]
+        )
+
+    return "\n".join(lines)
 
 
 def build_general_context(snapshot: dict[str, Any]) -> str:
