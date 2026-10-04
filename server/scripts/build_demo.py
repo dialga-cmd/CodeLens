@@ -67,6 +67,9 @@ def build(target: dict[str, str], analyzer: CodeAnalyzer, refresh: bool) -> dict
     filename = f"{slug}.snapshot.json"
     os.makedirs(DEMO_DIR, exist_ok=True)
 
+    stats = results.get("stats") or {}
+    summary = results.get("security_summary") or {}
+
     # The stored snapshot is the analysis plus its identity. The clone path is
     # dropped here so it can never leak into a committed file.
     snapshot_path = os.path.join(DEMO_DIR, filename)
@@ -85,13 +88,18 @@ def build(target: dict[str, str], analyzer: CodeAnalyzer, refresh: bool) -> dict
         "head_sha": results.get("head_sha", ""),
         # analyzed_at lives in stats, not at the top level. Reading it from the top
         # level is why every catalogue entry said the demo had never been analysed.
-        "analyzed_at": (results.get("stats") or {}).get("analyzed_at", ""),
+        "analyzed_at": stats.get("analyzed_at", ""),
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "stats": {
-            "files": results.get("stats", {}).get("total_files", 0),
-            "hotspots": results.get("stats", {}).get("hotspot_count", 0),
-            "findings": results.get("stats", {}).get("total_vulnerabilities", 0),
-            "graph_edges": results.get("stats", {}).get("graph_links", 0),
+            "files": stats.get("total_files", 0),
+            "hotspots": stats.get("hotspot_count", 0),
+            # Counted, not raw: the model's dismissals are reported next to this
+            # rather than folded into it, which is what the report itself shows.
+            "findings": summary.get("total", 0),
+            "dismissed": summary.get("dismissed", 0),
+            "grounded": stats.get("grounded_findings", 0),
+            "advisories": stats.get("vulnerable_dependencies", 0),
+            "graph_edges": stats.get("graph_links", 0),
         },
     }
 

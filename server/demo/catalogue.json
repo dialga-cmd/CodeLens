@@ -5,12 +5,15 @@
   "repo_url": "https://github.com/pallets/flask",
   "snapshot": "flask.snapshot.json",
   "head_sha": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
-  "analyzed_at": "2026-10-04T15:04:06Z",
-  "generated_at": "2026-10-04T15:04:06+00:00",
+  "analyzed_at": "2026-10-04T15:07:37Z",
+  "generated_at": "2026-10-04T15:07:37+00:00",
   "stats": {
    "files": 96,
    "hotspots": 8,
-   "findings": 74,
+   "findings": 4,
+   "dismissed": 70,
+   "grounded": 3,
+   "advisories": 6,
    "graph_edges": 221
   }
  },
@@ -20,12 +23,15 @@
   "repo_url": "https://github.com/colinhacks/zod",
   "snapshot": "zod.snapshot.json",
   "head_sha": "0b216ef674e297ebe41d8bf902262e56f8755822",
-  "analyzed_at": "2026-10-04T15:04:40Z",
-  "generated_at": "2026-10-04T15:04:40+00:00",
+  "analyzed_at": "2026-10-04T15:08:21Z",
+  "generated_at": "2026-10-04T15:08:21+00:00",
   "stats": {
    "files": 250,
    "hotspots": 8,
-   "findings": 37,
+   "findings": 0,
+   "dismissed": 37,
+   "grounded": 0,
+   "advisories": 4,
    "graph_edges": 138
   }
  }

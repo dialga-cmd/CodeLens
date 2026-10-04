@@ -17799,7 +17799,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is benchmark code using V8 internal syntax (%HasFastProperties) for performance testing, not production code. The comment explicitly notes it's a V8 natives syntax that isn't valid in a module body, and the file is in packages/bench/. The eval creates a function to check hidden class properties for benchmarking."
+   "triage_note": "This is benchmark code using eval on a hardcoded string to access V8 internal API %HasFastProperties for performance measurement; no user input reaches eval."
   },
   {
    "id": "sql_injection:packages/bench/validate-abort-sweep.ts:42",
@@ -17815,7 +17815,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is not SQL injection. The code deletes a property from a JavaScript object using a computed key (`k${mid}`) for benchmark test case generation. There is no SQL query construction or database interaction in this file."
+   "triage_note": "The line deletes a computed property key from a JavaScript object (delete missing[`k${mid}`]); it is not SQL and no database query is constructed."
   },
   {
    "id": "insecure_random:packages/bench/benchUtil.ts:20",
@@ -17831,7 +17831,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The randomString function in benchUtil.ts generates random alphanumeric strings for benchmark test data, not for security tokens, keys, or nonces. The file is in packages/bench/ and exports utilities for benchmarking."
+   "triage_note": "randomString is a benchmark utility that generates test data for performance runs; Math.random() is not used for tokens, keys, or nonces in production."
   },
   {
    "id": "insecure_random:packages/bench/benchUtil.ts:26",
@@ -17847,7 +17847,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The randomPick function selects a random element from an array for benchmark test data generation. This is a benchmark utility in packages/bench/, not production code generating security-sensitive values."
+   "triage_note": "randomPick is a benchmark helper that selects a random test fixture; it does not generate security-sensitive values."
   },
   {
    "id": "insecure_random:packages/bench/boolean.ts:5",
@@ -17863,7 +17863,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Math.random() > 0.5 generates boolean test data for benchmarking z.boolean() parsing performance. The file is in packages/bench/ and the DATA constant feeds a metabench suite."
+   "triage_note": "Boolean test data for a benchmark is produced with Math.random(); this is not production cryptographic material."
   },
   {
    "id": "path_traversal:packages/bench/compile-output.ts:182",
@@ -17879,7 +17879,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The function nestedClonePath clones a NestedData type object for benchmark testing. Despite the name containing 'Path', it does not construct filesystem paths from user input; it spreads and clones a typed data structure."
+   "triage_note": "The function nestedClonePath clones a typed object structure; despite the name it does not build filesystem paths from user input."
   },
   {
    "id": "insecure_random:packages/bench/error-handling.ts:10",
@@ -17895,7 +17895,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Math.random() generates random string test data for benchmarking error handling performance. The DATA constant feeds a metabench suite in packages/bench/."
+   "triage_note": "Test data for error-handling benchmarks uses Math.random() to vary string payloads; no security tokens are created."
   },
   {
    "id": "insecure_random:packages/bench/instanceof.ts:14",
@@ -17911,7 +17911,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Math.random() selects between different test value types (ZodFailure instance, object, string, Promise) for instanceof benchmark data. This is test data generation in packages/bench/."
+   "triage_note": "Math.random() selects among test fixture variants for an instanceof benchmark; it is not used for secrets."
   },
   {
    "id": "insecure_random:packages/bench/number.ts:6",
@@ -17927,7 +17927,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Math.random() generates numeric test data for benchmarking z.number() parsing. The file is in packages/bench/ and DATA feeds a metabench suite."
+   "triage_note": "Random numbers are generated as benchmark input for z.number().parse; this is test data, not cryptographic nonces."
   },
   {
    "id": "insecure_random:packages/bench/object-setup.ts:14",
@@ -17943,7 +17943,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Math.random() generates a number field in frozen test objects for object setup benchmarking. The DATA export feeds benchmarks in packages/bench/."
+   "triage_note": "Object property 'number' is filled with Math.random() for a benchmark dataset; no production key material."
   },
   {
    "id": "insecure_random:packages/bench/object-setup.ts:15",
@@ -17959,7 +17959,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Math.random() generates a string field in frozen test objects for object setup benchmarking. This is test data generation in packages/bench/."
+   "triage_note": "Object property 'string' uses a template literal with Math.random() for benchmark variety; not a secret generator."
   },
   {
    "id": "insecure_random:packages/bench/object-setup.ts:16",
@@ -17975,7 +17975,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Math.random() > 0.5 generates a boolean field in frozen test objects for object setup benchmarking. This is test data generation in packages/bench/."
+   "triage_note": "Object property 'boolean' uses Math.random() > 0.5 for benchmark test cases; not used for security decisions."
   },
   {
    "id": "insecure_random:packages/bench/object.ts:26",
@@ -17991,7 +17991,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is benchmark test data generation in packages/bench/object.ts. The Math.random() calls create random test fixtures for performance benchmarking, not tokens, keys, or nonces."
+   "triage_note": "This is benchmark test data generation in packages/bench/object.ts, creating random values for performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
   },
   {
    "id": "insecure_random:packages/bench/object.ts:27",
@@ -18007,7 +18007,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Same benchmark context as line 26. The template literal with Math.random() generates random string test data for parsing benchmarks, not security-sensitive values."
+   "triage_note": "This is benchmark test data generation in packages/bench/object.ts, creating random string values for performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
   },
   {
    "id": "insecure_random:packages/bench/object.ts:28",
@@ -18023,7 +18023,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Benchmark test data generation. Math.random() > 0.5 creates random boolean values for benchmark fixtures, not for cryptographic nonces or tokens."
+   "triage_note": "This is benchmark test data generation in packages/bench/object.ts, creating random boolean values for performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
   },
   {
    "id": "insecure_random:packages/bench/safe.ts:21",
@@ -18039,7 +18039,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is a benchmark data() function in packages/bench/safe.ts that returns random test data (either a random string or number) for performance testing. Not used for security-sensitive purposes."
+   "triage_note": "This is benchmark test data generation in packages/bench/safe.ts, returning random values for performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
   },
   {
    "id": "insecure_random:packages/bench/safe.ts:46",
@@ -18055,7 +18055,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The matched line is a commented-out line (starts with //) in a disabled benchmark case. It is not executable code."
+   "triage_note": "This line is in a commented-out code block (lines 45-50 are all prefixed with //). It is dead code and never executes."
   },
   {
    "id": "insecure_random:packages/bench/safeparse.ts:12",
@@ -18071,7 +18071,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The matched line is a commented-out line in a benchmark test data definition. Not executable code."
+   "triage_note": "This line is commented out (prefixed with //). It is dead code and never executes."
   },
   {
    "id": "insecure_random:packages/bench/safeparse.ts:13",
@@ -18087,7 +18087,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The matched line is a commented-out line in a benchmark test data definition. Not executable code."
+   "triage_note": "This line is commented out (prefixed with //). It is dead code and never executes."
   },
   {
    "id": "insecure_random:packages/bench/safeparse.ts:14",
@@ -18103,7 +18103,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The matched line is a commented-out line in a benchmark test data definition. Not executable code."
+   "triage_note": "This line is commented out (prefixed with //). It is dead code and never executes."
   },
   {
    "id": "insecure_random:packages/bench/string.ts:6",
@@ -18119,7 +18119,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Benchmark file generating random string test data via makeData() for string parsing performance tests. Math.random() is used for test fixture variety, not for tokens or nonces."
+   "triage_note": "This is benchmark test data generation in packages/bench/string.ts, creating random strings for string parsing performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:11",
@@ -18135,7 +18135,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is a Next.js documentation config file. The generateRedirects function signature accepts an origin parameter with default \"/\" for building doc redirect maps, not for handling user-supplied redirect targets at runtime."
+   "triage_note": "The generateRedirects function in packages/docs/next.config.mjs is a build-time utility that generates static Next.js redirect configuration from an idmap (a static mapping of page IDs). The 'origin' parameter defaults to '/' and is not user-controlled at runtime. This is not an open redirect vulnerability."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:12",
@@ -18151,7 +18151,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This line is a JSDoc type annotation (/** @type ... */), not executable code that performs redirects."
+   "triage_note": "This line is a JSDoc type annotation for the redirects array. The generateRedirects function is a build-time utility generating static redirect configuration, not handling user input at runtime."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:13",
@@ -18167,7 +18167,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This line merely initializes an empty array (const redirects = []). The scanner matched on the variable name, not on any user-controlled redirect target."
+   "triage_note": "This line initializes an empty redirects array. The generateRedirects function is a build-time utility generating static Next.js redirect configuration from a static idmap, not processing user-controlled redirect targets."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:21",
@@ -18183,7 +18183,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is a Next.js build-time configuration file (next.config.mjs) for the documentation site. The redirects array is constructed from static configuration variables (origin, page) at build time, not from runtime user input. No user-controlled data reaches the redirect target."
+   "triage_note": "The redirect destination is a relative path constructed from `page` (validated to start with '/') and a query parameter `value`; `origin` is used as the source pattern, not the target. This is an internal same-origin redirect, not an open redirect to an arbitrary external URL."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:34",
@@ -18199,7 +18199,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This line simply returns the statically constructed redirects array from the Next.js config file. The redirects are defined at build time for the documentation site, not derived from runtime user input."
+   "triage_note": "Same redirect logic as the previous finding; the returned redirects array contains only internal relative destinations built from validated inputs."
   },
   {
    "id": "insecure_random:packages/treeshake/default-locale.test.ts:62",
@@ -18215,7 +18215,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is a test file (.test.ts) using Math.random() to generate a unique temporary filename for test output. It is not generating security tokens, keys, or nonces in production code."
+   "triage_note": "This is test code generating a temporary filename to avoid collisions; Math.random() is acceptable for non-security purposes like test fixtures."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:93",
@@ -18231,7 +18231,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This file (generate.ts) appears to be a test schema generator. Math.random() is used to pick random references for generating test schemas, not for cryptographic tokens or nonces in production."
+   "triage_note": "This is a code-generation utility for creating test schemas; Math.random() selects random elements during generation, not for cryptographic tokens, keys, or nonces."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:121",
@@ -18247,7 +18247,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test schema generation code using Math.random() to randomly omit keys for test case variety. Not production code generating security-sensitive values."
+   "triage_note": "Same code-generation context; Math.random() filters keys randomly for schema variety in generated output, not for security-sensitive material."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:134",
@@ -18263,7 +18263,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test schema generation code using Math.random() to randomly pick keys for test case variety. Not production code generating security-sensitive values."
+   "triage_note": "Same code-generation context; Math.random() picks keys for `.pick()` calls in generated schemas, not for security purposes."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:252",
@@ -18279,7 +18279,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test schema generation code where the random filter is commented out and replaced with a deterministic slice. Even the commented code was for test generation, not production security tokens."
+   "triage_note": "The Math.random() call appears only in a commented-out code fragment; the active code uses a deterministic slice of the first three fields."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:320",
@@ -18295,7 +18295,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The randomStr function in a test generator file creates random variable names for generated test schemas. It is not used for cryptographic nonces, tokens, or keys in production."
+   "triage_note": "The randomStr function generates random variable names for code-generation output (e.g., `export const ${varname} = ...`), not cryptographic material."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:2",
@@ -18311,7 +18311,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is a test utility (in /tests/Mocker.ts) providing random integers for mock data generation during testing. Not production code for security tokens."
+   "triage_note": "This is a test utility in a dedicated test file (`/tests/Mocker.ts`) for generating mock data; Math.random() is appropriate for non-security test fixtures."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:13",
@@ -18327,7 +18327,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test mocker generating random strings for test data. Located in /tests/ directory, clearly test infrastructure, not production security code."
+   "triage_note": "Test mock getter for random strings; used only in test scenarios, not for tokens, keys, or nonces in production code."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:16",
@@ -18343,7 +18343,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test mocker generating random numbers for test data. Located in /tests/ directory, clearly test infrastructure."
+   "triage_note": "Test mock getter for random numbers; same test-only context."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:19",
@@ -18359,7 +18359,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test mocker generating random bigints for test data. Located in /tests/ directory, clearly test infrastructure."
+   "triage_note": "Test mock getter for random bigints; same test-only context."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:22",
@@ -18375,7 +18375,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The code is in a test utility file (Mocker.ts under src/v3/tests/) that generates mock data for testing purposes. The Math.random() calls produce random bigints, booleans, and dates as test fixtures, not security-sensitive tokens, keys, or nonces."
+   "triage_note": "The code is in a test fixture file (packages/zod/src/v3/tests/Mocker.ts) inside a Mocker class that generates mock data for testing. The Math.random() calls produce random bigint, boolean, and date values for test mocking, not for security-sensitive tokens, keys, or nonces."
   }
  ],
  "security_summary": {
@@ -27495,7 +27495,7 @@
  "dependency_research": {
   "provider": "tavily",
   "enabled": true,
-  "checked_at": "2026-10-04T15:04:37Z",
+  "checked_at": "2026-10-04T15:08:08Z",
   "vulnerable": [
    {
     "name": "@arethetypeswrong/cli",
@@ -34514,7 +34514,7 @@
   "note": "Advisories come from web search, not from a vulnerability database. Confirm the affected version range in the linked advisory before acting."
  },
  "architecture": {
-  "summary": "TypeScript-first schema validation library with static type inference. Zero dependencies, 2kb core bundle, works in Node.js and browsers. Monorepo contains multiple packages for validation, mini variant, v3 compatibility layer, integration tests, and build tooling.",
+  "summary": "Zod is a TypeScript-first schema validation library with static type inference, developed as a pnpm monorepo by colinhacks. The library emphasizes zero external dependencies, 2kb core bundle size, immutable APIs, and compatibility with TypeScript and plain JavaScript across Node.js and browsers.",
   "pattern": "",
   "layers": [],
   "entry_points": [],
@@ -34536,19 +34536,9 @@
   {
    "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
    "prompt_tokens": 937,
-   "completion_tokens": 444,
-   "total_tokens": 1381,
-   "latency_s": 3.646,
-   "attempts": 1,
-   "step": "triage",
-   "finish_reason": "stop"
-  },
-  {
-   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
-   "prompt_tokens": 3650,
-   "completion_tokens": 1871,
-   "total_tokens": 5521,
-   "latency_s": 7.414,
+   "completion_tokens": 391,
+   "total_tokens": 1328,
+   "latency_s": 3.633,
    "attempts": 1,
    "step": "triage",
    "finish_reason": "stop"
@@ -34556,9 +34546,9 @@
   {
    "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
    "prompt_tokens": 3363,
-   "completion_tokens": 2004,
-   "total_tokens": 5367,
-   "latency_s": 7.668,
+   "completion_tokens": 1729,
+   "total_tokens": 5092,
+   "latency_s": 7.594,
    "attempts": 1,
    "step": "triage",
    "finish_reason": "stop"
@@ -34566,9 +34556,19 @@
   {
    "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
    "prompt_tokens": 3628,
-   "completion_tokens": 1967,
-   "total_tokens": 5595,
-   "latency_s": 7.699,
+   "completion_tokens": 1975,
+   "total_tokens": 5603,
+   "latency_s": 8.621,
+   "attempts": 1,
+   "step": "triage",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 3650,
+   "completion_tokens": 2907,
+   "total_tokens": 6557,
+   "latency_s": 11.482,
    "attempts": 1,
    "step": "triage",
    "finish_reason": "stop"
@@ -34576,9 +34576,9 @@
   {
    "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
    "prompt_tokens": 6899,
-   "completion_tokens": 2622,
-   "total_tokens": 9521,
-   "latency_s": 8.192,
+   "completion_tokens": 1833,
+   "total_tokens": 8732,
+   "latency_s": 7.324,
    "attempts": 1,
    "step": "architecture",
    "finish_reason": "stop"
@@ -34610,8 +34610,8 @@
   "outdated_dependencies": 2,
   "research_queries": 13,
   "total_loc": 22223,
-  "analyzed_at": "2026-10-04T15:04:40Z",
-  "elapsed_seconds": 34.29,
+  "analyzed_at": "2026-10-04T15:08:21Z",
+  "elapsed_seconds": 44.34,
   "head_sha": "0b216ef674e297ebe41d8bf902262e56f8755822"
  },
  "repo_path": ""
