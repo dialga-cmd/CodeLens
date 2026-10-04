@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -325,11 +325,19 @@ function Panel({
   children: React.ReactNode;
   actions?: React.ReactNode;
 }) {
+  // A <section> is only announced as a region once it has an accessible name,
+  // and the title is what the reader needs to hear to find the right one.
+  const headingId = useId();
   return (
-    <section className="panel overflow-hidden">
+    <section className="panel overflow-hidden" aria-labelledby={headingId}>
       <div className="flex items-center gap-2 border-b border-white/10 bg-[#111] px-4 py-3">
         {icon}
-        <h2 className="text-xs font-bold uppercase tracking-widest text-[#8a8a8a]">{title}</h2>
+        <h2
+          id={headingId}
+          className="text-xs font-bold uppercase tracking-widest text-[#8a8a8a]"
+        >
+          {title}
+        </h2>
         {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
       </div>
       {children}
@@ -1116,7 +1124,11 @@ function ChatPanel({
     <Panel
       title="Ask the repository"
       icon={<Bot size={14} className="text-[#00ff41]" aria-hidden />}
-      actions={<span className="hidden text-[10px] text-[#4d4d4d] sm:inline">fast model · tools</span>}
+      actions={
+        <span className="hidden text-[10px] text-[#4d4d4d] sm:inline">
+          fast model · tools · reads real files
+        </span>
+      }
     >
       <div className="h-[420px]">
         <AIChat repoId={results.repo_id} getIdToken={getIdToken} disabled={isDemo} />

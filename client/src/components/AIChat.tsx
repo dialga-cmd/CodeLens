@@ -6,7 +6,6 @@ import {
   FileCode,
   Loader2,
   SendHorizontal,
-  Sparkles,
   User as UserIcon,
   Wrench,
 } from "lucide-react";
@@ -217,18 +216,9 @@ export default function AIChat({
   const canAsk = useMemo(() => Boolean(repoId) && !disabled, [repoId, disabled]);
 
   return (
-    <section
-      className={`panel flex h-full min-h-0 flex-col overflow-hidden ${className ?? ""}`}
-      aria-label="Ask questions about this repository"
-    >
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#111] px-4 py-2.5">
-        <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#8a8a8a]">
-          <Sparkles size={13} className="text-[#00ff41]" aria-hidden />
-          Ask the repository
-        </h3>
-        <span className="text-[10px] text-[#4d4d4d]">reads real files</span>
-      </div>
-
+    // Only the body lives here. The panel and its title belong to whoever mounts
+    // this, so wrapping it in its own panel produced two stacked headers.
+    <div className={`flex h-full min-h-0 flex-col ${className ?? ""}`}>
       <div
         ref={logRef}
         role="log"
@@ -396,6 +386,6 @@ export default function AIChat({
           </button>
         </div>
       </form>
-    </section>
+    </div>
   );
 }
