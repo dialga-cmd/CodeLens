@@ -433,12 +433,32 @@ def rank_findings(findings: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def summarize(findings: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Count findings by severity, keeping the model's dismissals out of the tally.
+
+    Triage runs over everything the pattern rules matched, and it dismisses most
+    of it: on zod the model dismissed 37 of 37 candidates as docstring and test
+    fixtures. Counting those by severity reports "2 high vulnerabilities" for a
+    repository the model judged to have none, which is the one number a reviewer
+    reads first. So ``by_severity`` counts what survived, and the dismissed
+    findings are reported separately rather than silently folded in.
+    """
     counts: dict[str, int] = {}
+    dismissed = 0
     for finding in findings:
+        if finding.get("triage") == "dismissed":
+            dismissed += 1
+            continue
         severity = str(finding.get("severity", "LOW")).upper()
         counts[severity] = counts.get(severity, 0) + 1
     return {
-        "total": len(findings),
+        "total": len(findings) - dismissed,
         "by_severity": counts,
-        "files_affected": len({str(finding.get("file_path", "")) for finding in findings if finding.get("file_path")}),
+        "dismissed": dismissed,
+        "files_affected": len(
+            {
+                str(finding.get("file_path", ""))
+                for finding in findings
+                if finding.get("file_path") and finding.get("triage") != "dismissed"
+            }
+        ),
     }

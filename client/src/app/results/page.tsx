@@ -411,14 +411,22 @@ function OverviewPanel({ results }: { results: AnalysisResult }) {
 
 function FindingsSummary({ results }: { results: AnalysisResult }) {
   const findings = results.vulnerabilities || [];
+  const dismissed = useMemo(
+    () => findings.filter((finding) => finding.triage === "dismissed"),
+    [findings],
+  );
+  const live = useMemo(
+    () => findings.filter((finding) => finding.triage !== "dismissed"),
+    [findings],
+  );
   const bySeverity = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const finding of findings) {
+    for (const finding of live) {
       const key = String(finding.severity || "UNKNOWN").toUpperCase();
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  }, [findings]);
+  }, [live]);
 
   const summary = results.security_summary || {};
 
@@ -427,7 +435,10 @@ function FindingsSummary({ results }: { results: AnalysisResult }) {
       title="Security pre-scan"
       icon={<ShieldAlert size={14} className="text-red-400" aria-hidden />}
       actions={
-        <span className="text-[10px] text-[#4d4d4d]">{findings.length} total</span>
+        <span className="text-[10px] text-[#4d4d4d]">
+          {live.length} counted
+          {dismissed.length > 0 && `, ${dismissed.length} dismissed`}
+        </span>
       }
     >
       <div className="space-y-4 p-4">
@@ -437,13 +448,23 @@ function FindingsSummary({ results }: { results: AnalysisResult }) {
             safe - the checks are deterministic pattern matches and a model reviews them.
           </p>
         ) : (
-          <ul className="flex flex-wrap gap-2">
-            {bySeverity.map(([severity, count]) => (
-              <li key={severity}>
-                <SeverityBadge severity={severity} count={count} />
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="flex flex-wrap gap-2">
+              {bySeverity.map(([severity, count]) => (
+                <li key={severity}>
+                  <SeverityBadge severity={severity} count={count} />
+                </li>
+              ))}
+            </ul>
+            {dismissed.length > 0 && (
+              <p className="text-[11px] leading-relaxed text-[#5a5a5a]">
+                {dismissed.length} further {dismissed.length === 1 ? "match" : "matches"} from the
+                same rules were reviewed by the model and dismissed as false positives, so they are
+                not counted above. They stay in the list below with the reason, because a dismissal
+                is a judgement you can disagree with.
+              </p>
+            )}
+          </>
         )}
 
         {summary && Object.keys(summary).length > 0 && (

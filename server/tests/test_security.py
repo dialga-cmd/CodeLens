@@ -219,5 +219,31 @@ def test_summary_counts_severity_files_and_total():
     assert summarize(findings) == {
         "total": 3,
         "by_severity": {"HIGH": 2, "LOW": 1},
+        "dismissed": 0,
         "files_affected": 2,
     }
+
+
+def test_a_dismissed_finding_is_not_counted_as_a_vulnerability():
+    """zod: the model dismissed 37 of 37, two of them HIGH.
+
+    Reporting "2 high vulnerabilities" for a repository the model judged to have
+    none is the first number a reviewer reads, so dismissals are counted apart.
+    """
+    findings = [
+        {"severity": "HIGH", "file_path": "a.ts", "line": 1, "triage": "dismissed"},
+        {"severity": "HIGH", "file_path": "b.ts", "line": 1, "triage": "dismissed"},
+        {"severity": "MEDIUM", "file_path": "c.ts", "line": 1, "triage": "confirmed"},
+    ]
+    summary = summarize(findings)
+
+    assert summary["by_severity"] == {"MEDIUM": 1}
+    assert summary["total"] == 1
+    assert summary["dismissed"] == 2
+    assert summary["files_affected"] == 1
+
+
+def test_a_finding_with_no_triage_verdict_is_still_counted():
+    findings = [{"severity": "HIGH", "file_path": "a.py", "line": 1, "triage": "pending"}]
+
+    assert summarize(findings)["by_severity"] == {"HIGH": 1}
