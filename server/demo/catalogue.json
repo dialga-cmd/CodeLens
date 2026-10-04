@@ -5,13 +5,13 @@
   "repo_url": "https://github.com/pallets/flask",
   "snapshot": "flask.snapshot.json",
   "head_sha": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
-  "analyzed_at": "",
-  "generated_at": "2026-10-01T09:10:11+00:00",
+  "analyzed_at": "2026-10-04T15:04:06Z",
+  "generated_at": "2026-10-04T15:04:06+00:00",
   "stats": {
    "files": 96,
    "hotspots": 8,
    "findings": 74,
-   "graph_edges": 195
+   "graph_edges": 221
   }
  },
  {
@@ -19,9 +19,9 @@
   "label": "Zod - TypeScript schema library",
   "repo_url": "https://github.com/colinhacks/zod",
   "snapshot": "zod.snapshot.json",
-  "head_sha": "004d800c9e3cd4c79930f55aa4ad080225b22efd",
-  "analyzed_at": "",
-  "generated_at": "2026-10-01T09:10:24+00:00",
+  "head_sha": "0b216ef674e297ebe41d8bf902262e56f8755822",
+  "analyzed_at": "2026-10-04T15:04:40Z",
+  "generated_at": "2026-10-04T15:04:40+00:00",
   "stats": {
    "files": 250,
    "hotspots": 8,

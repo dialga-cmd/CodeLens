@@ -133,3 +133,63 @@ def test_the_digest_stays_small_enough_to_prefix_every_prompt():
     snapshot["vulnerabilities"] = [{"file_path": f"g{i}.py", "line": i, "severity": "LOW", "triage": "confirmed"} for i in range(90)]
 
     assert len(build_analysis_digest(snapshot)) < 3000
+
+
+def test_architecture_written_under_its_own_key_is_still_read():
+    """A live run answered {"repo_identity": ..., "architecture": {...}}.
+
+    Reading only the documented keys produced an empty panel that still named the
+    model as its author, which reads as "the analysis found nothing".
+    """
+    from app.core.ai_analyzer import AIAnalyzer
+
+    cleaned = AIAnalyzer._clean_architecture(
+        {
+            "repo_identity": {"name": "flask"},
+            "architecture": {
+                "summary": "A WSGI microframework.",
+                "pattern": "microframework",
+                "boundaries": ["wsgi-application", "jinja2-templating"],
+                "entrypoints": [{"name": "flask-cli", "location": "src/flask/cli.py", "description": "Click CLI"}],
+            },
+        },
+        "nvidia/test",
+    )
+
+    assert cleaned["summary"] == "A WSGI microframework."
+    assert cleaned["pattern"] == "microframework"
+    assert [layer["name"] for layer in cleaned["layers"]] == ["wsgi-application", "jinja2-templating"]
+    assert cleaned["entry_points"][0]["file_path"] == "src/flask/cli.py"
+    assert cleaned["extracted"] is True
+
+
+def test_the_documented_architecture_shape_is_unchanged():
+    from app.core.ai_analyzer import AIAnalyzer
+
+    cleaned = AIAnalyzer._clean_architecture(
+        {
+            "summary": "s",
+            "pattern": "p",
+            "layers": [{"name": "L", "files": ["a.py"], "responsibility": "r"}],
+            "entry_points": [{"file_path": "b.py", "role": "x", "calls": ["c.py"]}],
+            "data_flow": ["one", "two"],
+            "extension_points": [{"file_path": "d.py", "how": "add a route"}],
+            "risks": [{"file_path": "e.py", "risk": "cycles"}],
+        },
+        "nvidia/test",
+    )
+
+    assert cleaned["layers"] == [{"name": "L", "files": ["a.py"], "responsibility": "r"}]
+    assert cleaned["entry_points"][0]["calls"] == ["c.py"]
+    assert cleaned["data_flow"] == ["one", "two"]
+
+
+def test_an_unusable_architecture_answer_is_marked_as_such():
+    """Empty with generated_by set reads as a finding; it has to read as a failure."""
+    from app.core.ai_analyzer import AIAnalyzer
+
+    cleaned = AIAnalyzer._clean_architecture({"unrelated": True}, "nvidia/test")
+
+    assert cleaned["extracted"] is False
+    assert cleaned["generated_by"] == "nvidia/test"
+    assert cleaned["summary"] == ""

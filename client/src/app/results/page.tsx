@@ -1027,6 +1027,11 @@ function ArchitecturePanel({ results }: { results: AnalysisResult }) {
       <div className="space-y-4 p-4 text-xs leading-relaxed">
         {architecture.summary ? (
           <p className="text-[#a0a0a0]">{architecture.summary}</p>
+        ) : architecture.generated_by ? (
+          <p className="text-[#5a5a5a]">
+            {architecture.generated_by} was asked for this and its answer did not contain
+            anything usable, so nothing is shown rather than something invented.
+          </p>
         ) : (
           <p className="text-[#5a5a5a]">
             No architecture summary in this analysis. It is written by the large model, so an

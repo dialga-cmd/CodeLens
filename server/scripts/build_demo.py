@@ -25,8 +25,17 @@ from typing import Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from dotenv import load_dotenv  # noqa: E402
+
+# The docstring above says to run this with real keys in server/.env. Without this
+# line the keys are not read, no error is raised, and the demo snapshots are
+# written with no triage, no architecture summary and no grounded sources - which
+# looks like a working demo and is not one.
+load_dotenv(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env")))
+
 from app.core.analyzer import CodeAnalyzer  # noqa: E402
 from app.core.ingestion import normalize_repo_url  # noqa: E402
+from app.core.llm import get_llm_client  # noqa: E402
 
 DEMO_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "demo"))
 
@@ -50,7 +59,9 @@ DEMO_TARGETS: list[dict[str, str]] = [
 def build(target: dict[str, str], analyzer: CodeAnalyzer, refresh: bool) -> dict[str, Any]:
     repo_url = normalize_repo_url(target["repo_url"])
     print(f"\n=== {target['label']} ({repo_url}) ===", flush=True)
-    results = analyzer.analyze_repo(repo_url, progress_callback=lambda message: print(f"  {message}", flush=True), refresh=refresh)
+    # analyze_repo already prints each progress message; a callback that printed
+    # again showed every line twice.
+    results = analyzer.analyze_repo(repo_url, refresh=refresh)
 
     slug = target["slug"]
     filename = f"{slug}.snapshot.json"
@@ -72,7 +83,9 @@ def build(target: dict[str, str], analyzer: CodeAnalyzer, refresh: bool) -> dict
         "repo_url": repo_url,
         "snapshot": filename,
         "head_sha": results.get("head_sha", ""),
-        "analyzed_at": results.get("analyzed_at", ""),
+        # analyzed_at lives in stats, not at the top level. Reading it from the top
+        # level is why every catalogue entry said the demo had never been analysed.
+        "analyzed_at": (results.get("stats") or {}).get("analyzed_at", ""),
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "stats": {
             "files": results.get("stats", {}).get("total_files", 0),
@@ -92,6 +105,23 @@ def write_catalogue(entries: list[dict[str, Any]]) -> None:
 def main() -> int:
     refresh = "--reuse-cache" not in sys.argv
     analyzer = CodeAnalyzer()
+
+    llm = get_llm_client()
+    if not llm.configured:
+        print(
+            "NEBIUS_API_KEY is not set. The demo would be static analysis only - no triage, no\n"
+            "architecture summary, no Fix Advisor - and it would still look complete. Put the\n"
+            "key in server/.env and run this again.",
+            flush=True,
+        )
+        return 2
+    if not analyzer.research.available:
+        print(
+            "TAVILY_API_KEY is not set. Dependencies will be listed without advisories and the\n"
+            "findings will carry no sources.",
+            flush=True,
+        )
+    print(f"building demos with {llm.heavy_model} for triage and {llm.fast_model} for chat", flush=True)
 
     entries: list[dict[str, Any]] = []
     failures: list[str] = []

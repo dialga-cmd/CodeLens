@@ -201,7 +201,7 @@
    "functions": [],
    "classes": [],
    "fan_in": 0,
-   "fan_out": 0,
+   "fan_out": 1,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -313,7 +313,7 @@
      "end_line": 33
     }
    ],
-   "fan_in": 0,
+   "fan_in": 2,
    "fan_out": 2,
    "churn": {
     "commits": 4,
@@ -424,7 +424,7 @@
    ],
    "classes": [],
    "fan_in": 1,
-   "fan_out": 2,
+   "fan_out": 3,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -497,7 +497,7 @@
    "comment_lines": 1,
    "functions": [],
    "classes": [],
-   "fan_in": 0,
+   "fan_in": 2,
    "fan_out": 2,
    "churn": {
     "commits": 4,
@@ -543,7 +543,7 @@
    ],
    "classes": [],
    "fan_in": 1,
-   "fan_out": 2,
+   "fan_out": 3,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -585,7 +585,7 @@
    ],
    "classes": [],
    "fan_in": 0,
-   "fan_out": 1,
+   "fan_out": 2,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -725,7 +725,7 @@
     }
    ],
    "classes": [],
-   "fan_in": 0,
+   "fan_in": 2,
    "fan_out": 4,
    "churn": {
     "commits": 4,
@@ -1036,7 +1036,7 @@
     }
    ],
    "fan_in": 0,
-   "fan_out": 1,
+   "fan_out": 2,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -1283,7 +1283,7 @@
    ],
    "classes": [],
    "fan_in": 0,
-   "fan_out": 0,
+   "fan_out": 1,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -1356,8 +1356,8 @@
    "comment_lines": 0,
    "functions": [],
    "classes": [],
-   "fan_in": 0,
-   "fan_out": 9,
+   "fan_in": 8,
+   "fan_out": 10,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -1778,7 +1778,7 @@
     }
    ],
    "fan_in": 6,
-   "fan_out": 12,
+   "fan_out": 13,
    "churn": {
     "commits": 11,
     "added": 0,
@@ -2206,7 +2206,7 @@
     }
    ],
    "fan_in": 5,
-   "fan_out": 4,
+   "fan_out": 5,
    "churn": {
     "commits": 6,
     "added": 0,
@@ -2350,7 +2350,7 @@
     }
    ],
    "fan_in": 2,
-   "fan_out": 2,
+   "fan_out": 3,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -2610,7 +2610,7 @@
     }
    ],
    "fan_in": 5,
-   "fan_out": 7,
+   "fan_out": 8,
    "churn": {
     "commits": 8,
     "added": 0,
@@ -3755,7 +3755,7 @@
     }
    ],
    "fan_in": 4,
-   "fan_out": 2,
+   "fan_out": 3,
    "churn": {
     "commits": 4,
     "added": 0,
@@ -3892,7 +3892,7 @@
     }
    ],
    "fan_in": 10,
-   "fan_out": 4,
+   "fan_out": 6,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -3959,7 +3959,7 @@
     }
    ],
    "classes": [],
-   "fan_in": 0,
+   "fan_in": 8,
    "fan_out": 4,
    "churn": {
     "commits": 3,
@@ -4087,7 +4087,7 @@
     }
    ],
    "fan_in": 3,
-   "fan_out": 2,
+   "fan_out": 3,
    "churn": {
     "commits": 4,
     "added": 0,
@@ -4416,7 +4416,7 @@
     }
    ],
    "fan_in": 2,
-   "fan_out": 1,
+   "fan_out": 2,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -4792,7 +4792,7 @@
     }
    ],
    "fan_in": 13,
-   "fan_out": 10,
+   "fan_out": 11,
    "churn": {
     "commits": 9,
     "added": 0,
@@ -5122,7 +5122,7 @@
     }
    ],
    "fan_in": 2,
-   "fan_out": 3,
+   "fan_out": 4,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -5429,7 +5429,7 @@
     }
    ],
    "fan_in": 5,
-   "fan_out": 3,
+   "fan_out": 4,
    "churn": {
     "commits": 4,
     "added": 0,
@@ -9064,7 +9064,7 @@
     }
    ],
    "fan_in": 0,
-   "fan_out": 2,
+   "fan_out": 3,
    "churn": {
     "commits": 6,
     "added": 0,
@@ -9845,7 +9845,7 @@
     }
    ],
    "fan_in": 0,
-   "fan_out": 1,
+   "fan_out": 2,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -10808,7 +10808,7 @@
     }
    ],
    "fan_in": 0,
-   "fan_out": 2,
+   "fan_out": 3,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -12350,7 +12350,7 @@
     }
    ],
    "fan_in": 0,
-   "fan_out": 3,
+   "fan_out": 4,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -12748,7 +12748,7 @@
     }
    ],
    "fan_in": 0,
-   "fan_out": 4,
+   "fan_out": 5,
    "churn": {
     "commits": 5,
     "added": 0,
@@ -13606,8 +13606,8 @@
    "comment_lines": 2,
    "functions": [],
    "classes": [],
-   "fan_in": 0,
-   "fan_out": 1,
+   "fan_in": 2,
+   "fan_out": 3,
    "churn": {
     "commits": 3,
     "added": 0,
@@ -13671,7 +13671,7 @@
     }
    ],
    "classes": [],
-   "fan_in": 0,
+   "fan_in": 1,
    "fan_out": 1,
    "churn": {
     "commits": 3,
@@ -13713,7 +13713,7 @@
     }
    ],
    "classes": [],
-   "fan_in": 0,
+   "fan_in": 1,
    "fan_out": 1,
    "churn": {
     "commits": 3,
@@ -14392,12 +14392,13 @@
     "complexity": 1,
     "loc": 4,
     "fan_in": 0,
-    "fan_out": 0,
-    "dependencies": [],
+    "fan_out": 1,
+    "dependencies": [
+     "examples/celery/src/task_app/__init__.py"
+    ],
     "dependents": [],
     "external_imports": [
-     "create_app",
-     "task_app"
+     "create_app"
     ],
     "finding_count": 0,
     "val": 3
@@ -14409,15 +14410,17 @@
     "language": "python",
     "complexity": 1,
     "loc": 39,
-    "fan_in": 0,
+    "fan_in": 2,
     "fan_out": 2,
     "dependencies": [
      "examples/celery/src/task_app/views.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
-    "dependents": [],
+    "dependents": [
+     "examples/celery/make_celery.py",
+     "examples/celery/src/task_app/views.py"
+    ],
     "external_imports": [
-     ".",
      "Celery",
      "Flask",
      "Task",
@@ -14425,7 +14428,7 @@
      "render_template"
     ],
     "finding_count": 0,
-    "val": 3
+    "val": 6
    },
    {
     "id": "examples/celery/src/task_app/tasks.py",
@@ -14457,8 +14460,9 @@
     "complexity": 3,
     "loc": 38,
     "fan_in": 1,
-    "fan_out": 2,
+    "fan_out": 3,
     "dependencies": [
+     "examples/celery/src/task_app/__init__.py",
      "examples/celery/src/task_app/tasks.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
@@ -14466,7 +14470,6 @@
      "examples/celery/src/task_app/__init__.py"
     ],
     "external_imports": [
-     ".",
      "AsyncResult",
      "Blueprint",
      "celery.result",
@@ -14482,19 +14485,21 @@
     "language": "python",
     "complexity": 1,
     "loc": 5,
-    "fan_in": 0,
+    "fan_in": 2,
     "fan_out": 2,
     "dependencies": [
      "examples/javascript/js_example/views.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
-    "dependents": [],
+    "dependents": [
+     "examples/javascript/js_example/views.py",
+     "examples/javascript/tests/conftest.py"
+    ],
     "external_imports": [
-     "Flask",
-     "js_example"
+     "Flask"
     ],
     "finding_count": 0,
-    "val": 3
+    "val": 6
    },
    {
     "id": "examples/javascript/js_example/views.py",
@@ -14504,8 +14509,9 @@
     "complexity": 1,
     "loc": 18,
     "fan_in": 1,
-    "fan_out": 2,
+    "fan_out": 3,
     "dependencies": [
+     "examples/javascript/js_example/__init__.py",
      "src/flask/sansio/app.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
@@ -14513,7 +14519,6 @@
      "examples/javascript/js_example/__init__.py"
     ],
     "external_imports": [
-     ".",
      "jsonify",
      "render_template",
      "request"
@@ -14529,13 +14534,13 @@
     "complexity": 1,
     "loc": 15,
     "fan_in": 0,
-    "fan_out": 1,
+    "fan_out": 2,
     "dependencies": [
+     "examples/javascript/js_example/__init__.py",
      "src/flask/sansio/app.py"
     ],
     "dependents": [],
     "external_imports": [
-     "js_example",
      "pytest"
     ],
     "finding_count": 0,
@@ -14568,7 +14573,7 @@
     "language": "python",
     "complexity": 2,
     "loc": 48,
-    "fan_in": 0,
+    "fan_in": 2,
     "fan_out": 4,
     "dependencies": [
      "examples/tutorial/flaskr/auth.py",
@@ -14576,14 +14581,16 @@
      "examples/tutorial/flaskr/db.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
-    "dependents": [],
+    "dependents": [
+     "examples/tutorial/tests/conftest.py",
+     "examples/tutorial/tests/test_factory.py"
+    ],
     "external_imports": [
-     ".",
      "Flask",
      "os"
     ],
     "finding_count": 0,
-    "val": 5
+    "val": 7
    },
    {
     "id": "examples/tutorial/flaskr/auth.py",
@@ -14692,14 +14699,14 @@
     "complexity": 1,
     "loc": 62,
     "fan_in": 0,
-    "fan_out": 1,
+    "fan_out": 2,
     "dependencies": [
+     "examples/tutorial/flaskr/__init__.py",
      "examples/tutorial/flaskr/db.py"
     ],
     "dependents": [],
     "external_imports": [
      "create_app",
-     "flaskr",
      "get_db",
      "init_db",
      "os",
@@ -14781,12 +14788,13 @@
     "complexity": 1,
     "loc": 12,
     "fan_in": 0,
-    "fan_out": 0,
-    "dependencies": [],
+    "fan_out": 1,
+    "dependencies": [
+     "examples/tutorial/flaskr/__init__.py"
+    ],
     "dependents": [],
     "external_imports": [
-     "create_app",
-     "flaskr"
+     "create_app"
     ],
     "finding_count": 0,
     "val": 3
@@ -14798,8 +14806,8 @@
     "language": "python",
     "complexity": 1,
     "loc": 39,
-    "fan_in": 0,
-    "fan_out": 9,
+    "fan_in": 8,
+    "fan_out": 10,
     "dependencies": [
      "src/flask/app.py",
      "src/flask/blueprints.py",
@@ -14807,14 +14815,22 @@
      "src/flask/ctx.py",
      "src/flask/globals.py",
      "src/flask/helpers.py",
+     "src/flask/json/__init__.py",
      "src/flask/signals.py",
      "src/flask/templating.py",
      "src/flask/wrappers.py"
     ],
-    "dependents": [],
+    "dependents": [
+     "src/flask/app.py",
+     "src/flask/cli.py",
+     "src/flask/ctx.py",
+     "src/flask/sansio/app.py",
+     "src/flask/sansio/blueprints.py",
+     "src/flask/sansio/scaffold.py",
+     "src/flask/views.py",
+     "src/flask/wrappers.py"
+    ],
     "external_imports": [
-     ".",
-     ".json",
      "Blueprint",
      "Config",
      "Flask",
@@ -14832,10 +14848,12 @@
      "g",
      "get_flashed_messages",
      "get_template_attribute",
-     "got_request_exception"
+     "got_request_exception",
+     "has_app_context",
+     "has_request_context"
     ],
     "finding_count": 0,
-    "val": 6
+    "val": 16
    },
    {
     "id": "src/flask/__main__.py",
@@ -14864,8 +14882,9 @@
     "complexity": 129,
     "loc": 1628,
     "fan_in": 6,
-    "fan_out": 12,
+    "fan_out": 13,
     "dependencies": [
+     "src/flask/__init__.py",
      "src/flask/cli.py",
      "src/flask/ctx.py",
      "src/flask/debughelpers.py",
@@ -14888,7 +14907,6 @@
      "src/flask/testing.py"
     ],
     "external_imports": [
-     ".",
      "App",
      "AppContext",
      "BadRequestKeyError",
@@ -14907,7 +14925,8 @@
      "Request",
      "RequestRedirect",
      "Response",
-     "RoutingException"
+     "RoutingException",
+     "Rule"
     ],
     "finding_count": 0,
     "val": 24
@@ -14957,8 +14976,9 @@
     "complexity": 119,
     "loc": 1127,
     "fan_in": 5,
-    "fan_out": 4,
+    "fan_out": 5,
     "dependencies": [
+     "src/flask/__init__.py",
      "src/flask/app.py",
      "src/flask/globals.py",
      "src/flask/helpers.py",
@@ -14972,7 +14992,6 @@
      "tests/test_testing.py"
     ],
     "external_imports": [
-     ".",
      "Completer",
      "Flask",
      "ModuleType",
@@ -14991,7 +15010,8 @@
      "dotenv",
      "functools",
      "get_debug_flag",
-     "get_load_dotenv"
+     "get_load_dotenv",
+     "import_string"
     ],
     "finding_count": 0,
     "val": 24
@@ -15004,8 +15024,9 @@
     "complexity": 30,
     "loc": 367,
     "fan_in": 2,
-    "fan_out": 2,
+    "fan_out": 3,
     "dependencies": [
+     "src/flask/json/__init__.py",
      "src/flask/sansio/app.py",
      "src/flask/typing.py"
     ],
@@ -15017,14 +15038,13 @@
      "App",
      "errno",
      "import_string",
-     "json",
      "os",
      "types",
      "typing_extensions",
      "werkzeug.utils"
     ],
     "finding_count": 0,
-    "val": 23
+    "val": 24
    },
    {
     "id": "src/flask/ctx.py",
@@ -15034,8 +15054,9 @@
     "complexity": 28,
     "loc": 540,
     "fan_in": 5,
-    "fan_out": 7,
+    "fan_out": 8,
     "dependencies": [
+     "src/flask/__init__.py",
      "src/flask/app.py",
      "src/flask/globals.py",
      "src/flask/helpers.py",
@@ -15052,7 +15073,6 @@
      "src/flask/templating.py"
     ],
     "external_imports": [
-     ".",
      "Flask",
      "HTTPException",
      "MapAdapter",
@@ -15071,7 +15091,8 @@
      "typing_extensions",
      "update_wrapper",
      "warnings",
-     "werkzeug.exceptions"
+     "werkzeug.exceptions",
+     "werkzeug.routing"
     ],
     "finding_count": 0,
     "val": 24
@@ -15459,8 +15480,9 @@
     "complexity": 12,
     "loc": 191,
     "fan_in": 4,
-    "fan_out": 2,
+    "fan_out": 3,
     "dependencies": [
+     "src/flask/__init__.py",
      "src/flask/globals.py",
      "src/flask/typing.py"
     ],
@@ -15471,7 +15493,6 @@
      "tests/type_check/typing_route.py"
     ],
     "external_imports": [
-     ".",
      "current_app",
      "request"
     ],
@@ -15486,11 +15507,13 @@
     "complexity": 20,
     "loc": 257,
     "fan_in": 10,
-    "fan_out": 4,
+    "fan_out": 6,
     "dependencies": [
+     "src/flask/__init__.py",
      "src/flask/debughelpers.py",
      "src/flask/globals.py",
      "src/flask/helpers.py",
+     "src/flask/json/__init__.py",
      "src/flask/typing.py"
     ],
     "dependents": [
@@ -15506,7 +15529,6 @@
      "tests/type_check/typing_route.py"
     ],
     "external_imports": [
-     ".",
      "BadRequest",
      "HTTPException",
      "Request",
@@ -15515,7 +15537,6 @@
      "_split_blueprint_path",
      "attach_enctype_error_multidict",
      "current_app",
-     "json",
      "werkzeug.exceptions",
      "werkzeug.routing",
      "werkzeug.wrappers"
@@ -15530,7 +15551,7 @@
     "language": "python",
     "complexity": 6,
     "loc": 170,
-    "fan_in": 0,
+    "fan_in": 8,
     "fan_out": 4,
     "dependencies": [
      "src/flask/globals.py",
@@ -15538,15 +15559,23 @@
      "src/flask/typing.py",
      "src/flask/wrappers.py"
     ],
-    "dependents": [],
+    "dependents": [
+     "src/flask/__init__.py",
+     "src/flask/config.py",
+     "src/flask/json/provider.py",
+     "src/flask/json/tag.py",
+     "src/flask/wrappers.py",
+     "tests/test_config.py",
+     "tests/test_json.py",
+     "tests/test_testing.py"
+    ],
     "external_imports": [
      "Response",
      "_default",
-     "current_app",
-     "json"
+     "current_app"
     ],
     "finding_count": 0,
-    "val": 7
+    "val": 17
    },
    {
     "id": "src/flask/json/provider.py",
@@ -15556,8 +15585,9 @@
     "complexity": 16,
     "loc": 215,
     "fan_in": 3,
-    "fan_out": 2,
+    "fan_out": 3,
     "dependencies": [
+     "src/flask/json/__init__.py",
      "src/flask/sansio/app.py",
      "src/flask/typing.py"
     ],
@@ -15574,7 +15604,6 @@
      "datetime",
      "decimal",
      "http_date",
-     "json",
      "uuid",
      "weakref",
      "werkzeug.http",
@@ -15591,8 +15620,9 @@
     "complexity": 14,
     "loc": 327,
     "fan_in": 2,
-    "fan_out": 1,
+    "fan_out": 2,
     "dependencies": [
+     "src/flask/json/__init__.py",
      "src/flask/typing.py"
     ],
     "dependents": [
@@ -15600,7 +15630,6 @@
      "tests/test_json_tag.py"
     ],
     "external_imports": [
-     "..json",
      "Markup",
      "UUID",
      "b64decode",
@@ -15616,7 +15645,7 @@
      "werkzeug.http"
     ],
     "finding_count": 0,
-    "val": 13
+    "val": 14
    },
    {
     "id": "src/flask/sansio/app.py",
@@ -15626,8 +15655,9 @@
     "complexity": 49,
     "loc": 1013,
     "fan_in": 13,
-    "fan_out": 10,
+    "fan_out": 11,
     "dependencies": [
+     "src/flask/__init__.py",
      "src/flask/config.py",
      "src/flask/ctx.py",
      "src/flask/helpers.py",
@@ -15655,7 +15685,6 @@
      "tests/test_templating.py"
     ],
     "external_imports": [
-     "..",
      "Aborter",
      "BadRequest",
      "BadRequestKeyError",
@@ -15674,7 +15703,8 @@
      "Rule",
      "Scaffold",
      "_AppCtxGlobals",
-     "_endpoint_from_view_func"
+     "_endpoint_from_view_func",
+     "_split_blueprint_path"
     ],
     "finding_count": 0,
     "val": 24
@@ -15687,8 +15717,9 @@
     "complexity": 48,
     "loc": 692,
     "fan_in": 2,
-    "fan_out": 3,
+    "fan_out": 4,
     "dependencies": [
+     "src/flask/__init__.py",
      "src/flask/sansio/app.py",
      "src/flask/sansio/scaffold.py",
      "src/flask/typing.py"
@@ -15698,7 +15729,6 @@
      "src/flask/sansio/app.py"
     ],
     "external_imports": [
-     "..",
      "App",
      "Scaffold",
      "_endpoint_from_view_func",
@@ -15721,8 +15751,9 @@
     "complexity": 26,
     "loc": 800,
     "fan_in": 5,
-    "fan_out": 3,
+    "fan_out": 4,
     "dependencies": [
+     "src/flask/__init__.py",
      "src/flask/helpers.py",
      "src/flask/templating.py",
      "src/flask/typing.py"
@@ -15735,7 +15766,6 @@
      "src/flask/templating.py"
     ],
     "external_imports": [
-     "..",
      "BaseLoader",
      "FileSystemLoader",
      "Group",
@@ -15754,7 +15784,8 @@
      "pathlib",
      "sys",
      "update_wrapper",
-     "werkzeug.exceptions"
+     "werkzeug.exceptions",
+     "werkzeug.utils"
     ],
     "finding_count": 0,
     "val": 24
@@ -15883,16 +15914,16 @@
     "complexity": 2,
     "loc": 1115,
     "fan_in": 0,
-    "fan_out": 2,
+    "fan_out": 3,
     "dependencies": [
      "src/flask/sansio/app.py",
+     "tests/test_apps/blueprintapp/__init__.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
     "dependents": [],
     "external_imports": [
      "Rule",
      "TemplateNotFound",
-     "blueprintapp",
      "jinja2",
      "pytest",
      "werkzeug.routing"
@@ -15944,13 +15975,13 @@
     "complexity": 2,
     "loc": 250,
     "fan_in": 0,
-    "fan_out": 1,
+    "fan_out": 2,
     "dependencies": [
+     "src/flask/json/__init__.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
     "dependents": [],
     "external_imports": [
-     "json",
      "os",
      "pytest"
     ],
@@ -16041,8 +16072,9 @@
     "complexity": 8,
     "loc": 346,
     "fan_in": 0,
-    "fan_out": 2,
+    "fan_out": 3,
     "dependencies": [
+     "src/flask/json/__init__.py",
      "src/flask/json/provider.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
@@ -16054,7 +16086,6 @@
      "decimal",
      "http_date",
      "io",
-     "json",
      "pytest",
      "uuid",
      "werkzeug.http"
@@ -16249,10 +16280,11 @@
     "complexity": 1,
     "loc": 532,
     "fan_in": 0,
-    "fan_out": 3,
+    "fan_out": 4,
     "dependencies": [
      "src/flask/logging.py",
      "src/flask/sansio/app.py",
+     "tests/test_apps/blueprintapp/__init__.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
     "dependents": [],
@@ -16260,7 +16292,6 @@
      "DictLoader",
      "Markup",
      "TemplateNotFound",
-     "blueprintapp",
      "jinja2",
      "markupsafe",
      "pytest",
@@ -16277,10 +16308,11 @@
     "complexity": 1,
     "loc": 398,
     "fan_in": 0,
-    "fan_out": 4,
+    "fan_out": 5,
     "dependencies": [
      "src/flask/cli.py",
      "src/flask/globals.py",
+     "src/flask/json/__init__.py",
      "src/flask/testing.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
@@ -16292,13 +16324,12 @@
      "_cv_app",
      "appcontext_popped",
      "click",
-     "flask.json",
      "importlib.metadata",
      "jsonify",
      "pytest"
     ],
     "finding_count": 0,
-    "val": 4
+    "val": 5
    },
    {
     "id": "tests/test_user_error_handler.py",
@@ -16352,21 +16383,22 @@
     "language": "python",
     "complexity": 1,
     "loc": 9,
-    "fan_in": 0,
-    "fan_out": 1,
+    "fan_in": 2,
+    "fan_out": 3,
     "dependencies": [
+     "tests/test_apps/blueprintapp/apps/admin/__init__.py",
+     "tests/test_apps/blueprintapp/apps/frontend/__init__.py",
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
-    "dependents": [],
+    "dependents": [
+     "tests/test_blueprints.py",
+     "tests/test_templating.py"
+    ],
     "external_imports": [
-     "Flask",
-     "admin",
-     "blueprintapp.apps.admin",
-     "blueprintapp.apps.frontend",
-     "frontend"
+     "Flask"
     ],
     "finding_count": 0,
-    "val": 3
+    "val": 6
    },
    {
     "id": "tests/test_apps/blueprintapp/apps/__init__.py",
@@ -16390,18 +16422,20 @@
     "language": "python",
     "complexity": 1,
     "loc": 20,
-    "fan_in": 0,
+    "fan_in": 1,
     "fan_out": 1,
     "dependencies": [
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
-    "dependents": [],
+    "dependents": [
+     "tests/test_apps/blueprintapp/__init__.py"
+    ],
     "external_imports": [
      "Blueprint",
      "render_template"
     ],
     "finding_count": 0,
-    "val": 3
+    "val": 4
    },
    {
     "id": "tests/test_apps/blueprintapp/apps/frontend/__init__.py",
@@ -16410,18 +16444,20 @@
     "language": "python",
     "complexity": 1,
     "loc": 14,
-    "fan_in": 0,
+    "fan_in": 1,
     "fan_out": 1,
     "dependencies": [
      "tests/test_apps/cliapp/inner1/inner2/flask.py"
     ],
-    "dependents": [],
+    "dependents": [
+     "tests/test_apps/blueprintapp/__init__.py"
+    ],
     "external_imports": [
      "Blueprint",
      "render_template"
     ],
     "finding_count": 0,
-    "val": 3
+    "val": 4
    },
    {
     "id": "tests/test_apps/cliapp/__init__.py",
@@ -16743,12 +16779,20 @@
   ],
   "links": [
    {
+    "source": "examples/celery/make_celery.py",
+    "target": "examples/celery/src/task_app/__init__.py"
+   },
+   {
     "source": "examples/celery/src/task_app/__init__.py",
     "target": "tests/test_apps/cliapp/inner1/inner2/flask.py"
    },
    {
     "source": "examples/celery/src/task_app/__init__.py",
     "target": "examples/celery/src/task_app/views.py"
+   },
+   {
+    "source": "examples/celery/src/task_app/views.py",
+    "target": "examples/celery/src/task_app/__init__.py"
    },
    {
     "source": "examples/celery/src/task_app/views.py",
@@ -16768,6 +16812,10 @@
    },
    {
     "source": "examples/javascript/js_example/views.py",
+    "target": "examples/javascript/js_example/__init__.py"
+   },
+   {
+    "source": "examples/javascript/js_example/views.py",
     "target": "src/flask/sansio/app.py"
    },
    {
@@ -16777,6 +16825,10 @@
    {
     "source": "examples/javascript/tests/conftest.py",
     "target": "src/flask/sansio/app.py"
+   },
+   {
+    "source": "examples/javascript/tests/conftest.py",
+    "target": "examples/javascript/js_example/__init__.py"
    },
    {
     "source": "examples/javascript/tests/test_js_example.py",
@@ -16824,6 +16876,10 @@
    },
    {
     "source": "examples/tutorial/tests/conftest.py",
+    "target": "examples/tutorial/flaskr/__init__.py"
+   },
+   {
+    "source": "examples/tutorial/tests/conftest.py",
     "target": "examples/tutorial/flaskr/db.py"
    },
    {
@@ -16841,6 +16897,10 @@
    {
     "source": "examples/tutorial/tests/test_db.py",
     "target": "examples/tutorial/flaskr/db.py"
+   },
+   {
+    "source": "examples/tutorial/tests/test_factory.py",
+    "target": "examples/tutorial/flaskr/__init__.py"
    },
    {
     "source": "src/flask/__init__.py",
@@ -16868,6 +16928,10 @@
    },
    {
     "source": "src/flask/__init__.py",
+    "target": "src/flask/json/__init__.py"
+   },
+   {
+    "source": "src/flask/__init__.py",
     "target": "src/flask/signals.py"
    },
    {
@@ -16881,6 +16945,10 @@
    {
     "source": "src/flask/__main__.py",
     "target": "src/flask/cli.py"
+   },
+   {
+    "source": "src/flask/app.py",
+    "target": "src/flask/__init__.py"
    },
    {
     "source": "src/flask/app.py",
@@ -16960,6 +17028,10 @@
    },
    {
     "source": "src/flask/cli.py",
+    "target": "src/flask/__init__.py"
+   },
+   {
+    "source": "src/flask/cli.py",
     "target": "src/flask/app.py"
    },
    {
@@ -16980,7 +17052,15 @@
    },
    {
     "source": "src/flask/config.py",
+    "target": "src/flask/json/__init__.py"
+   },
+   {
+    "source": "src/flask/config.py",
     "target": "src/flask/typing.py"
+   },
+   {
+    "source": "src/flask/ctx.py",
+    "target": "src/flask/__init__.py"
    },
    {
     "source": "src/flask/ctx.py",
@@ -17148,11 +17228,19 @@
    },
    {
     "source": "src/flask/views.py",
+    "target": "src/flask/__init__.py"
+   },
+   {
+    "source": "src/flask/views.py",
     "target": "src/flask/globals.py"
    },
    {
     "source": "src/flask/views.py",
     "target": "src/flask/typing.py"
+   },
+   {
+    "source": "src/flask/wrappers.py",
+    "target": "src/flask/__init__.py"
    },
    {
     "source": "src/flask/wrappers.py",
@@ -17165,6 +17253,10 @@
    {
     "source": "src/flask/wrappers.py",
     "target": "src/flask/helpers.py"
+   },
+   {
+    "source": "src/flask/wrappers.py",
+    "target": "src/flask/json/__init__.py"
    },
    {
     "source": "src/flask/wrappers.py",
@@ -17192,11 +17284,23 @@
    },
    {
     "source": "src/flask/json/provider.py",
+    "target": "src/flask/json/__init__.py"
+   },
+   {
+    "source": "src/flask/json/provider.py",
     "target": "src/flask/typing.py"
    },
    {
     "source": "src/flask/json/tag.py",
+    "target": "src/flask/json/__init__.py"
+   },
+   {
+    "source": "src/flask/json/tag.py",
     "target": "src/flask/typing.py"
+   },
+   {
+    "source": "src/flask/sansio/app.py",
+    "target": "src/flask/__init__.py"
    },
    {
     "source": "src/flask/sansio/app.py",
@@ -17240,6 +17344,10 @@
    },
    {
     "source": "src/flask/sansio/blueprints.py",
+    "target": "src/flask/__init__.py"
+   },
+   {
+    "source": "src/flask/sansio/blueprints.py",
     "target": "src/flask/sansio/app.py"
    },
    {
@@ -17249,6 +17357,10 @@
    {
     "source": "src/flask/sansio/blueprints.py",
     "target": "src/flask/typing.py"
+   },
+   {
+    "source": "src/flask/sansio/scaffold.py",
+    "target": "src/flask/__init__.py"
    },
    {
     "source": "src/flask/sansio/scaffold.py",
@@ -17316,11 +17428,19 @@
    },
    {
     "source": "tests/test_blueprints.py",
+    "target": "tests/test_apps/blueprintapp/__init__.py"
+   },
+   {
+    "source": "tests/test_blueprints.py",
     "target": "tests/test_apps/cliapp/inner1/inner2/flask.py"
    },
    {
     "source": "tests/test_config.py",
     "target": "tests/test_apps/cliapp/inner1/inner2/flask.py"
+   },
+   {
+    "source": "tests/test_config.py",
+    "target": "src/flask/json/__init__.py"
    },
    {
     "source": "tests/test_converters.py",
@@ -17353,6 +17473,10 @@
    {
     "source": "tests/test_json.py",
     "target": "src/flask/json/provider.py"
+   },
+   {
+    "source": "tests/test_json.py",
+    "target": "src/flask/json/__init__.py"
    },
    {
     "source": "tests/test_json_tag.py",
@@ -17412,6 +17536,10 @@
    },
    {
     "source": "tests/test_templating.py",
+    "target": "tests/test_apps/blueprintapp/__init__.py"
+   },
+   {
+    "source": "tests/test_templating.py",
     "target": "tests/test_apps/cliapp/inner1/inner2/flask.py"
    },
    {
@@ -17432,6 +17560,10 @@
    },
    {
     "source": "tests/test_testing.py",
+    "target": "src/flask/json/__init__.py"
+   },
+   {
+    "source": "tests/test_testing.py",
     "target": "src/flask/testing.py"
    },
    {
@@ -17445,6 +17577,14 @@
    {
     "source": "tests/test_views.py",
     "target": "src/flask/views.py"
+   },
+   {
+    "source": "tests/test_apps/blueprintapp/__init__.py",
+    "target": "tests/test_apps/blueprintapp/apps/admin/__init__.py"
+   },
+   {
+    "source": "tests/test_apps/blueprintapp/__init__.py",
+    "target": "tests/test_apps/blueprintapp/apps/frontend/__init__.py"
    },
    {
     "source": "tests/test_apps/blueprintapp/__init__.py",
@@ -17544,7 +17684,7 @@
    ],
    "complexity": 129,
    "fan_in": 6,
-   "fan_out": 12,
+   "fan_out": 13,
    "loc": 1628,
    "commits": 11,
    "finding_count": 6,
@@ -17631,7 +17771,7 @@
    ],
    "complexity": 49,
    "fan_in": 13,
-   "fan_out": 10,
+   "fan_out": 11,
    "loc": 1013,
    "commits": 9,
    "finding_count": 5,
@@ -17675,7 +17815,7 @@
    ],
    "complexity": 119,
    "fan_in": 5,
-   "fan_out": 4,
+   "fan_out": 5,
    "loc": 1127,
    "commits": 6,
    "finding_count": 1,
@@ -17760,7 +17900,7 @@
    ],
    "complexity": 28,
    "fan_in": 5,
-   "fan_out": 7,
+   "fan_out": 8,
    "loc": 540,
    "commits": 8,
    "finding_count": 0,
@@ -17866,37 +18006,94 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line appears in a documentation example (docstring) showing how to configure the app, not in actual runtime code that sets a secret."
   },
   {
-   "id": "code_execution:src/flask/cli.py:1023",
-   "rule": "code_execution",
-   "name": "Dynamic code execution",
+   "id": "weak_hash:src/flask/sessions.py:277",
+   "rule": "weak_hash",
+   "name": "Weak hash for security use",
    "severity": "HIGH",
-   "description": "eval or exec turns a string into running code.",
-   "file_path": "src/flask/cli.py",
-   "line": 1023,
-   "snippet": "eval(compile(f.read(), startup, \"exec\"), ctx)",
-   "recommendation": "Replace dynamic evaluation with an explicit dispatch table or a parser.",
+   "description": "MD5 or SHA1 are broken for signatures, tokens and password storage.",
+   "file_path": "src/flask/sessions.py",
+   "line": 277,
+   "snippet": "\"\"\"Don't access ``hashlib.sha1`` until runtime. FIPS builds may not include",
+   "recommendation": "Rename `_lazy_sha1` to `_lazy_sha256` at line 276, update the docstring at line 277\u2013279 to reference SHA-256 and FIPS availability, and change the return at line 281 to `return hashlib.sha256(string)`. Update `SecureCookieSessionInterface` to use the new function name as the default hash algorithm.",
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "confirmed",
+   "triage_note": "The `_lazy_sha1` function returns `hashlib.sha1(string)` as the default hash algorithm for session signing. SHA-1 is cryptographically broken and unsuitable for integrity protection.",
+   "original_severity": "MEDIUM",
+   "fix_effort": "small",
+   "fix_breaking_change": true,
+   "reference": {
+    "query": "password hashing recommendation argon2 scrypt OWASP",
+    "answer": "According to OWASP, the recommended algorithms for password hashing are bcrypt, scrypt, and Argon2. Specifically, Argon2id is recommended as the most secure option, with OWASP suggesting a minimum configuration of 19 MiB of memory, an iteration count of 2, and 1 degree of parallelism. If Argon2id is not available, scrypt should be used with a minimum CPU/memory cost parameter of 2^17 (128 MiB), a minimum block size of 8 (1024 bytes), and a parallelization parameter of 1. For legacy systems, bcrypt should be used with a work factor of 10 or more and a password limit of 72 bytes.",
+    "sources": [
+     {
+      "title": "The Evolution of Password Hashing | Psono",
+      "url": "https://psono.com/blog/evolution-of-password-hashing",
+      "snippet": "According to OWASP, the recommended algorithms for password hashing are bcrypt, scrypt, and Argon2. These are preferred for their robust defense against brute-force attacks and their built-in mechanisms for salt and key stretching.\n\n### bcrypt [...] Key Parameters:\n\n Memory cost: Specifies the amount of memory used during the hashing process.\n Time cost: Determines the amount of computation realiz",
+      "score": 0.883
+     },
+     {
+      "title": "Password Hashing Algorithms in 2026: Argon2id, bcrypt & scrypt",
+      "url": "https://bellatorcyber.com/blog/best-password-hashing-algorithms-of-2023",
+      "snippet": "Argon2id represents the most secure password hashing algorithm for general-purpose applications in 2026. As the winner of the Password Hashing Competition, Argon2id combines memory-hard operations requiring 64-128+ MiB of RAM per hash with hybrid data-dependent and data-independent modes that resist both GPU attacks and side-channel timing analysis. OWASP recommends Argon2id with minimum 19 MiB me",
+      "score": 0.875
+     },
+     {
+      "title": "Password Storage - OWASP Cheat Sheet Series",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html",
+      "snippet": "### scrypt\u00b6\n\nscrypt is a password-based key derivation function created by Colin Percival. While Argon2id should be the best choice for password hashing, scrypt should be used when the former is not available.\n\nLike Argon2id, scrypt has three parameters that can be configured: the minimum memory cost parameter (N), the blocksize (r), and the degree of parallelism (p). Use one of the following sett",
+      "score": 0.855
+     }
+    ]
+   }
   },
   {
-   "id": "code_execution:src/flask/config.py:209",
-   "rule": "code_execution",
-   "name": "Dynamic code execution",
+   "id": "weak_hash:src/flask/sessions.py:281",
+   "rule": "weak_hash",
+   "name": "Weak hash for security use",
    "severity": "HIGH",
-   "description": "eval or exec turns a string into running code.",
-   "file_path": "src/flask/config.py",
-   "line": 209,
-   "snippet": "exec(compile(config_file.read(), filename, \"exec\"), d.__dict__)",
-   "recommendation": "Replace dynamic evaluation with an explicit dispatch table or a parser.",
+   "description": "MD5 or SHA1 are broken for signatures, tokens and password storage.",
+   "file_path": "src/flask/sessions.py",
+   "line": 281,
+   "snippet": "return hashlib.sha1(string)",
+   "recommendation": "Replace `return hashlib.sha1(string)` with `return hashlib.sha256(string)` at line 281. This change must accompany the function rename and docstring update at line 276\u2013279 so the lazy-loader name matches the algorithm. Residual risk: existing signed cookies will become invalid unless a migration strategy is implemented.",
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "confirmed",
+   "triage_note": "This is the implementation line `return hashlib.sha1(string)` inside `_lazy_sha1`, which is used as the default hash for signing session cookies. SHA-1 is broken for signatures.",
+   "original_severity": "MEDIUM",
+   "fix_effort": "trivial",
+   "fix_breaking_change": true,
+   "reference": {
+    "query": "password hashing recommendation argon2 scrypt OWASP",
+    "answer": "According to OWASP, the recommended algorithms for password hashing are bcrypt, scrypt, and Argon2. Specifically, Argon2id is recommended as the most secure option, with OWASP suggesting a minimum configuration of 19 MiB of memory, an iteration count of 2, and 1 degree of parallelism. If Argon2id is not available, scrypt should be used with a minimum CPU/memory cost parameter of 2^17 (128 MiB), a minimum block size of 8 (1024 bytes), and a parallelization parameter of 1. For legacy systems, bcrypt should be used with a work factor of 10 or more and a password limit of 72 bytes.",
+    "sources": [
+     {
+      "title": "The Evolution of Password Hashing | Psono",
+      "url": "https://psono.com/blog/evolution-of-password-hashing",
+      "snippet": "According to OWASP, the recommended algorithms for password hashing are bcrypt, scrypt, and Argon2. These are preferred for their robust defense against brute-force attacks and their built-in mechanisms for salt and key stretching.\n\n### bcrypt [...] Key Parameters:\n\n Memory cost: Specifies the amount of memory used during the hashing process.\n Time cost: Determines the amount of computation realiz",
+      "score": 0.883
+     },
+     {
+      "title": "Password Hashing Algorithms in 2026: Argon2id, bcrypt & scrypt",
+      "url": "https://bellatorcyber.com/blog/best-password-hashing-algorithms-of-2023",
+      "snippet": "Argon2id represents the most secure password hashing algorithm for general-purpose applications in 2026. As the winner of the Password Hashing Competition, Argon2id combines memory-hard operations requiring 64-128+ MiB of RAM per hash with hybrid data-dependent and data-independent modes that resist both GPU attacks and side-channel timing analysis. OWASP recommends Argon2id with minimum 19 MiB me",
+      "score": 0.875
+     },
+     {
+      "title": "Password Storage - OWASP Cheat Sheet Series",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html",
+      "snippet": "### scrypt\u00b6\n\nscrypt is a password-based key derivation function created by Colin Percival. While Argon2id should be the best choice for password hashing, scrypt should be used when the former is not available.\n\nLike Argon2id, scrypt has three parameters that can be configured: the minimum memory cost parameter (N), the blocksize (r), and the degree of parallelism (p). Use one of the following sett",
+      "score": 0.855
+     }
+    ]
+   }
   },
   {
    "id": "open_redirect:examples/tutorial/flaskr/auth.py:6",
@@ -17911,7 +18108,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line is an import statement, not a redirect call."
   },
   {
    "id": "open_redirect:examples/tutorial/flaskr/auth.py:20",
@@ -17926,7 +18124,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line is a docstring describing a decorator, not a redirect call."
   },
   {
    "id": "open_redirect:examples/tutorial/flaskr/auth.py:25",
@@ -17941,7 +18140,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The redirect target is a fixed internal endpoint ('auth.login') generated by url_for, not user-supplied input."
   },
   {
    "id": "open_redirect:examples/tutorial/flaskr/auth.py:77",
@@ -17956,7 +18156,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The redirect target is a fixed internal endpoint ('auth.login') generated by url_for, not user-supplied input."
   },
   {
    "id": "open_redirect:examples/tutorial/flaskr/auth.py:105",
@@ -17971,7 +18172,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The redirect target is a fixed internal endpoint ('index') generated by url_for, not user-supplied input."
   },
   {
    "id": "open_redirect:examples/tutorial/flaskr/blog.py:4",
@@ -17986,7 +18188,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line is an import statement, not a redirect call."
   },
   {
    "id": "open_redirect:examples/tutorial/flaskr/blog.py:81",
@@ -18001,7 +18204,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The redirect target is a fixed internal endpoint ('blog.index') generated by url_for, not user-supplied input."
   },
   {
    "id": "open_redirect:examples/tutorial/flaskr/blog.py:108",
@@ -18016,7 +18220,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The redirect target is a fixed internal endpoint ('blog.index') generated by url_for, not user-supplied input."
   },
   {
    "id": "open_redirect:examples/tutorial/flaskr/blog.py:125",
@@ -18031,7 +18236,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The redirect target is a fixed internal endpoint ('blog.index') generated by url_for, not user-supplied input."
   },
   {
    "id": "open_redirect:examples/tutorial/tests/test_auth.py:12",
@@ -18046,7 +18252,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a comment in a test file describing a redirect after registration; the redirect target is hardcoded in the application, not derived from user input."
   },
   {
    "id": "open_redirect:examples/tutorial/tests/test_auth.py:43",
@@ -18061,7 +18268,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a comment in a test file describing a redirect after login; the redirect target is fixed and not user-controlled."
   },
   {
    "id": "open_redirect:src/flask/__init__.py:18",
@@ -18076,7 +18284,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line imports the redirect helper function; importing a function does not constitute an open redirect vulnerability."
   },
   {
    "id": "open_redirect:src/flask/app.py:25",
@@ -18091,7 +18300,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line imports RequestRedirect from Werkzeug; this is an internal routing exception class, not a user-input redirect."
   },
   {
    "id": "open_redirect:src/flask/app.py:566",
@@ -18106,7 +18316,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is part of a docstring explaining debug mode behavior; it does not represent executable code that redirects based on user input."
   },
   {
    "id": "open_redirect:src/flask/app.py:574",
@@ -18121,7 +18332,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a docstring note about not intercepting certain redirects; it is documentation, not a vulnerability."
   },
   {
    "id": "open_redirect:src/flask/app.py:581",
@@ -18136,7 +18348,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line checks if a routing exception is a RequestRedirect; this is internal framework logic handling routing redirects, not a user-supplied redirect target."
   },
   {
    "id": "open_redirect:src/flask/app.py:587",
@@ -18151,7 +18364,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line imports a debug helper class; importing does not create an open redirect."
   },
   {
    "id": "debug_mode:src/flask/app.py:664",
@@ -18166,7 +18380,51 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is in a docstring describing how to invoke the run method with debug mode; it does not enable debug mode in production."
+  },
+  {
+   "id": "code_execution:src/flask/cli.py:1023",
+   "rule": "code_execution",
+   "name": "Dynamic code execution",
+   "severity": "MEDIUM",
+   "description": "eval or exec turns a string into running code.",
+   "file_path": "src/flask/cli.py",
+   "line": 1023,
+   "snippet": "eval(compile(f.read(), startup, \"exec\"), ctx)",
+   "recommendation": "Guard the `eval(compile(f.read(), startup, \"exec\"), ctx)` call at line 1023 behind an explicit opt-in flag (e.g., `app.cli.enable_startup_script = True`) or validate that `startup` resolves to a path inside a configured trusted directory. Without the flag or path validation, skip execution and log a warning. Residual risk: if the flag is enabled globally, arbitrary code execution persists.",
+   "detector": "pattern",
+   "confidence": "medium",
+   "source": "static-analysis",
+   "triage": "downgraded",
+   "triage_note": "The shell command executes a startup script from the PYTHONSTARTUP environment variable, which is a development feature; risk is limited to local CLI usage.",
+   "original_severity": "HIGH",
+   "fix_effort": "small",
+   "fix_breaking_change": false,
+   "reference": {
+    "query": "code injection eval exec dynamic code execution OWASP",
+    "answer": "Code injection, specifically eval injection, involves executing arbitrary code through an eval() statement that does not properly validate user inputs, allowing attackers to pass specially crafted inputs to execute commands with the same permissions as the web service. This attack is categorized under CWE-95 and is listed in the OWASP Top Ten as a risk for integrity, confidentiality, availability, and other aspects. To prevent such attacks, it is crucial to avoid using eval() with string arguments, enforce command boundaries, and adopt safe execution patterns by never using shell=True, eval(),",
+    "sources": [
+     {
+      "title": "Direct Dynamic Code Evaluation - Eval Injection | OWASP Foundation",
+      "url": "https://community.owasp.org/attacks/Direct_Dynamic_Code_Evaluation_Eval%20Injection",
+      "snippet": "## Description\n\nThis attack consists of a script that does not properly validate user inputs in the page parameter. A remote user can supply a specially crafted URL to pass arbitrary code to an eval() statement, which results in code execution.\n\nNote 1: This attack will execute the code with the same permission like the target web service, including operation system commands. [...] Note 2: Eval in",
+      "score": 0.798
+     },
+     {
+      "title": "CWE -\r\n\n    CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection') (4.20)",
+      "url": "https://cwe.mitre.org/data/definitions/95.html",
+      "snippet": "| Execute Unauthorized Code or Commands | Scope: Integrity, Confidentiality, Availability, Other   Code injection attacks can lead to loss of data integrity in nearly all cases as the control-plane data injected is always incidental to data recall or writing. Additionally, code injection can often result in the execution of arbitrary code or at least modify what code can be executed. | [...] Code ",
+      "score": 0.757
+     },
+     {
+      "title": "Code Injection Attack: Types, Prevention, Examples",
+      "url": "https://www.invicti.com/blog/web-security/code-injection",
+      "snippet": "Note: Following OWASP terminology, this article uses the term \u201ccode injection\u201d to refer specifically to attacks exploiting server-side dynamic evaluation (also called eval injection attacks). This is not to be confused with other types of code injection, such as cross-site scripting (XSS), which injects JavaScript code executed by the browser, or SQL injection, where SQL instructions for the datab",
+      "score": 0.751
+     }
+    ]
+   }
   },
   {
    "id": "debug_mode:src/flask/config.py:65",
@@ -18181,7 +18439,27 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line appears in a docstring example showing development configuration; it is not an active debug mode setting in production code."
+  },
+  {
+   "id": "code_execution:src/flask/config.py:209",
+   "rule": "code_execution",
+   "name": "Dynamic code execution",
+   "severity": "MEDIUM",
+   "description": "eval or exec turns a string into running code.",
+   "file_path": "src/flask/config.py",
+   "line": 209,
+   "snippet": "exec(compile(config_file.read(), filename, \"exec\"), d.__dict__)",
+   "recommendation": "Add a `safe_load` parameter to `from_pyfile` that, when true, executes the config file in a restricted namespace allowing only literal dict, list, tuple, str, int, float, bool, and None assignments (e.g., via `ast.literal_eval` after parsing). Default `safe_load=False` for backward compatibility but document that untrusted config files must use `safe_load=True`. Residual risk: existing deployments relying on executable config logic will break if switched to safe mode.",
+   "detector": "pattern",
+   "confidence": "medium",
+   "source": "static-analysis",
+   "triage": "downgraded",
+   "triage_note": "The from_pyfile function executes a Python config file as code, which is a documented feature; risk arises only if an untrusted file is loaded.",
+   "original_severity": "HIGH",
+   "fix_effort": "moderate",
+   "fix_breaking_change": false
   },
   {
    "id": "open_redirect:src/flask/debughelpers.py:6",
@@ -18196,7 +18474,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line imports RequestRedirect; this is an import statement, not a redirect vulnerability."
   },
   {
    "id": "open_redirect:src/flask/debughelpers.py:50",
@@ -18211,7 +18490,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line defines an exception class used in debug mode for routing redirects; it is not an open redirect vulnerability."
   },
   {
    "id": "open_redirect:src/flask/debughelpers.py:51",
@@ -18226,7 +18506,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a docstring for the FormDataRoutingRedirect exception class, not executable code that performs a redirect."
   },
   {
    "id": "open_redirect:src/flask/debughelpers.py:59",
@@ -18241,7 +18522,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line asserts the type of a routing exception (RequestRedirect) internally raised by Werkzeug routing; it does not accept user-supplied redirect targets."
   },
   {
    "id": "open_redirect:src/flask/debughelpers.py:62",
@@ -18256,7 +18538,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line formats a debug error message containing the canonical URL from a routing exception; it is diagnostic output, not a user-controlled redirect."
   },
   {
    "id": "open_redirect:src/flask/helpers.py:14",
@@ -18271,7 +18554,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This is an import statement for Werkzeug's redirect utility; importing a function does not constitute an open redirect."
   },
   {
    "id": "open_redirect:src/flask/helpers.py:254",
@@ -18286,7 +18570,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This is the function signature for flask.redirect, a utility that creates a redirect response. The function itself is not vulnerable; callers must validate the location parameter."
   },
   {
    "id": "open_redirect:src/flask/helpers.py:257",
@@ -18301,7 +18586,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line is part of the docstring for flask.redirect, not executable code."
   },
   {
    "id": "open_redirect:src/flask/helpers.py:260",
@@ -18316,7 +18602,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line is part of the docstring for flask.redirect, not executable code."
   },
   {
    "id": "open_redirect:src/flask/helpers.py:261",
@@ -18331,7 +18618,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line is part of the docstring for flask.redirect, not executable code."
   },
   {
    "id": "open_redirect:src/flask/sansio/app.py:18",
@@ -18346,7 +18634,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This is an import statement for Werkzeug's redirect utility; importing a function does not constitute an open redirect."
   },
   {
    "id": "open_redirect:src/flask/sansio/app.py:939",
@@ -18361,7 +18650,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This is the method signature for Flask.redirect, a utility that creates a redirect response. The method itself is not vulnerable; callers must validate the location parameter."
   },
   {
    "id": "open_redirect:src/flask/sansio/app.py:940",
@@ -18376,7 +18666,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line is part of the docstring for Flask.redirect, not executable code."
   },
   {
    "id": "open_redirect:src/flask/sansio/app.py:942",
@@ -18391,7 +18682,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line is part of the docstring for Flask.redirect, not executable code."
   },
   {
    "id": "open_redirect:src/flask/sansio/app.py:945",
@@ -18406,37 +18698,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
-  },
-  {
-   "id": "weak_hash:src/flask/sessions.py:277",
-   "rule": "weak_hash",
-   "name": "Weak hash for security use",
-   "severity": "MEDIUM",
-   "description": "MD5 or SHA1 are broken for signatures, tokens and password storage.",
-   "file_path": "src/flask/sessions.py",
-   "line": 277,
-   "snippet": "\"\"\"Don't access ``hashlib.sha1`` until runtime. FIPS builds may not include",
-   "recommendation": "Use SHA-256 or better; for passwords use argon2, scrypt or bcrypt.",
-   "detector": "pattern",
-   "confidence": "medium",
-   "source": "static-analysis",
-   "triage": "pending"
-  },
-  {
-   "id": "weak_hash:src/flask/sessions.py:281",
-   "rule": "weak_hash",
-   "name": "Weak hash for security use",
-   "severity": "MEDIUM",
-   "description": "MD5 or SHA1 are broken for signatures, tokens and password storage.",
-   "file_path": "src/flask/sessions.py",
-   "line": 281,
-   "snippet": "return hashlib.sha1(string)",
-   "recommendation": "Use SHA-256 or better; for passwords use argon2, scrypt or bcrypt.",
-   "detector": "pattern",
-   "confidence": "medium",
-   "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a docstring parameter description (`:param location: The URL to redirect to.`) documenting the redirect function's API, not executable code that processes user input."
   },
   {
    "id": "open_redirect:src/flask/testing.py:208",
@@ -18451,7 +18714,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line `follow_redirects: bool = False,` is a type-annotated parameter default for the test client's `open` method, controlling whether the test client automatically follows redirects. It does not accept a redirect target from user input."
   },
   {
    "id": "open_redirect:src/flask/testing.py:231",
@@ -18466,7 +18730,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a comment `# from being preserved across redirects or multiple requests` explaining test client context management. No redirect target is processed."
   },
   {
    "id": "open_redirect:src/flask/testing.py:238",
@@ -18481,7 +18746,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line `follow_redirects=follow_redirects,` passes the boolean parameter to the parent `open` call. It does not involve a user-supplied redirect URL."
   },
   {
    "id": "open_redirect:src/flask/views.py:158",
@@ -18496,7 +18762,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line `return redirect(url_for(\"counter\"))` redirects to a fixed, application-internal endpoint named \"counter\". The target is not derived from user input."
   },
   {
    "id": "open_redirect:tests/test_basic.py:21",
@@ -18511,7 +18778,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line `from werkzeug.routing import RequestRedirect` imports an exception class used for testing routing behavior. No redirect is performed."
   },
   {
    "id": "debug_mode:tests/test_basic.py:1132",
@@ -18526,7 +18794,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line `app.debug = True` appears in a test function `test_enctype_debug_helper` that explicitly tests debug helper behavior. This is test code, not production configuration."
   },
   {
    "id": "debug_mode:tests/test_basic.py:1708",
@@ -18541,7 +18810,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line `app.debug = True` is in test `test_no_setup_after_first_request` to verify behavior under debug mode. It is test-only code."
   },
   {
    "id": "open_redirect:tests/test_basic.py:1722",
@@ -18556,7 +18826,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a test function definition `def test_routing_redirect_debugging(...)`. The test exercises redirect debugging features; it does not introduce an open redirect in application code."
   },
   {
    "id": "open_redirect:tests/test_basic.py:1729",
@@ -18571,7 +18842,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line `# default redirect code preserves form data` is a comment in a test. The following line uses `follow_redirects=True` on the test client to verify redirect behavior, not to accept user-supplied redirect targets."
   },
   {
    "id": "open_redirect:tests/test_basic.py:1730",
@@ -18586,7 +18858,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This is test code in tests/test_basic.py making a POST request to a fixed endpoint '/user' with hardcoded form data. The follow_redirects=True parameter only makes the test client follow redirects; no user-controlled redirect target is involved."
   },
   {
    "id": "open_redirect:tests/test_basic.py:1734",
@@ -18601,7 +18874,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line monkeypatches the RequestRedirect status code to 301 for testing error handling. It is test fixture setup, not a redirect target derived from user input."
   },
   {
    "id": "debug_mode:tests/test_basic.py:1743",
@@ -18616,7 +18890,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This test explicitly sets app.debug = True inside test_route_decorator_custom_endpoint to exercise debug-mode behavior. It is test code, not production configuration."
   },
   {
    "id": "debug_mode:tests/test_basic.py:1902",
@@ -18631,7 +18906,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line appears in a test that mocks werkzeug.serving.run_simple and calls app.run with debug=True to verify the CLI run command. It is test code exercising the debug flag, not a production deployment."
   },
   {
    "id": "open_redirect:tests/test_blueprints.py:1025",
@@ -18646,7 +18922,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This test configures client.allow_subdomain_redirects = True to test blueprint subdomain routing behavior. The setting is a test-client option, not an application redirect target derived from user input."
   },
   {
    "id": "open_redirect:tests/test_blueprints.py:1044",
@@ -18661,7 +18938,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "Same as the previous candidate: test configuration for subdomain redirect tests in test_nesting_subdomains and test_child_and_parent_subdomain. No user-controlled redirect target."
   },
   {
    "id": "debug_mode:tests/test_cli.py:368",
@@ -18676,7 +18954,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line is inside a parametrized test (test_flaskgroup_debug) that creates an app with app.debug = True for one parameter value. It is test code verifying CLI debug flag handling."
   },
   {
    "id": "open_redirect:tests/test_helpers.py:164",
@@ -18691,7 +18970,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The scanner matched the function name 'test_redirect_no_app'. This is a test function definition; no redirect logic executes at this line."
   },
   {
    "id": "open_redirect:tests/test_helpers.py:165",
@@ -18706,7 +18986,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The test calls flask.redirect('https://localhost', 307) with a hardcoded URL. The redirect target is a literal string in test code, not user input."
   },
   {
    "id": "open_redirect:tests/test_helpers.py:170",
@@ -18721,7 +19002,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "Scanner matched the function name 'test_redirect_with_app'. This is a test function definition; no user-controlled redirect occurs here."
   },
   {
    "id": "open_redirect:tests/test_helpers.py:171",
@@ -18736,7 +19018,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line defines a mock redirect function that raises ValueError. It is test fixture code replacing app.redirect, not a real redirect with user input."
   },
   {
    "id": "open_redirect:tests/test_helpers.py:174",
@@ -18751,7 +19034,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This line assigns the mock redirect function to app.redirect in a test. It is test setup, not production code handling user-supplied redirect targets."
   },
   {
    "id": "debug_mode:tests/test_json.py:271",
@@ -18766,7 +19050,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This is test code in tests/test_json.py that deliberately sets app.debug = True to verify that app.json.sort_keys becomes True when debug mode is enabled. It is not production code."
   },
   {
    "id": "debug_mode:tests/test_logging.py:43",
@@ -18781,7 +19066,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This is test code in tests/test_logging.py where test_logger_debug sets app.debug = True to assert that the logger level becomes logging.DEBUG. It is a test fixture verifying expected behavior, not production code."
   },
   {
    "id": "open_redirect:tests/test_regression.py:14",
@@ -18796,7 +19082,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The redirect target is a hardcoded string \"test\" passed to url_for(), not user input. This is test code in tests/test_regression.py verifying redirect behavior."
   },
   {
    "id": "open_redirect:tests/test_regression.py:25",
@@ -18811,7 +19098,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a comment: \"# For older Werkzeug that used absolute redirects.\" The scanner matched on the word \"redirect\" in a comment, not executable code."
   },
   {
    "id": "open_redirect:tests/test_signals.py:143",
@@ -18826,7 +19114,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The redirect target is a hardcoded path \"/other\" in a test route. No user input influences the redirect destination. This is test code in tests/test_signals.py."
   },
   {
    "id": "debug_mode:tests/test_templating.py:484",
@@ -18841,7 +19130,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This is test code in tests/test_templating.py calling app.run(debug=True) to verify that app.jinja_env.auto_reload becomes True. It is a test fixture, not production configuration."
   },
   {
    "id": "open_redirect:tests/test_testing.py:140",
@@ -18856,7 +19146,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a test function definition: \"def test_redirect_session(app, client, app_ctx):\". The scanner matched on \"redirect\" in the function name, not an actual redirect vulnerability."
   },
   {
    "id": "open_redirect:tests/test_testing.py:141",
@@ -18871,7 +19162,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a route decorator: \"@app.route(\\\"/redirect\\\")\". The scanner matched on \"redirect\" in the URL path. This is test code defining a test endpoint."
   },
   {
    "id": "open_redirect:tests/test_testing.py:143",
@@ -18886,7 +19178,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line sets a session variable: \"flask.session[\\\"redirect\\\"] = True\". This is not a redirect at all; the scanner matched on the string \"redirect\" used as a session key."
   },
   {
    "id": "open_redirect:tests/test_testing.py:144",
@@ -18901,7 +19194,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The redirect target is a hardcoded path \"/target\" in a test route. No user input controls the destination. This is test code in tests/test_testing.py."
   },
   {
    "id": "open_redirect:tests/test_testing.py:152",
@@ -18916,7 +19210,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "This is a test client call: \"client.get(\\\"/redirect\\\", follow_redirects=True)\". The follow_redirects parameter is a test client option to automatically follow redirects during testing, not an open redirect vulnerability."
   },
   {
    "id": "open_redirect:tests/test_user_error_handler.py:213",
@@ -18931,7 +19226,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is a comment: \"# Don't handle RequestRedirect raised when adding slash.\" The scanner matched on \"Redirect\" in a comment, not executable code."
   },
   {
    "id": "open_redirect:tests/test_user_error_handler.py:214",
@@ -18946,7 +19242,8 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The matched line is in a test file and uses a hardcoded path '/slash' with the test client's follow_redirects option. No user input controls the redirect target; this is test fixture code verifying redirect behavior."
   },
   {
    "id": "debug_mode:tests/test_views.py:183",
@@ -18961,17 +19258,18 @@
    "detector": "pattern",
    "confidence": "medium",
    "source": "static-analysis",
-   "triage": "pending"
+   "triage": "dismissed",
+   "triage_note": "The line 'app.debug = True' appears in a test function (test_endpoint_override) to enable debug mode for that specific test. This is test configuration, not production code, and does not expose stack traces in a deployed application."
   }
  ],
  "security_summary": {
-  "total": 74,
+  "total": 4,
   "by_severity": {
-   "CRITICAL": 1,
    "HIGH": 2,
-   "MEDIUM": 71
+   "MEDIUM": 2
   },
-  "files_affected": 25
+  "dismissed": 70,
+  "files_affected": 3
  },
  "dependency_manifests": [
   {
@@ -19774,23 +20072,1604 @@
   "python_share": 0.988
  },
  "ai_dependencies": {
-  "vulnerable": [],
-  "outdated": []
+  "vulnerable": [
+   {
+    "name": "blinker",
+    "version": "1.9.0",
+    "declared_spec": ">=1.9.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2020-14335",
+     "CVE-2022-32998",
+     "CVE-2022-34055",
+     "CVE-2022-34056",
+     "CVE-2022-34500"
+    ],
+    "severity": "CRITICAL",
+    "summary": "However, an older advisory from Snyk mentions an information exposure vulnerability in versions of python-blinker prior to 1.3-2.el7sat, identified as CVE-2020-14335.",
+    "fixed_in": "",
+    "pinned_version": "1.9.0",
+    "confidence": "needs-confirmation",
+    "query": "blinker 1.9.0 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "PyPI vulnerabilities | Intelligent Application Security | Kodem Security",
+      "url": "https://www.kodemsecurity.com/cve-archive/ecosystem/pypi",
+      "snippet": "long runtimes for partially malformed FlateDecode streams (Follow-up)CVE-2026-102996Highpypdf: pypdf: Possible large memory usage when parsing font dataCVE-2026-102995Highpypdf: pypdf: Possible large memory usage for large /ToUnicode streams (Follow-up 2)CVE-2026-102994Highpypdf: pypdf: Possible long runtimes/large memory usage when parsing indirect objectsCVE-2026-102993Highpypdf: pypdf: Possible",
+      "score": 0.669
+     },
+     {
+      "title": "Information Exposure in python-blinker | CVE-2020-14335 | Snyk",
+      "url": "https://security.snyk.io/vuln/SNYK-RHEL7-PYTHONBLINKER-5383611",
+      "snippet": "The attacker requires privileges that provide basic user capabilities that could normally affect only settings and files owned by a user. Alternatively, an attacker with Low privileges has the ability to access only non-sensitive resources.\n\nThe vulnerable system can be exploited without interaction from any user.\n\nAn exploited vulnerability can only affect resources managed by the same security a",
+      "score": 0.599
+     },
+     {
+      "title": "Pypi CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?vendor=pypi",
+      "snippet": "CVE | Vendors | Products | Updated | CVSS v3.1 || CVE-2022-34501 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collection package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |\n| CVE-2022-34500 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collect package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |",
+      "score": 0.539
+     },
+     {
+      "title": "Releases \u00b7 pallets-eco/blinker",
+      "url": "https://github.com/pallets-eco/blinker/releases",
+      "snippet": "This is the Blinker 1.9.0 feature release. A feature release may include new features, remove previously deprecated code, add new deprecations, or introduce",
+      "score": 0.461
+     }
+    ]
+   },
+   {
+    "name": "click",
+    "version": "8.1.3",
+    "declared_spec": ">=8.1.3",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2022-32998",
+     "CVE-2022-34055",
+     "CVE-2022-34056",
+     "CVE-2022-34500",
+     "CVE-2022-34501"
+    ],
+    "severity": "CRITICAL",
+    "summary": "As of 2026-08-15, there is 1 known vulnerability in the OSV database for Click, according to the Click Security Audit - Known Vulnerabilities and Fixes page.",
+    "fixed_in": "",
+    "pinned_version": "8.1.3",
+    "confidence": "needs-confirmation",
+    "query": "click 8.1.3 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "PyPI vulnerabilities | Intelligent Application Security | Kodem Security",
+      "url": "https://www.kodemsecurity.com/cve-archive/ecosystem/pypi",
+      "snippet": "long runtimes for partially malformed FlateDecode streams (Follow-up)CVE-2026-102996Highpypdf: pypdf: Possible large memory usage when parsing font dataCVE-2026-102995Highpypdf: pypdf: Possible large memory usage for large /ToUnicode streams (Follow-up 2)CVE-2026-102994Highpypdf: pypdf: Possible long runtimes/large memory usage when parsing indirect objectsCVE-2026-102993Highpypdf: pypdf: Possible",
+      "score": 0.699
+     },
+     {
+      "title": "Click Security Audit - Known Vulnerabilities and Fixes",
+      "url": "https://www.sherlockforensics.com/security/pypi/click.html",
+      "snippet": "Click is a widely used PyPI package. As of 2026-08-15, there are 1 known vulnerabilities in the OSV database. The latest stable version is 8.4.2",
+      "score": 0.631
+     },
+     {
+      "title": "Pypi CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?vendor=pypi",
+      "snippet": "CVE | Vendors | Products | Updated | CVSS v3.1 || CVE-2022-34501 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collection package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |\n| CVE-2022-34500 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collect package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |",
+      "score": 0.618
+     },
+     {
+      "title": "click-prism (PyPI) \u2014 Safety Package & Vulnerability Database",
+      "url": "https://getsafety.com/packages/pypi/click-prism",
+      "snippet": "Known vulnerabilities and security issues detected in the extension's dependencies and code. No vulnerabilities found for this package.",
+      "score": 0.555
+     }
+    ]
+   },
+   {
+    "name": "jinja2",
+    "version": "3.1.2",
+    "declared_spec": ">=3.1.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2014-1402",
+     "CVE-2019-10906",
+     "CVE-2020-28493",
+     "CVE-2024-22195",
+     "CVE-2024-34064"
+    ],
+    "severity": "CRITICAL",
+    "summary": "For example, CVE-2024-22195 was addressed in version 3.1.3, while CVE-2024-34064 and CVE-2024-56201 were fixed in versions 3.1.4 and 3.1.5, respectively.",
+    "fixed_in": ">= 3.1.4",
+    "pinned_version": "3.1.2",
+    "confidence": "needs-confirmation",
+    "query": "jinja2 3.1.2 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "Understanding and mitigating the Jinja2 XSS vulnerability (CVE-2024-22195) | Snyk",
+      "url": "https://snyk.io/blog/jinja2-xss-vulnerability",
+      "snippet": "Snyk successfully detected the vulnerable Jinja2 version used in our project (version 3.1.2), and recommended a fix from the CLI.\n\nThis is a great opportunity to let you know you can also use a Snyk extension in your IDE and scan your own Python code and Python containerized applications, on top of scanning 3rd-party dependencies from PyPI.\n\n### Is the Jinja2 XSS vulnerability easy to exploit?\n\nTh",
+      "score": 0.854
+     },
+     {
+      "title": "Jinja2 3.1.2 | Snyk",
+      "url": "https://security.snyk.io/package/pip/Jinja2/3.1.2",
+      "snippet": "Affected versions of this package are vulnerable to Cross-site Scripting (XSS) through the `xmlattr` filter. An attacker can manipulate the output of web pages by injecting additional attributes into elements, potentially leading to unauthorized actions or information disclosure.\n\n`xmlattr`\n\nNote:\nThis vulnerability derives from an improper fix of CVE-2024-22195, which only addressed spaces but no",
+      "score": 0.844
+     },
+     {
+      "title": "Jinja2 Security Audit - Known Vulnerabilities and Fixes | Sherlock Forensics",
+      "url": "https://www.sherlockforensics.com/security/pypi/jinja2.html",
+      "snippet": "| CVE-2024-22195 | UNKNOWN  0 to 3.1.3 | 3.1.3 | Jinja vulnerable to HTML attribute injection when passing user input as keys to xmlattr filter |\n| CVE-2024-34064 | UNKNOWN  0 to 3.1.4 | 3.1.4 | Jinja vulnerable to HTML attribute injection when passing user input as keys to xmlattr filter |\n| CVE-2024-56326 | UNKNOWN  0 to 3.1.5 | 3.1.5 | Jinja has a sandbox breakout through indirect reference to ",
+      "score": 0.792
+     },
+     {
+      "title": "jinja2 (python) Security Audit \u2014 Advisories Mapped | OSS Security KB",
+      "url": "https://oss-security.burmaster.com/python/jinja2",
+      "snippet": "format expressions in sandbox mode. | 2.8.1 |  | | CVE-2019-10906 / GHSA-462w-v97r-4m45 / PYSEC-2019-217 | High | `SandboxedEnvironment` did not securely handle `str.format_map`, allowing sandbox escape / code-execution-style abuse when rendering untrusted templates. | 2.10.1 |  | | CVE-2020-28493 / GHSA-g3rq-g295-4j3m / PYSEC-2021-66 | Moderate | ReDoS in the `urlize` filter; upstream 2.11.3 note",
+      "score": 0.772
+     }
+    ]
+   },
+   {
+    "name": "werkzeug",
+    "version": "3.1.0",
+    "declared_spec": ">=3.1.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2019-14806",
+     "CVE-2023-23934",
+     "CVE-2023-25577",
+     "CVE-2023-46136",
+     "CVE-2024-34069"
+    ],
+    "severity": "CRITICAL",
+    "summary": "Specifically, versions of Werkzeug before 3.1.6 are vulnerable to Denial of Service (DoS) due to improper handling of Windows special device names in path joining logic (CVE-2026-27199) and improper handling of Windows device names in user-controlled path segments (CVE-2026-21860).",
+    "fixed_in": "",
+    "pinned_version": "3.1.0",
+    "confidence": "needs-confirmation",
+    "query": "werkzeug 3.1.0 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "Werkzeug (PyPI) \u2014 Safety Package & Vulnerability Database",
+      "url": "https://getsafety.com/packages/pypi/werkzeug",
+      "snippet": "| CVE-2025-66221 | Affected versions of the Werkzeug package are vulnerable to Denial of Service (DoS) due to improper handling of Windows special device names in the safe\\_join function. In Werkzeug versions before 3.1.\u2026 | Medium | \u2013 | \u2013 | <3.1.4 |\n| CVE-2024-49767 | Affected versions of Werkzeug are potentially vulnerable to resource exhaustion when parsing file data in forms. Applications using",
+      "score": 0.775
+     },
+     {
+      "title": "werkzeug Security Vulnerabilities | CyStack CVE Database",
+      "url": "https://cystack.net/vulnerability-database/providers/pallets/products/werkzeug",
+      "snippet": "| `CVE-2024-49766`Werkzeug safe\\_join not safe on Windows | Exploitation statusNot known exploited | FixNot confirmed | Published10/25/2024 | SeverityMedium |\n| `CVE-2024-34069`Werkzeug's improper usage of a pathname and improper CSRF protection results in the remote command execution | Exploitation statusNot known exploited | FixYes | Published05/06/2024 | SeverityHigh |\n| `CVE-2023-46136`Werkzeu",
+      "score": 0.753
+     },
+     {
+      "title": "CVE-2026-21860: Werkzeug Path Traversal Vulnerability",
+      "url": "https://www.sentinelone.com/vulnerability-database/cve-2026-21860",
+      "snippet": "### Root Cause\n\nThe root cause of this vulnerability is the incomplete blocklist implementation in Werkzeug's safe\\_join function. While the function may have blocked direct references to Windows device names, it did not account for the variations that Windows accepts\u2014specifically device names with file extensions and trailing whitespace. This oversight in input validation allows malicious path se",
+      "score": 0.657
+     },
+     {
+      "title": "moderate: Security update for python-Werkzeug",
+      "url": "https://lists.opensuse.org/archives/list/updates@lists.opensuse.org/message/YCJL6M3HBC6PLFMFFUHHZRRPMVMZZFZW",
+      "snippet": "An update that fixes one vulnerability is now available. Description: This. Security issue fixed: - CVE-2019-14806: Fixed the development server in Docker, the",
+      "score": 0.642
+     }
+    ]
+   },
+   {
+    "name": "asgiref",
+    "version": "3.2",
+    "declared_spec": ">=3.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2019-6802",
+     "CVE-2022-28470",
+     "CVE-2022-32998",
+     "CVE-2022-34055",
+     "CVE-2022-34056"
+    ],
+    "severity": "CRITICAL",
+    "summary": "However, Fedora 37 has issued a security advisory addressing multiple DoS vulnerabilities in python-asgiref, specifically CVE-2023-43665, CVE-2023-41164, and CVE-2023-36053, recommending an update to version 3.5.2 to mitigate these risks.",
+    "fixed_in": ">= 3.5.2",
+    "pinned_version": "3.2",
+    "confidence": "needs-confirmation",
+    "query": "asgiref 3.2 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "PyPI vulnerabilities | Intelligent Application Security | Kodem Security",
+      "url": "https://www.kodemsecurity.com/cve-archive/ecosystem/pypi",
+      "snippet": "long runtimes for partially malformed FlateDecode streams (Follow-up)CVE-2026-102996Highpypdf: pypdf: Possible large memory usage when parsing font dataCVE-2026-102995Highpypdf: pypdf: Possible large memory usage for large /ToUnicode streams (Follow-up 2)CVE-2026-102994Highpypdf: pypdf: Possible long runtimes/large memory usage when parsing indirect objectsCVE-2026-102993Highpypdf: pypdf: Possible",
+      "score": 0.719
+     },
+     {
+      "title": "Pypi CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?vendor=pypi",
+      "snippet": "CVE | Vendors | Products | Updated | CVSS v3.1 || CVE-2022-34501 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collection package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |\n| CVE-2022-34500 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collect package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |",
+      "score": 0.604
+     },
+     {
+      "title": "Fedora 37: FEDORA-2023-9d36d373f1 Moderate: python-asgiref DoS Risk",
+      "url": "https://linuxsecurity.com/advisories/fedora/fedora-37-python-asgiref-2023-9d36d373f1-ne0soc3mk5re",
+      "snippet": "\\ Server base classes, asgiref.server\n\n\\ A WSGI-to-ASGI adapter, in asgiref.wsgi\n\nUpdate Information:\n\nSecurity fix for CVE-2023-43665, CVE-2023-41164, and CVE-2023-36053\n\nTopics%20covered\n\n## Topics Covered\n\nsecurity advisory update Fedora DoS security fix CVE python-asgiref\n\n### Change Log\n\n\\ Mon Feb 13 2023 Joel Capitao  - 3.5.2-1 - Update to 3.5.2 \\ Fri Jan 20 2023 Fedora Release Engineering  ",
+      "score": 0.583
+     },
+     {
+      "title": "Pypi CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?product=pypi&vendor=python",
+      "snippet": "Logo \n\n### Search\n\n### Search Examples\n\nCVEs in KEV CVEs with EPSS >= 80% Crit. Microsoft High Apache SQL Injection (CWE-89) Linux Kernel High (CVSS 3.1) Apache Struts RCE (Remote Code Execution) XSS (CWE-79) Critical (CVSS 4.0) CVEs to check\n\n### Search Results (2 CVEs found)\n\nCVE | Vendors | Products | Updated | CVSS v3.1 || CVE-2022-28470 | 1 Python | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| marc",
+      "score": 0.481
+     }
+    ]
+   },
+   {
+    "name": "python-dotenv",
+    "version": "1.2.2",
+    "declared_spec": "1.2.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2026-28684"
+    ],
+    "severity": "CRITICAL",
+    "summary": "The sources indicate that python-dotenv versions prior to 1.2.2 are vulnerable to CVE-2026-28684, which allows a local attacker to overwrite arbitrary files via a crafted symlink when a cross-device rename fallback is triggered.",
+    "fixed_in": ">= 1.2.2",
+    "pinned_version": "1.2.2",
+    "confidence": "needs-confirmation",
+    "query": "python-dotenv 1.2.2 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "CVE-2026-28684: python-dotenv Path Traversal Vulnerability",
+      "url": "https://www.sentinelone.com/vulnerability-database/cve-2026-28684",
+      "snippet": "### Patch Information\n\nThe vulnerability has been addressed in python-dotenv version 1.2.2. Users should upgrade to this version or later to receive the fix. The patch is available through the GitHub Commit and the GitHub Release v1.2.2. Additional details can be found in the GitHub Security Advisory GHSA-mf9w-mj56-hr94.\n\n### Workarounds\n\n Apply the patch manually from the security advisory if imm",
+      "score": 0.866
+     },
+     {
+      "title": "python-dotenv (PyPI) \u2014 Safety Package & Vulnerability Database",
+      "url": "https://getsafety.com/packages/pypi/python-dotenv",
+      "snippet": "Python\n\n# python-dotenv\n\nLatest secure version 1.2.4\n\nRead key-value pairs from a .env file and set them as environment variables\n\nGitHubGitHubPythonPyPI\n\nBSD-3-Clause\n\n### All Versions\n\n### Vulnerabilities (Public)\n\nKnown vulnerabilities and security issues detected in the extension's dependencies and code.\n\n| Vulnerability ID | Advisory |  |  |  | Affected Versions |\n ---  ---  --- |\n| CVE-2026-",
+      "score": 0.849
+     },
+     {
+      "title": "SCA: security update for python-dotenv (GHSA-mf9w-mj56-hr94)<!-- --> | Tenable\u00ae",
+      "url": "https://www.tenable.com/plugins/cloud-security/440711",
+      "snippet": "#### Description\n\nThere are packages installed that are affected by a vulnerability referenced in the following CVE:  \n  \n - python-dotenv reads key-value pairs from a .env file and can set them as environment variables. Prior to  \n version 1.2.2, `set\\_key()` and `unset\\_key()` in python-dotenv follow symbolic links when rewriting `.env`  \n files, allowing a local attacker to overwrite arbitrary ",
+      "score": 0.849
+     },
+     {
+      "title": "Vulnerability-Lookup - Search a vulnerability",
+      "url": "https://cvepremium.circl.lu/search?vendor=saurabh-kumar&product=python-dotenv",
+      "snippet": "{ \"containers\": { \"adp\": [ { \"metrics\": [ { \"other\": { \"content\": { \"id\": \"CVE-2026-28684\", \"options\": [ { \"Exploitation\": \"poc\" }, { \"Automatable\": \"no\" }, { \"Technical Impact\": \"total\" } ], \"role\": \"CISA Coordinator\", \"timestamp\": \"2026-04-20T17:43:03.518532Z\", \"version\": \"2.0.3\" }, \"type\": \"ssvc\" } } ], \"providerMetadata\": { \"dateUpdated\": \"2026-04-20T17:43:09.477Z\", \"orgId\": \"134c704f-9b21-4f2",
+      "score": 0.838
+     }
+    ]
+   }
+  ],
+  "outdated": [
+   {
+    "name": "jinja2",
+    "version": "3.1.2",
+    "declared_spec": ">=3.1.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "latest_version": "3.1.5",
+    "behind_by": "3 patch release(s) behind",
+    "confidence": "needs-confirmation",
+    "query": "latest stable released version of the jinja2 package on PyPI 2026",
+    "sources": [
+     {
+      "title": "PyPI Download Stats",
+      "url": "https://pypistats.org/packages/jinja2",
+      "snippet": "# PyPI Stats\n\nSearch   \n   \n All packages   \n Top packages   \n   \n Track packages\n\n# jinja2\n\nPyPI page   \n Home page   \n Author: None   \n Summary: A very fast and expressive template engine.   \n Latest version: 3.1.6   \n Required dependencies: markupsafe   \n Optional dependencies: babel   \n   \n Downloads last day: 21,471,131   \n Downloads last week: 136,334,290   \n Downloads last month: 520,384,27",
+      "score": 0.528
+     },
+     {
+      "title": "How to Create Webpage Using Python | Jinja2 (2026)",
+      "url": "https://www.youtube.com/watch?v=wEpZiOVzZhs",
+      "snippet": "# How to Create Webpage Using Python | Jinja2 (2026)\n## Channel: The Code City\n41.7K subscribers\n12 likes\n\n### Description\n839 views\nPosted: 2026-01-26\nStop hardcoding HTML.\nThis video shows how to create dynamic webpages using Python and Jinja2\u2014the templating engine used by Flask, FastAPI, and real backend apps.\n\nInstall PIP Using Python:    \u2022 How to Install PIP in Python 3.14.2 (Windo... [...] Y",
+      "score": 0.441
+     }
+    ]
+   }
+  ]
  },
  "dependency_research": {
   "provider": "tavily",
-  "enabled": false,
-  "vulnerable": [],
-  "outdated": [],
-  "checked": [],
-  "unverified": [],
-  "queries_run": 0,
-  "declared_dependencies": 119,
-  "not_checked": 119,
+  "enabled": true,
+  "checked_at": "2026-10-04T15:04:00Z",
+  "vulnerable": [
+   {
+    "name": "blinker",
+    "version": "1.9.0",
+    "declared_spec": ">=1.9.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2020-14335",
+     "CVE-2022-32998",
+     "CVE-2022-34055",
+     "CVE-2022-34056",
+     "CVE-2022-34500"
+    ],
+    "severity": "CRITICAL",
+    "summary": "However, an older advisory from Snyk mentions an information exposure vulnerability in versions of python-blinker prior to 1.3-2.el7sat, identified as CVE-2020-14335.",
+    "fixed_in": "",
+    "pinned_version": "1.9.0",
+    "confidence": "needs-confirmation",
+    "query": "blinker 1.9.0 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "PyPI vulnerabilities | Intelligent Application Security | Kodem Security",
+      "url": "https://www.kodemsecurity.com/cve-archive/ecosystem/pypi",
+      "snippet": "long runtimes for partially malformed FlateDecode streams (Follow-up)CVE-2026-102996Highpypdf: pypdf: Possible large memory usage when parsing font dataCVE-2026-102995Highpypdf: pypdf: Possible large memory usage for large /ToUnicode streams (Follow-up 2)CVE-2026-102994Highpypdf: pypdf: Possible long runtimes/large memory usage when parsing indirect objectsCVE-2026-102993Highpypdf: pypdf: Possible",
+      "score": 0.669
+     },
+     {
+      "title": "Information Exposure in python-blinker | CVE-2020-14335 | Snyk",
+      "url": "https://security.snyk.io/vuln/SNYK-RHEL7-PYTHONBLINKER-5383611",
+      "snippet": "The attacker requires privileges that provide basic user capabilities that could normally affect only settings and files owned by a user. Alternatively, an attacker with Low privileges has the ability to access only non-sensitive resources.\n\nThe vulnerable system can be exploited without interaction from any user.\n\nAn exploited vulnerability can only affect resources managed by the same security a",
+      "score": 0.599
+     },
+     {
+      "title": "Pypi CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?vendor=pypi",
+      "snippet": "CVE | Vendors | Products | Updated | CVSS v3.1 || CVE-2022-34501 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collection package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |\n| CVE-2022-34500 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collect package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |",
+      "score": 0.539
+     },
+     {
+      "title": "Releases \u00b7 pallets-eco/blinker",
+      "url": "https://github.com/pallets-eco/blinker/releases",
+      "snippet": "This is the Blinker 1.9.0 feature release. A feature release may include new features, remove previously deprecated code, add new deprecations, or introduce",
+      "score": 0.461
+     }
+    ]
+   },
+   {
+    "name": "click",
+    "version": "8.1.3",
+    "declared_spec": ">=8.1.3",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2022-32998",
+     "CVE-2022-34055",
+     "CVE-2022-34056",
+     "CVE-2022-34500",
+     "CVE-2022-34501"
+    ],
+    "severity": "CRITICAL",
+    "summary": "As of 2026-08-15, there is 1 known vulnerability in the OSV database for Click, according to the Click Security Audit - Known Vulnerabilities and Fixes page.",
+    "fixed_in": "",
+    "pinned_version": "8.1.3",
+    "confidence": "needs-confirmation",
+    "query": "click 8.1.3 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "PyPI vulnerabilities | Intelligent Application Security | Kodem Security",
+      "url": "https://www.kodemsecurity.com/cve-archive/ecosystem/pypi",
+      "snippet": "long runtimes for partially malformed FlateDecode streams (Follow-up)CVE-2026-102996Highpypdf: pypdf: Possible large memory usage when parsing font dataCVE-2026-102995Highpypdf: pypdf: Possible large memory usage for large /ToUnicode streams (Follow-up 2)CVE-2026-102994Highpypdf: pypdf: Possible long runtimes/large memory usage when parsing indirect objectsCVE-2026-102993Highpypdf: pypdf: Possible",
+      "score": 0.699
+     },
+     {
+      "title": "Click Security Audit - Known Vulnerabilities and Fixes",
+      "url": "https://www.sherlockforensics.com/security/pypi/click.html",
+      "snippet": "Click is a widely used PyPI package. As of 2026-08-15, there are 1 known vulnerabilities in the OSV database. The latest stable version is 8.4.2",
+      "score": 0.631
+     },
+     {
+      "title": "Pypi CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?vendor=pypi",
+      "snippet": "CVE | Vendors | Products | Updated | CVSS v3.1 || CVE-2022-34501 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collection package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |\n| CVE-2022-34500 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collect package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |",
+      "score": 0.618
+     },
+     {
+      "title": "click-prism (PyPI) \u2014 Safety Package & Vulnerability Database",
+      "url": "https://getsafety.com/packages/pypi/click-prism",
+      "snippet": "Known vulnerabilities and security issues detected in the extension's dependencies and code. No vulnerabilities found for this package.",
+      "score": 0.555
+     }
+    ]
+   },
+   {
+    "name": "jinja2",
+    "version": "3.1.2",
+    "declared_spec": ">=3.1.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2014-1402",
+     "CVE-2019-10906",
+     "CVE-2020-28493",
+     "CVE-2024-22195",
+     "CVE-2024-34064"
+    ],
+    "severity": "CRITICAL",
+    "summary": "For example, CVE-2024-22195 was addressed in version 3.1.3, while CVE-2024-34064 and CVE-2024-56201 were fixed in versions 3.1.4 and 3.1.5, respectively.",
+    "fixed_in": ">= 3.1.4",
+    "pinned_version": "3.1.2",
+    "confidence": "needs-confirmation",
+    "query": "jinja2 3.1.2 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "Understanding and mitigating the Jinja2 XSS vulnerability (CVE-2024-22195) | Snyk",
+      "url": "https://snyk.io/blog/jinja2-xss-vulnerability",
+      "snippet": "Snyk successfully detected the vulnerable Jinja2 version used in our project (version 3.1.2), and recommended a fix from the CLI.\n\nThis is a great opportunity to let you know you can also use a Snyk extension in your IDE and scan your own Python code and Python containerized applications, on top of scanning 3rd-party dependencies from PyPI.\n\n### Is the Jinja2 XSS vulnerability easy to exploit?\n\nTh",
+      "score": 0.854
+     },
+     {
+      "title": "Jinja2 3.1.2 | Snyk",
+      "url": "https://security.snyk.io/package/pip/Jinja2/3.1.2",
+      "snippet": "Affected versions of this package are vulnerable to Cross-site Scripting (XSS) through the `xmlattr` filter. An attacker can manipulate the output of web pages by injecting additional attributes into elements, potentially leading to unauthorized actions or information disclosure.\n\n`xmlattr`\n\nNote:\nThis vulnerability derives from an improper fix of CVE-2024-22195, which only addressed spaces but no",
+      "score": 0.844
+     },
+     {
+      "title": "Jinja2 Security Audit - Known Vulnerabilities and Fixes | Sherlock Forensics",
+      "url": "https://www.sherlockforensics.com/security/pypi/jinja2.html",
+      "snippet": "| CVE-2024-22195 | UNKNOWN  0 to 3.1.3 | 3.1.3 | Jinja vulnerable to HTML attribute injection when passing user input as keys to xmlattr filter |\n| CVE-2024-34064 | UNKNOWN  0 to 3.1.4 | 3.1.4 | Jinja vulnerable to HTML attribute injection when passing user input as keys to xmlattr filter |\n| CVE-2024-56326 | UNKNOWN  0 to 3.1.5 | 3.1.5 | Jinja has a sandbox breakout through indirect reference to ",
+      "score": 0.792
+     },
+     {
+      "title": "jinja2 (python) Security Audit \u2014 Advisories Mapped | OSS Security KB",
+      "url": "https://oss-security.burmaster.com/python/jinja2",
+      "snippet": "format expressions in sandbox mode. | 2.8.1 |  | | CVE-2019-10906 / GHSA-462w-v97r-4m45 / PYSEC-2019-217 | High | `SandboxedEnvironment` did not securely handle `str.format_map`, allowing sandbox escape / code-execution-style abuse when rendering untrusted templates. | 2.10.1 |  | | CVE-2020-28493 / GHSA-g3rq-g295-4j3m / PYSEC-2021-66 | Moderate | ReDoS in the `urlize` filter; upstream 2.11.3 note",
+      "score": 0.772
+     }
+    ]
+   },
+   {
+    "name": "werkzeug",
+    "version": "3.1.0",
+    "declared_spec": ">=3.1.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2019-14806",
+     "CVE-2023-23934",
+     "CVE-2023-25577",
+     "CVE-2023-46136",
+     "CVE-2024-34069"
+    ],
+    "severity": "CRITICAL",
+    "summary": "Specifically, versions of Werkzeug before 3.1.6 are vulnerable to Denial of Service (DoS) due to improper handling of Windows special device names in path joining logic (CVE-2026-27199) and improper handling of Windows device names in user-controlled path segments (CVE-2026-21860).",
+    "fixed_in": "",
+    "pinned_version": "3.1.0",
+    "confidence": "needs-confirmation",
+    "query": "werkzeug 3.1.0 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "Werkzeug (PyPI) \u2014 Safety Package & Vulnerability Database",
+      "url": "https://getsafety.com/packages/pypi/werkzeug",
+      "snippet": "| CVE-2025-66221 | Affected versions of the Werkzeug package are vulnerable to Denial of Service (DoS) due to improper handling of Windows special device names in the safe\\_join function. In Werkzeug versions before 3.1.\u2026 | Medium | \u2013 | \u2013 | <3.1.4 |\n| CVE-2024-49767 | Affected versions of Werkzeug are potentially vulnerable to resource exhaustion when parsing file data in forms. Applications using",
+      "score": 0.775
+     },
+     {
+      "title": "werkzeug Security Vulnerabilities | CyStack CVE Database",
+      "url": "https://cystack.net/vulnerability-database/providers/pallets/products/werkzeug",
+      "snippet": "| `CVE-2024-49766`Werkzeug safe\\_join not safe on Windows | Exploitation statusNot known exploited | FixNot confirmed | Published10/25/2024 | SeverityMedium |\n| `CVE-2024-34069`Werkzeug's improper usage of a pathname and improper CSRF protection results in the remote command execution | Exploitation statusNot known exploited | FixYes | Published05/06/2024 | SeverityHigh |\n| `CVE-2023-46136`Werkzeu",
+      "score": 0.753
+     },
+     {
+      "title": "CVE-2026-21860: Werkzeug Path Traversal Vulnerability",
+      "url": "https://www.sentinelone.com/vulnerability-database/cve-2026-21860",
+      "snippet": "### Root Cause\n\nThe root cause of this vulnerability is the incomplete blocklist implementation in Werkzeug's safe\\_join function. While the function may have blocked direct references to Windows device names, it did not account for the variations that Windows accepts\u2014specifically device names with file extensions and trailing whitespace. This oversight in input validation allows malicious path se",
+      "score": 0.657
+     },
+     {
+      "title": "moderate: Security update for python-Werkzeug",
+      "url": "https://lists.opensuse.org/archives/list/updates@lists.opensuse.org/message/YCJL6M3HBC6PLFMFFUHHZRRPMVMZZFZW",
+      "snippet": "An update that fixes one vulnerability is now available. Description: This. Security issue fixed: - CVE-2019-14806: Fixed the development server in Docker, the",
+      "score": 0.642
+     }
+    ]
+   },
+   {
+    "name": "asgiref",
+    "version": "3.2",
+    "declared_spec": ">=3.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2019-6802",
+     "CVE-2022-28470",
+     "CVE-2022-32998",
+     "CVE-2022-34055",
+     "CVE-2022-34056"
+    ],
+    "severity": "CRITICAL",
+    "summary": "However, Fedora 37 has issued a security advisory addressing multiple DoS vulnerabilities in python-asgiref, specifically CVE-2023-43665, CVE-2023-41164, and CVE-2023-36053, recommending an update to version 3.5.2 to mitigate these risks.",
+    "fixed_in": ">= 3.5.2",
+    "pinned_version": "3.2",
+    "confidence": "needs-confirmation",
+    "query": "asgiref 3.2 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "PyPI vulnerabilities | Intelligent Application Security | Kodem Security",
+      "url": "https://www.kodemsecurity.com/cve-archive/ecosystem/pypi",
+      "snippet": "long runtimes for partially malformed FlateDecode streams (Follow-up)CVE-2026-102996Highpypdf: pypdf: Possible large memory usage when parsing font dataCVE-2026-102995Highpypdf: pypdf: Possible large memory usage for large /ToUnicode streams (Follow-up 2)CVE-2026-102994Highpypdf: pypdf: Possible long runtimes/large memory usage when parsing indirect objectsCVE-2026-102993Highpypdf: pypdf: Possible",
+      "score": 0.719
+     },
+     {
+      "title": "Pypi CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?vendor=pypi",
+      "snippet": "CVE | Vendors | Products | Updated | CVSS v3.1 || CVE-2022-34501 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collection package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |\n| CVE-2022-34500 | 1 Pypi | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| The bin-collect package in PyPI before v0.1 included a code execution backdoor inserted by a third party. |",
+      "score": 0.604
+     },
+     {
+      "title": "Fedora 37: FEDORA-2023-9d36d373f1 Moderate: python-asgiref DoS Risk",
+      "url": "https://linuxsecurity.com/advisories/fedora/fedora-37-python-asgiref-2023-9d36d373f1-ne0soc3mk5re",
+      "snippet": "\\ Server base classes, asgiref.server\n\n\\ A WSGI-to-ASGI adapter, in asgiref.wsgi\n\nUpdate Information:\n\nSecurity fix for CVE-2023-43665, CVE-2023-41164, and CVE-2023-36053\n\nTopics%20covered\n\n## Topics Covered\n\nsecurity advisory update Fedora DoS security fix CVE python-asgiref\n\n### Change Log\n\n\\ Mon Feb 13 2023 Joel Capitao  - 3.5.2-1 - Update to 3.5.2 \\ Fri Jan 20 2023 Fedora Release Engineering  ",
+      "score": 0.583
+     },
+     {
+      "title": "Pypi CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?product=pypi&vendor=python",
+      "snippet": "Logo \n\n### Search\n\n### Search Examples\n\nCVEs in KEV CVEs with EPSS >= 80% Crit. Microsoft High Apache SQL Injection (CWE-89) Linux Kernel High (CVSS 3.1) Apache Struts RCE (Remote Code Execution) XSS (CWE-79) Critical (CVSS 4.0) CVEs to check\n\n### Search Results (2 CVEs found)\n\nCVE | Vendors | Products | Updated | CVSS v3.1 || CVE-2022-28470 | 1 Python | 1 Pypi | 2024-11-21 | 9.8 Critical |\n| marc",
+      "score": 0.481
+     }
+    ]
+   },
+   {
+    "name": "python-dotenv",
+    "version": "1.2.2",
+    "declared_spec": "1.2.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "cves": [
+     "CVE-2026-28684"
+    ],
+    "severity": "CRITICAL",
+    "summary": "The sources indicate that python-dotenv versions prior to 1.2.2 are vulnerable to CVE-2026-28684, which allows a local attacker to overwrite arbitrary files via a crafted symlink when a cross-device rename fallback is triggered.",
+    "fixed_in": ">= 1.2.2",
+    "pinned_version": "1.2.2",
+    "confidence": "needs-confirmation",
+    "query": "python-dotenv 1.2.2 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "CVE-2026-28684: python-dotenv Path Traversal Vulnerability",
+      "url": "https://www.sentinelone.com/vulnerability-database/cve-2026-28684",
+      "snippet": "### Patch Information\n\nThe vulnerability has been addressed in python-dotenv version 1.2.2. Users should upgrade to this version or later to receive the fix. The patch is available through the GitHub Commit and the GitHub Release v1.2.2. Additional details can be found in the GitHub Security Advisory GHSA-mf9w-mj56-hr94.\n\n### Workarounds\n\n Apply the patch manually from the security advisory if imm",
+      "score": 0.866
+     },
+     {
+      "title": "python-dotenv (PyPI) \u2014 Safety Package & Vulnerability Database",
+      "url": "https://getsafety.com/packages/pypi/python-dotenv",
+      "snippet": "Python\n\n# python-dotenv\n\nLatest secure version 1.2.4\n\nRead key-value pairs from a .env file and set them as environment variables\n\nGitHubGitHubPythonPyPI\n\nBSD-3-Clause\n\n### All Versions\n\n### Vulnerabilities (Public)\n\nKnown vulnerabilities and security issues detected in the extension's dependencies and code.\n\n| Vulnerability ID | Advisory |  |  |  | Affected Versions |\n ---  ---  --- |\n| CVE-2026-",
+      "score": 0.849
+     },
+     {
+      "title": "SCA: security update for python-dotenv (GHSA-mf9w-mj56-hr94)<!-- --> | Tenable\u00ae",
+      "url": "https://www.tenable.com/plugins/cloud-security/440711",
+      "snippet": "#### Description\n\nThere are packages installed that are affected by a vulnerability referenced in the following CVE:  \n  \n - python-dotenv reads key-value pairs from a .env file and can set them as environment variables. Prior to  \n version 1.2.2, `set\\_key()` and `unset\\_key()` in python-dotenv follow symbolic links when rewriting `.env`  \n files, allowing a local attacker to overwrite arbitrary ",
+      "score": 0.849
+     },
+     {
+      "title": "Vulnerability-Lookup - Search a vulnerability",
+      "url": "https://cvepremium.circl.lu/search?vendor=saurabh-kumar&product=python-dotenv",
+      "snippet": "{ \"containers\": { \"adp\": [ { \"metrics\": [ { \"other\": { \"content\": { \"id\": \"CVE-2026-28684\", \"options\": [ { \"Exploitation\": \"poc\" }, { \"Automatable\": \"no\" }, { \"Technical Impact\": \"total\" } ], \"role\": \"CISA Coordinator\", \"timestamp\": \"2026-04-20T17:43:03.518532Z\", \"version\": \"2.0.3\" }, \"type\": \"ssvc\" } } ], \"providerMetadata\": { \"dateUpdated\": \"2026-04-20T17:43:09.477Z\", \"orgId\": \"134c704f-9b21-4f2",
+      "score": 0.838
+     }
+    ]
+   }
+  ],
+  "outdated": [
+   {
+    "name": "jinja2",
+    "version": "3.1.2",
+    "declared_spec": ">=3.1.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "latest_version": "3.1.5",
+    "behind_by": "3 patch release(s) behind",
+    "confidence": "needs-confirmation",
+    "query": "latest stable released version of the jinja2 package on PyPI 2026",
+    "sources": [
+     {
+      "title": "PyPI Download Stats",
+      "url": "https://pypistats.org/packages/jinja2",
+      "snippet": "# PyPI Stats\n\nSearch   \n   \n All packages   \n Top packages   \n   \n Track packages\n\n# jinja2\n\nPyPI page   \n Home page   \n Author: None   \n Summary: A very fast and expressive template engine.   \n Latest version: 3.1.6   \n Required dependencies: markupsafe   \n Optional dependencies: babel   \n   \n Downloads last day: 21,471,131   \n Downloads last week: 136,334,290   \n Downloads last month: 520,384,27",
+      "score": 0.528
+     },
+     {
+      "title": "How to Create Webpage Using Python | Jinja2 (2026)",
+      "url": "https://www.youtube.com/watch?v=wEpZiOVzZhs",
+      "snippet": "# How to Create Webpage Using Python | Jinja2 (2026)\n## Channel: The Code City\n41.7K subscribers\n12 likes\n\n### Description\n839 views\nPosted: 2026-01-26\nStop hardcoding HTML.\nThis video shows how to create dynamic webpages using Python and Jinja2\u2014the templating engine used by Flask, FastAPI, and real backend apps.\n\nInstall PIP Using Python:    \u2022 How to Install PIP in Python 3.14.2 (Windo... [...] Y",
+      "score": 0.441
+     }
+    ]
+   }
+  ],
+  "checked": [
+   {
+    "name": "itsdangerous",
+    "version": "2.2.0",
+    "declared_spec": ">=2.2.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "advisories_found": 0,
+    "query": "itsdangerous 2.2.0 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "itsdangerous@2.2.0 - PyPI | ReversingLabs Spectra Assure Community",
+      "url": "https://secure.software/pypi/packages/itsdangerous/2.2.0",
+      "snippet": "Our AI threat analyst detects malicious packages and blogs about OSS compromises\n\n  7000 write-ups and countingRead one\n\nSpectra Assure\n\nLog inSign up\n\nSpectra Assure\n\nCommunity\n\nLog in\n\nSign up\n\npassEverything is awesome!\n\nScanned: 19 days ago\n\n# itsdangerous\n\n2.2.0\n\nlatest\n\nArtifact: \n\nitsdangerous-2.2.0-py3-none-any.whl\n\nlatest\n\nTop 1k\n\nSafely pass data to untrusted environments and back.\n\nLice",
+      "score": 0.789
+     },
+     {
+      "title": "itsdangerous (2.2.0) - pypi Package Quality",
+      "url": "https://cloudsmith.com/navigator/pypi/itsdangerous",
+      "snippet": "Learn all about the quality, security, and current maintenance status of itsdangerous using Cloudsmith Navigator. 60 Quality CVE IssuesActive 0 \u2026 2.2.0 Stable",
+      "score": 0.727
+     }
+    ]
+   },
+   {
+    "name": "markupsafe",
+    "version": "2.1.1",
+    "declared_spec": ">=2.1.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "advisories_found": 0,
+    "query": "markupsafe 2.1.1 PyPI security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "MarkupSafe - PyPI | ReversingLabs Spectra Assure Community",
+      "url": "https://secure.software/pypi/packages/markupsafe",
+      "snippet": "### INCIDENTS FOR THIS VERSION:\n\nOverviewissues3vulnerabilities0malware0behaviors6dependencies0contributors4versions36\n\n## FAQ for MarkupSafe\n\n### What is MarkupSafe?\n\nSafely add untrusted strings to HTML/XML markup.\n\n### Is MarkupSafe malicious or is it safe to use?\n\nThe Python package MarkupSafe was scanned for malware, software tampering, risky behaviors, exposed secrets and known vulnerabiliti",
+      "score": 0.68
+     },
+     {
+      "title": "MarkupSafe 2.1.3",
+      "url": "https://pypi.org/project/MarkupSafe/2.1.3",
+      "snippet": "MarkupSafe implements a text object that escapes characters so it is safe to use in HTML and XML. igates injection attacks, displayed on a page.",
+      "score": 0.534
+     }
+    ]
+   }
+  ],
+  "unverified": [
+   {
+    "name": "blinker",
+    "version": "1.9.0",
+    "declared_spec": ">=1.9.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "reason": "no parsable version in the search answer",
+    "query": "latest stable released version of the blinker package on PyPI 2026",
+    "sources": [
+     {
+      "title": "blinker latest version",
+      "url": "https://python.libhunt.com/blinker-latest-version",
+      "snippet": "\ud83d\ude80 This is the Blinker 1.9.0 feature release. A feature release may include new features, remove previously deprecated code, add new deprecations, or introduce potentially breaking changes. We encourage everyone to upgrade, and to use a tool such as pip-tools to pin all dependencies and control upgrades. Test with warnings treated as errors to be able to adapt to deprecation warnings early.\n\n  PyPI",
+      "score": 0.687
+     },
+     {
+      "title": "PyPI Download Stats",
+      "url": "https://pypistats.org/packages/blinker",
+      "snippet": "# PyPI Stats\n\nSearch   \n   \n All packages   \n Top packages   \n   \n Track packages\n\n# blinker\n\nPyPI page   \n Home page   \n Author: Jason Kirtland   \n Summary: Fast, simple object-to-object and broadcast signaling   \n Latest version: 1.9.0   \n   \n   \n Downloads last day: 3,613,450   \n Downloads last week: 36,112,648   \n Downloads last month: 126,894,104",
+      "score": 0.651
+     }
+    ]
+   },
+   {
+    "name": "click",
+    "version": "8.1.3",
+    "declared_spec": ">=8.1.3",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "reason": "no parsable version in the search answer",
+    "query": "latest stable released version of the click package on PyPI 2026",
+    "sources": [
+     {
+      "title": "Changes \u2014 Click Documentation (8.5.x)",
+      "url": "https://click.palletsprojects.com/en/stable/changes",
+      "snippet": "## Version 8.5.0\u00b6\n\nReleased 2026-08-24 [...] ## Version 8.4.2\u00b6\n\nReleased 2026-06-24 [...] ## Version 8.3.3\u00b6\n\nReleased 2026-04-20",
+      "score": 0.766
+     },
+     {
+      "title": "Releases \u00b7 pallets/click \u00b7 GitHub",
+      "url": "https://github.com/pallets/click/releases",
+      "snippet": "## 8.4.0\n\n8.4.0\n\n@github-actions github-actions released this  17 May 05:12\n\n8.4.0\n\n`41f410f`\n\nThis is the Click 8.4.0 feature release. A feature release may include new features, remove previously deprecated code, add new deprecation, or introduce potentially breaking changes.\n\nWe encourage everyone to upgrade. You can read more about our Version Support Policy on our website.\n\nPyPI:   \n Changes:",
+      "score": 0.564
+     }
+    ]
+   },
+   {
+    "name": "itsdangerous",
+    "version": "2.2.0",
+    "declared_spec": ">=2.2.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "reason": "no parsable version in the search answer",
+    "query": "latest stable released version of the itsdangerous package on PyPI 2026",
+    "sources": [
+     {
+      "title": "PyPI Download Stats",
+      "url": "https://pypistats.org/packages/itsdangerous",
+      "snippet": "# PyPI Stats\n\nSearch   \n   \n All packages   \n Top packages   \n   \n Track packages\n\n# itsdangerous\n\nPyPI page   \n Home page   \n Author: None   \n Summary: Safely pass data to untrusted environments and back.   \n Latest version: 2.2.0   \n   \n   \n Downloads last day: 4,470,240   \n Downloads last week: 43,954,807   \n Downloads last month: 157,984,550",
+      "score": 0.64
+     },
+     {
+      "title": "itsdangerous@2.2.0 - PyPI | ReversingLabs Spectra Assure Community",
+      "url": "https://secure.software/pypi/packages/itsdangerous/2.2.0",
+      "snippet": "Our AI threat analyst detects malicious packages and blogs about OSS compromises\n\n  7000 write-ups and countingRead one\n\nSpectra Assure\n\nLog inSign up\n\nSpectra Assure\n\nCommunity\n\nLog in\n\nSign up\n\npassEverything is awesome!\n\nScanned: 19 days ago\n\n# itsdangerous\n\n2.2.0\n\nlatest\n\nArtifact: \n\nitsdangerous-2.2.0-py3-none-any.whl\n\nlatest\n\nTop 1k\n\nSafely pass data to untrusted environments and back.\n\nLice",
+      "score": 0.616
+     }
+    ]
+   },
+   {
+    "name": "markupsafe",
+    "version": "2.1.1",
+    "declared_spec": ">=2.1.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "pyproject.toml",
+    "reason": "no parsable version in the search answer",
+    "query": "latest stable released version of the markupsafe package on PyPI 2026",
+    "sources": [
+     {
+      "title": "Arch Linux - python-markupsafe 3.0.3-1 (x86_64)",
+      "url": "https://archlinux.org/packages/extra/x86_64/python-markupsafe",
+      "snippet": "|  |  |\n --- |\n| Architecture: | x86\\_64 |\n| Repository: | Extra |\n| Description: | Implements a XML/HTML/XHTML Markup safe string for Python |\n| Upstream URL: |  |\n| License(s): | BSD-3-Clause |\n| Maintainers: | Felix Yan \ud83e\udd8a |\n| Package Size: | 21.4 KB |\n| Installed Size: | 95.0 KB |\n| Last Packager: | Felix Yan \ud83e\udd8a |\n| Build Date: | 2026-03-03 15:34 UTC |\n| Signed By: | Felix Yan \ud83e\udd8a |\n| Signature Da",
+      "score": 0.841
+     },
+     {
+      "title": "MarkupSafe - PyPI | ReversingLabs Spectra Assure Community",
+      "url": "https://secure.software/pypi/packages/markupsafe",
+      "snippet": "Our AI threat analyst detects malicious packages and blogs about OSS compromises\n\n  7000 write-ups and countingRead one\n\nSpectra Assure\n\nLog inSign up\n\nSpectra Assure\n\nCommunity\n\nLog in\n\nSign up\n\npassEverything is awesome!\n\nScanned: 11 days ago\n\n# MarkupSafe\n\nArtifact: \n\nlatest\n\nTop 100\n\nSafely add untrusted strings to HTML/XML markup.\n\nLicense: Permissive (BSD-3-Clause)\n\nPublished: 12 months ago\n",
+      "score": 0.441
+     }
+    ]
+   },
+   {
+    "name": "alabaster",
+    "version": "1.0.0",
+    "declared_spec": "1.0.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "anyio",
+    "version": "4.14.2",
+    "declared_spec": "4.14.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "ast-serialize",
+    "version": "0.6.0",
+    "declared_spec": "0.6.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "babel",
+    "version": "2.18.0",
+    "declared_spec": "2.18.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "cachetools",
+    "version": "7.1.6",
+    "declared_spec": "7.1.6",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "certifi",
+    "version": "2026.7.22",
+    "declared_spec": "2026.7.22",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "cffi",
+    "version": "2.1.0",
+    "declared_spec": "2.1.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "cfgv",
+    "version": "3.5.0",
+    "declared_spec": "3.5.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "charset-normalizer",
+    "version": "3.4.9",
+    "declared_spec": "3.4.9",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "colorama",
+    "version": "0.4.6",
+    "declared_spec": "0.4.6",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "cryptography",
+    "version": "49.0.0",
+    "declared_spec": "49.0.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "distlib",
+    "version": "0.4.3",
+    "declared_spec": "0.4.3",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "docutils",
+    "version": "0.21.2",
+    "declared_spec": "0.21.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "exceptiongroup",
+    "version": "1.3.1",
+    "declared_spec": "1.3.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "filelock",
+    "version": "3.32.2",
+    "declared_spec": "3.32.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "flask",
+    "version": "3.2.0.dev0",
+    "declared_spec": "3.2.0.dev0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/pyproject.toml",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "gha-update",
+    "version": "0.2.0",
+    "declared_spec": "0.2.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "h11",
+    "version": "0.16.0",
+    "declared_spec": "0.16.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "httpcore",
+    "version": "1.0.9",
+    "declared_spec": "1.0.9",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "httpx",
+    "version": "0.28.1",
+    "declared_spec": "0.28.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "identify",
+    "version": "2.6.19",
+    "declared_spec": "2.6.19",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "idna",
+    "version": "3.18",
+    "declared_spec": "3.18",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "imagesize",
+    "version": "2.0.0",
+    "declared_spec": "2.0.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "iniconfig",
+    "version": "2.3.0",
+    "declared_spec": "2.3.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "librt",
+    "version": "0.13.0",
+    "declared_spec": "0.13.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "mypy",
+    "version": "2.3.0",
+    "declared_spec": "2.3.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "mypy-extensions",
+    "version": "1.1.0",
+    "declared_spec": "1.1.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "nodeenv",
+    "version": "1.10.0",
+    "declared_spec": "1.10.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "packaging",
+    "version": "26.2",
+    "declared_spec": "26.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pallets-sphinx-themes",
+    "version": "2.5.0",
+    "declared_spec": "2.5.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pathspec",
+    "version": "1.1.1",
+    "declared_spec": "1.1.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "platformdirs",
+    "version": "4.11.0",
+    "declared_spec": "4.11.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pluggy",
+    "version": "1.6.0",
+    "declared_spec": "1.6.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pre-commit",
+    "version": "4.6.1",
+    "declared_spec": "4.6.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pre-commit-uv",
+    "version": "4.3.0",
+    "declared_spec": "4.3.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pycparser",
+    "version": "3.0",
+    "declared_spec": "3.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pygments",
+    "version": "2.20.0",
+    "declared_spec": "2.20.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pyproject-api",
+    "version": "1.11.0",
+    "declared_spec": "1.11.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pyright",
+    "version": "1.1.411",
+    "declared_spec": "1.1.411",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pytest",
+    "version": "9.1.1",
+    "declared_spec": "9.1.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/javascript/pyproject.toml",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "python-discovery",
+    "version": "1.5.0",
+    "declared_spec": "1.5.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pyyaml",
+    "version": "6.0.3",
+    "declared_spec": "6.0.3",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "requests",
+    "version": "2.34.2",
+    "declared_spec": "2.34.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "roman-numerals",
+    "version": "4.1.0",
+    "declared_spec": "4.1.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "roman-numerals-py",
+    "version": "4.1.0",
+    "declared_spec": "4.1.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "ruff",
+    "version": "0.16.0",
+    "declared_spec": "0.16.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "snowballstemmer",
+    "version": "3.1.1",
+    "declared_spec": "3.1.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinx",
+    "version": "8.1.3",
+    "declared_spec": "8.1.3",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinx-autobuild",
+    "version": "2024.10.3",
+    "declared_spec": "2024.10.3",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinx-notfound-page",
+    "version": "1.1.0",
+    "declared_spec": "1.1.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinx-tabs",
+    "version": "3.5.0",
+    "declared_spec": "3.5.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinxcontrib-applehelp",
+    "version": "2.0.0",
+    "declared_spec": "2.0.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinxcontrib-devhelp",
+    "version": "2.0.0",
+    "declared_spec": "2.0.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinxcontrib-htmlhelp",
+    "version": "2.1.0",
+    "declared_spec": "2.1.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinxcontrib-jsmath",
+    "version": "1.0.1",
+    "declared_spec": "1.0.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinxcontrib-log-cabinet",
+    "version": "1.0.1",
+    "declared_spec": "1.0.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinxcontrib-qthelp",
+    "version": "2.0.0",
+    "declared_spec": "2.0.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "sphinxcontrib-serializinghtml",
+    "version": "2.0.0",
+    "declared_spec": "2.0.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "starlette",
+    "version": "1.3.1",
+    "declared_spec": "1.3.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "tomli",
+    "version": "2.4.1",
+    "declared_spec": "2.4.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "tomli-w",
+    "version": "1.2.0",
+    "declared_spec": "1.2.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "tox",
+    "version": "4.58.0",
+    "declared_spec": "4.58.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "tox-uv",
+    "version": "1.36.0",
+    "declared_spec": "1.36.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "tox-uv-bare",
+    "version": "1.36.0",
+    "declared_spec": "1.36.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "types-contextvars",
+    "version": "2.4.7.3",
+    "declared_spec": "2.4.7.3",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "types-dataclasses",
+    "version": "0.6.6",
+    "declared_spec": "0.6.6",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "typing-extensions",
+    "version": "4.16.0",
+    "declared_spec": "4.16.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "urllib3",
+    "version": "2.7.0",
+    "declared_spec": "2.7.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "uv",
+    "version": "0.12.0",
+    "declared_spec": "0.12.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "uvicorn",
+    "version": "0.52.0",
+    "declared_spec": "0.52.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "virtualenv",
+    "version": "21.7.1",
+    "declared_spec": "21.7.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "watchfiles",
+    "version": "1.2.0",
+    "declared_spec": "1.2.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "websockets",
+    "version": "16.1.1",
+    "declared_spec": "16.1.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "uv.lock",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "celery",
+    "version": "",
+    "declared_spec": "",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/pyproject.toml",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "amqp",
+    "version": "5.1.1",
+    "declared_spec": "==5.1.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "async-timeout",
+    "version": "4.0.2",
+    "declared_spec": "==4.0.2",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "billiard",
+    "version": "3.6.4.0",
+    "declared_spec": "==3.6.4.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "click-didyoumean",
+    "version": "0.3.0",
+    "declared_spec": "==0.3.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "click-plugins",
+    "version": "1.1.1",
+    "declared_spec": "==1.1.1",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "click-repl",
+    "version": "0.2.0",
+    "declared_spec": "==0.2.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "kombu",
+    "version": "5.2.4",
+    "declared_spec": "==5.2.4",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "prompt-toolkit",
+    "version": "3.0.38",
+    "declared_spec": "==3.0.38",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "pytz",
+    "version": "2023.3",
+    "declared_spec": "==2023.3",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "redis",
+    "version": "4.5.4",
+    "declared_spec": "==4.5.4",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "six",
+    "version": "1.16.0",
+    "declared_spec": "==1.16.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "vine",
+    "version": "5.0.0",
+    "declared_spec": "==5.0.0",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   },
+   {
+    "name": "wcwidth",
+    "version": "0.2.6",
+    "declared_spec": "==0.2.6",
+    "ecosystem": "pypi",
+    "ecosystem_label": "PyPI",
+    "declared_in": "examples/celery/requirements.txt",
+    "reason": "not checked: per-run search budget reached"
+   }
+  ],
+  "queries_run": 13,
+  "declared_dependencies": 95,
+  "not_checked": 91,
   "errors": [],
-  "note": "Set TAVILY_API_KEY to check pinned dependencies against published advisories."
+  "note": "Advisories come from web search, not from a vulnerability database. Confirm the affected version range in the linked advisory before acting."
  },
- "architecture": {},
+ "architecture": {
+  "summary": "",
+  "pattern": "layered",
+  "layers": [
+   {
+    "name": "flask/app"
+   },
+   {
+    "name": "flask/cli"
+   },
+   {
+    "name": "flask/templating"
+   },
+   {
+    "name": "flask/routing"
+   },
+   {
+    "name": "flask/testing"
+   },
+   {
+    "name": "flask/helpers"
+   },
+   {
+    "name": "flask/extensions"
+   }
+  ],
+  "entry_points": [
+   {
+    "file_path": "cli:flask"
+   },
+   {
+    "file_path": "wsgi:app"
+   }
+  ],
+  "data_flow": [],
+  "extension_points": [],
+  "risks": [],
+  "generated_by": "nvidia/Nemotron-3-Ultra-550b-a55b",
+  "extracted": true
+ },
  "churn": {
   "head": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
   "commits_scanned": 106,
@@ -19799,7 +21678,98 @@
   "available": true,
   "reason": ""
  },
- "llm_usage": [],
+ "llm_usage": [
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 3490,
+   "completion_tokens": 1717,
+   "total_tokens": 5207,
+   "latency_s": 6.518,
+   "attempts": 1,
+   "step": "triage",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 3487,
+   "completion_tokens": 2169,
+   "total_tokens": 5656,
+   "latency_s": 7.985,
+   "attempts": 1,
+   "step": "triage",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 3448,
+   "completion_tokens": 3445,
+   "total_tokens": 6893,
+   "latency_s": 11.726,
+   "attempts": 1,
+   "step": "triage",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 3534,
+   "completion_tokens": 2081,
+   "total_tokens": 5615,
+   "latency_s": 7.5,
+   "attempts": 1,
+   "step": "triage",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 3312,
+   "completion_tokens": 3691,
+   "total_tokens": 7003,
+   "latency_s": 14.121,
+   "attempts": 1,
+   "step": "triage",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 3354,
+   "completion_tokens": 2039,
+   "total_tokens": 5393,
+   "latency_s": 6.605,
+   "attempts": 1,
+   "step": "triage",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 1185,
+   "completion_tokens": 671,
+   "total_tokens": 1856,
+   "latency_s": 2.881,
+   "attempts": 1,
+   "step": "triage",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 4523,
+   "completion_tokens": 2719,
+   "total_tokens": 7242,
+   "latency_s": 8.822,
+   "attempts": 1,
+   "step": "architecture",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 1311,
+   "completion_tokens": 1087,
+   "total_tokens": 2398,
+   "latency_s": 3.584,
+   "attempts": 1,
+   "step": "fixes",
+   "finish_reason": "stop"
+  }
+ ],
  "truncated": false,
  "cached": false,
  "stats": {
@@ -19810,23 +21780,23 @@
    "bash": 1
   },
   "total_vulnerabilities": 74,
-  "critical_vulnerabilities": 1,
+  "critical_vulnerabilities": 0,
   "high_vulnerabilities": 2,
-  "medium_vulnerabilities": 71,
+  "medium_vulnerabilities": 2,
   "static_findings": 74,
   "model_findings": 0,
-  "dismissed_findings": 0,
-  "grounded_findings": 0,
+  "dismissed_findings": 70,
+  "grounded_findings": 3,
   "hotspot_count": 8,
-  "graph_links": 195,
+  "graph_links": 221,
   "dependency_manifests": 6,
   "dependencies": 119,
-  "vulnerable_dependencies": 0,
-  "outdated_dependencies": 0,
-  "research_queries": 0,
+  "vulnerable_dependencies": 6,
+  "outdated_dependencies": 1,
+  "research_queries": 13,
   "total_loc": 18352,
-  "analyzed_at": "2026-10-01T09:10:11Z",
-  "elapsed_seconds": 7.22,
+  "analyzed_at": "2026-10-04T15:04:06Z",
+  "elapsed_seconds": 38.08,
   "head_sha": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35"
  },
  "repo_path": ""

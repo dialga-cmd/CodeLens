@@ -25,6 +25,44 @@ from typing import Any, Callable, Sequence
 from .llm import ROLE_HEAVY, LLMError, get_llm_client
 from .prompts import load_prompt
 
+# Key names the architecture pass accepts for each documented field, in
+# preference order. The first is what the prompt asks for; the rest are the
+# alternatives a reasoning model reaches for on its own when it does not follow
+# the requested schema.
+_ARCHITECTURE_ALIASES: dict[str, tuple[str, ...]] = {
+    "summary": ("summary", "overview", "description"),
+    "pattern": ("pattern", "architecture_pattern", "style"),
+    "layers": ("layers", "components", "modules", "boundaries"),
+    "entry_points": ("entry_points", "entrypoints", "entry_points_list"),
+    "data_flow": ("data_flow", "dataflow", "flow"),
+    "extension_points": ("extension_points", "extensionpoints", "extension_points_list"),
+    "risks": ("risks", "risk", "concerns"),
+}
+
+
+def _first(data: dict[str, Any], key: str) -> Any:
+    """The first alias of ``key`` present in ``data``."""
+    for candidate in _ARCHITECTURE_ALIASES.get(key, (key,)):
+        value = data.get(candidate)
+        if value not in (None, "", [], {}):
+            return value
+    return None
+
+
+def _unwrap_architecture(data: dict[str, Any]) -> dict[str, Any]:
+    """Descend into a single wrapper key when the model returned one.
+
+    The answer came back as ``{"repo_identity": {...}, "architecture": {...}}``
+    on a live run: useful, and one level away from the documented keys.
+    """
+    if _first(data, "summary") or _first(data, "layers"):
+        return data
+    for key in ("architecture", "result", "data", "analysis", "output"):
+        nested = data.get(key)
+        if isinstance(nested, dict) and (_first(nested, "summary") or _first(nested, "layers")):
+            return nested
+    return data
+
 # How many candidates to review per request. Small enough that the evidence
 # stays legible, large enough that a repository does not need thirty calls.
 TRIAGE_CHUNK_SIZE = 12
@@ -348,34 +386,60 @@ class AIAnalyzer:
 
     @staticmethod
     def _clean_architecture(data: dict[str, Any], model: str = "") -> dict[str, Any]:
+        """Read the architecture out of whatever shape the model chose.
+
+        The prompt names the keys, and the model usually follows it. When it does
+        not, it does not return nonsense - it returns the same analysis under
+        names of its own: asked for ``layers``/``entry_points`` with
+        ``file_path``, one run answered ``repo_identity`` and ``architecture``
+        with ``boundaries``, ``entrypoints`` and ``location``. Reading only the
+        documented keys turned that run into an empty panel with
+        ``generated_by`` still naming the model, which reads as "the analysis
+        found nothing" rather than "the keys did not match".
+
+        So the documented names are accepted first, then the aliases this model
+        has actually used. Nothing is invented: a field is only read if it is
+        present under one of these names.
+        """
+        data = _unwrap_architecture(data)
+
         def _strings(key: str, limit: int) -> list[str]:
-            value = data.get(key)
+            value = _first(data, key)
             if isinstance(value, list):
                 return [str(item).strip() for item in value if str(item).strip()][:limit]
             return []
 
-        def _objects(key: str, fields: Sequence[str], limit: int) -> list[dict[str, Any]]:
-            value = data.get(key)
+        def _objects(key: str, fields: Sequence[tuple[str, str]], limit: int) -> list[dict[str, Any]]:
+            value = _first(data, key)
             if not isinstance(value, list):
                 return []
             cleaned: list[dict[str, Any]] = []
             for item in value[:limit]:
                 if not isinstance(item, dict):
+                    if isinstance(item, str) and item.strip():
+                        cleaned.append({fields[0][0]: item.strip()})
                     continue
-                entry = {field: item[field] for field in fields if field in item}
+                entry = {wanted: item[source] for wanted, source in fields if source in item}
                 if entry:
                     cleaned.append(entry)
             return cleaned
 
         return {
-            "summary": str(data.get("summary", ""))[:2000],
-            "pattern": str(data.get("pattern", ""))[:400],
-            "layers": _objects("layers", ("name", "files", "responsibility"), 8),
-            "entry_points": _objects("entry_points", ("file_path", "role", "calls"), 10),
+            "summary": str(_first(data, "summary") or "")[:2000],
+            "pattern": str(_first(data, "pattern") or "")[:400],
+            "layers": _objects("layers", (("name", "name"), ("files", "files"), ("responsibility", "responsibility")), 8),
+            "entry_points": _objects(
+                "entry_points",
+                (("file_path", "file_path"), ("file_path", "location"), ("file_path", "file"), ("role", "role"), ("role", "description"), ("calls", "calls")),
+                10,
+            ),
             "data_flow": _strings("data_flow", 10),
-            "extension_points": _objects("extension_points", ("file_path", "how"), 8),
-            "risks": _objects("risks", ("file_path", "risk"), 8),
+            "extension_points": _objects(
+                "extension_points", (("file_path", "file_path"), ("file_path", "location"), ("how", "how")), 8
+            ),
+            "risks": _objects("risks", (("file_path", "file_path"), ("file_path", "location"), ("risk", "risk")), 8),
             "generated_by": model,
+            "extracted": bool(_first(data, "summary") or _first(data, "layers")),
         }
 
     # -- remediation ------------------------------------------------------- #
