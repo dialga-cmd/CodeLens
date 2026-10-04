@@ -45,7 +45,12 @@ GROUNDING_QUERIES: dict[str, str] = {
     "shell_injection": "OS command injection prevention subprocess shell false OWASP",
     "sql_injection": "SQL injection prevention parameterised queries OWASP",
     "path_traversal": "path traversal prevention directory traversal OWASP",
-    "weak_hash": "password hashing recommendation argon2 scrypt OWASP",
+    # weak_hash covers both password hashing and HMAC/signing digests, and the rule
+    # cannot tell them apart. Grounding a session-cookie HMAC on the
+    # password-hashing guidance produced a source that recommended Argon2id with
+    # 19 MiB of memory for a function that signs a cookie - true, and not what
+    # the finding was about.
+    "weak_hash": "SHA-1 deprecation HMAC signing digest replace SHA-256 NIST transition away",
     "insecure_random": "cryptographically secure random number generation OWASP",
     "unsafe_deserialization": "insecure deserialization pickle yaml load OWASP",
     "code_execution": "code injection eval exec dynamic code execution OWASP",
