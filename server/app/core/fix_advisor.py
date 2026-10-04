@@ -27,7 +27,12 @@ from .llm import ROLE_HEAVY, LLMError, get_llm_client
 from .prompts import load_prompt
 
 CONTEXT_RADIUS = 60
-MAX_CONTEXT_BYTES = 12_000
+# The prompt only ever contains CONTEXT_RADIUS lines around the finding, so the
+# file itself can be read whole. Reading a 12 KB prefix and reporting a line past
+# it as "outside the file" is wrong - flask's cli.py is 1127 lines and line 1023
+# exists - and a truncated read also means the patch is anchored to text the file
+# does not contain, so it can never apply.
+MAX_SOURCE_BYTES = 512_000
 APPLY_TIMEOUT_SECONDS = 15
 MAX_ATTEMPTS = 2
 
@@ -98,7 +103,7 @@ class FixAdvisor:
             fix.validation = "no model access configured"
             return fix
 
-        source = read_repo_file(self.repo_path, file_path, MAX_CONTEXT_BYTES)
+        source = read_repo_file(self.repo_path, file_path, MAX_SOURCE_BYTES)
         if not source:
             fix.validation = f"{file_path} is not readable in the analysed clone"
             return fix

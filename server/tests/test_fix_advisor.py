@@ -164,6 +164,47 @@ def test_reanchoring_is_idempotent_and_leaves_its_own_output_alone():
     assert _reanchor(once, source) == once
 
 
+def test_a_line_past_the_prompt_window_is_still_found(tmp_path):
+    """flask's cli.py is 1127 lines; a 12 KB read prefix hid line 1023 entirely.
+
+    The prompt only ever carries CONTEXT_RADIUS lines, so there is no reason to
+    read the file partially, and a partial read both loses the finding and
+    anchors the patch to text the real file does not contain.
+    """
+    repo = _patched_clone(tmp_path)
+    body = "\n".join(f"line_{number} = {number}" for number in range(1, 1201))
+    (repo / "big.py").write_text(body + "\n", encoding="utf-8")
+    advisor = _advisor_for(repo)
+
+    fix = advisor.propose({"id": "weak_hash:big.py:1023", "file_path": "big.py", "line": 1023, "rule": "weak_hash"})
+
+    assert "outside" not in fix.validation, fix.validation
+    assert fix.attempts >= 1
+
+
+def _advisor_for(repo):
+    from app.core.fix_advisor import FixAdvisor
+
+    advisor = FixAdvisor({"repo_path": str(repo), "repo_url": "https://github.com/x/y"})
+    advisor.client = _FakeClient()
+    return advisor
+
+
+class _FakeClient:
+    """A configured client that returns nothing usable, so only the framing is under test."""
+
+    configured = True
+    heavy_model = "nvidia/test"
+
+    def model_for(self, role):
+        return self.heavy_model
+
+    def chat_json_sync(self, *args, **kwargs):
+        from app.core.llm import LLMError
+
+        raise LLMError("no model in tests")
+
+
 def test_the_model_diff_from_the_live_run_applies_after_recounting(tmp_path):
     """The exact diff Nemotron-3-Ultra returned for flask's _lazy_sha1, before and after.
 
