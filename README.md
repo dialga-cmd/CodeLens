@@ -149,21 +149,34 @@ graph view also injected a synthetic hub node wired to every file, which made th
 picture look connected while hiding the real fan-in that hotspots are computed
 from. That node is gone.
 
-**The dependency graph panel is framed, not cropped.** It was drawn into a
-canvas the size of the browser window inside a panel a third of that width, so
-the picture was a top-left crop, and the camera was never fitted to the layout
-at all — the effect that was supposed to do it ran before the graph object
-existed and never ran again. The camera is now solved against what the renderer
-actually projects, after the layout stops and again whenever the panel is
-resized or comes back from being collapsed, and it aims at the middle of the
-*drawing* rather than the middle of the file positions, because perspective
-moves those apart. The canvas is now sized to its container; before it was
-always the size of the browser window, 44% wider than the panel it had to fit
-inside. Verified on the built client with real Chromium, measuring where the
-graph's pixels actually land: across flask (96 files), zod (250) and a
-20-file repository, at 1440×900 and 390×844, the drawing now sits within 6% of
-the panel's centre in all six cases — the worst before was 59% of the panel's
-height away from it. Before and after, at both sizes, is in
+**The dependency graph panel is framed, not cropped, and its hub is dead
+centre.** It was drawn into a canvas the size of the browser window inside a
+panel a third of that width, so the picture was a top-left crop, and the camera
+was never fitted to the layout at all — the effect that was supposed to do it
+ran before the graph object existed and never ran again. The canvas is now
+sized to its container; before it was always the size of the browser window,
+44% wider than the panel it had to fit inside.
+
+The camera is aimed at the **hub** — the file the most other files connect to
+(`tests/.../inner2/flask.py` in flask, connected to 42 of 83 others;
+`packages/bench/metabench.ts` in zod, 47 of 225) — because a point on the view
+axis always renders at the exact centre of the projection, so the hub's position
+is chosen rather than solved for and cannot drift afterwards. Measured on the
+built client in real Chromium, the hub's projected position equals the canvas
+centre with 0.00 px error across all six viewports, and a marker sphere drawn
+at the hub's own coordinates lands within 0.50 px of it — the quantisation floor
+of a pixel grid. The remaining unknown, how far back the camera has to stand for
+the furthest file to stay inside the panel, is solved against what the renderer
+actually projects: after the layout stops, again whenever the panel is resized or
+comes back from being collapsed, and on "Reset view". The trade is deliberate —
+the drawing is no longer centred on its own extent, so a hub sitting off to one
+side of the cloud leaves the picture lopsided around it.
+
+Pixel-checked the same way: across flask (84 files), zod (226) and a real
+20-file analysis of `pallets/itsdangerous`, at 1440×900 and 390×844, the canvas
+fits inside its panel, nothing is drawn past the canvas, and the drawing spans at
+least 40% of the panel's shorter side in all six cases — the worst before was
+59% of the panel's height off its centre. Before and after, at both sizes, is in
 [`docs/screenshots/`](docs/screenshots):
 
 | | before | after |
