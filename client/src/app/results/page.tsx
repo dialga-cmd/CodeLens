@@ -349,6 +349,7 @@ function GraphPanel({ results }: { results: AnalysisResult }) {
       <div className="h-[420px] bg-[#0a0a0a] md:h-[520px]">
         <GraphView
           data={results.graph}
+          analysedFiles={results.stats?.total_files}
           onNodeClick={(node: any) =>
             setSelected({
               path: String(node?.path || node?.id || ""),
