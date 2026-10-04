@@ -656,17 +656,24 @@ class LLMClient:
 
         async def _stream() -> AsyncIterator[str]:
             async with self.async_semaphore:
-                async with self.async_client.chat.completions.stream(
+                # create(stream=True), not .stream(): the helper yields ChunkEvent
+                # wrappers that carry the chunk on .chunk, so chunk.choices raises
+                # AttributeError on openai >= 3 and every streamed answer fails.
+                stream = await self.async_client.chat.completions.create(
                     model=model or self.model_for(role),
                     messages=list(messages),
                     temperature=temperature,
-                    max_tokens=max_output_tokens or self.max_output_tokens,
-                ) as stream:
+                    max_tokens=max(max_output_tokens or 0, self.max_output_tokens),
+                    stream=True,
+                )
+                try:
                     async for chunk in stream:
-                        delta = chunk.choices[0].delta if chunk.choices else None
+                        delta = chunk.choices[0].delta if getattr(chunk, "choices", None) else None
                         content = getattr(delta, "content", None) if delta is not None else None
                         if content:
                             yield content
+                finally:
+                    await stream.close()
 
         last_error: BaseException | None = None
         for attempt in range(self.max_retries + 1):

@@ -13,6 +13,7 @@ Python literals, trailing commas and comments.
 
 from __future__ import annotations
 
+import asyncio
 import json
 
 import pytest
@@ -317,3 +318,112 @@ def test_redaction_cannot_be_defeated_by_url_encoding_the_key(monkeypatch):
 
     redacted = LLMClient()._redact(f"failed: /v1/chat?key={quote('nebius-secret-value-1234')}")
     assert "nebius-secret-value-1234" not in redacted
+
+
+class _Choice:
+    """A streamed choice carries a delta, unlike a completed one which carries a message."""
+
+    def __init__(self, content=None):
+        self.delta = type("Delta", (), {"content": content})()
+
+
+class _Chunk:
+    """A ChatCompletionChunk. The SDK's .stream() helper yields ChunkEvent, which has no .choices."""
+
+    def __init__(self, content=None):
+        self.choices = [_Choice(content)] if content is not None else []
+
+
+class _FakeStream:
+    """Stands in for the SDK's AsyncStream: yields chunks and must be closed."""
+
+    def __init__(self, chunks, fail=False):
+        self._chunks = list(chunks)
+        self.closed = False
+        self._fail = fail
+
+    def __aiter__(self):
+        async def generate():
+            for chunk in self._chunks:
+                yield chunk
+            if self._fail:
+                raise RuntimeError("connection reset by peer")
+
+        return generate()
+
+    async def close(self):
+        self.closed = True
+
+
+class _FakeCompletions:
+    def __init__(self, stream):
+        self._stream = stream
+        self.kwargs = None
+
+    async def create(self, **kwargs):
+        self.kwargs = kwargs
+        return self._stream
+
+
+def _streaming_client(stream) -> tuple[LLMClient, _FakeCompletions]:
+    completions = _FakeCompletions(stream)
+    client = LLMClient()
+    client._async_client = type("FakeAsync", (), {"chat": type("Chat", (), {"completions": completions})()})()
+    return client, completions
+
+
+def _drain(agen) -> list[str]:
+    async def collect():
+        return [piece async for piece in agen]
+
+    return asyncio.run(collect())
+
+
+def test_streaming_concatenates_deltas_and_closes_the_stream():
+    client, completions = _streaming_client(_FakeStream([_Chunk("Hello"), _Chunk(None), _Chunk(" world")]))
+
+    pieces = _drain(client.chat_stream([{"role": "user", "content": "hi"}]))
+
+    assert "".join(pieces) == "Hello world"
+    assert completions.kwargs["stream"] is True
+
+
+def test_streaming_never_goes_below_the_configured_token_budget():
+    client, completions = _streaming_client(_FakeStream([_Chunk("hi")]))
+
+    _drain(client.chat_stream([{"role": "user", "content": "hi"}], max_output_tokens=100))
+
+    assert completions.kwargs["max_tokens"] == client.max_output_tokens
+
+
+def test_a_chunk_without_choices_is_skipped_not_crashed():
+    """Role-only deltas and keepalive chunks arrive with an empty choices list."""
+    empty = type("Empty", (), {"choices": []})()
+    client, _ = _streaming_client(_FakeStream([empty, _Chunk("ok")]))
+
+    assert _drain(client.chat_stream([{"role": "user", "content": "hi"}])) == ["ok"]
+
+
+def test_a_stream_that_raises_surfaces_as_an_llm_error():
+    from app.core.llm import LLMError
+
+    client, _ = _streaming_client(_FakeStream([], fail=True))
+
+    with pytest.raises(LLMError):
+        _drain(client.chat_stream([{"role": "user", "content": "hi"}]))
+
+
+def test_the_stream_helper_is_not_used():
+    """openai >= 3 makes .stream() yield ChunkEvent, which carries the chunk on .chunk.
+
+    A source-level guard, because the failure only shows up on a real streamed
+    request: every chunk raises AttributeError and the endpoint emits an error
+    event instead of an answer. Found by asking the live API.
+    """
+    import inspect
+
+    import app.core.llm as llm_module
+
+    source = inspect.getsource(llm_module.LLMClient.chat_stream)
+    assert "completions.stream(" not in source, "the .stream() helper yields ChunkEvent, not a chunk"
+    assert "create(" in source and "stream=True" in source
