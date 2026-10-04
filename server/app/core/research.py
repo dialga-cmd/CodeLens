@@ -448,10 +448,19 @@ class ResearchEngine:
         if not self.available or budget <= 0:
             return {}
 
+        # A dismissed finding must never be grounded. Citations do not make a
+        # dismissed finding true, they only make the dismissal harder to read:
+        # the triage note says "this line is a docstring" while the panel below
+        # it quotes OWASP on password hashing. It also wastes the whole budget,
+        # because triage runs before grounding and dismisses the easy majority.
         targets = [
             finding
             for finding in findings
-            if str(finding.get("rule", "")) in GROUNDING_QUERIES or str(finding.get("triage", "")) in {"confirmed", "escalated"}
+            if str(finding.get("triage", "")) != "dismissed"
+            and (
+                str(finding.get("rule", "")) in GROUNDING_QUERIES
+                or str(finding.get("triage", "")) in {"confirmed", "escalated"}
+            )
         ][:budget]
         if not targets:
             return {}
