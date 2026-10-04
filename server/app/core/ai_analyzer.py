@@ -178,7 +178,7 @@ class AIAnalyzer:
         data, _ = self._ask_json(
             "triage",
             f"{template}\n\n{instruction}\n\nRepository: {repo_info or 'unknown'}\n\nCandidates:\n{evidence}",
-            max_output_tokens=3000,
+            max_output_tokens=12000,
         )
         return data if isinstance(data, dict) else {}
 
@@ -312,7 +312,7 @@ class AIAnalyzer:
             data, _ = self._ask_json(
                 "architecture",
                 f"{load_prompt('architecture_prompt.txt')}\n\nMeasurements:\n{json.dumps(facts, indent=1)[:20000]}",
-                max_output_tokens=3000,
+                max_output_tokens=8000,
             )
         except LLMError as error:
             self._report(f"Architecture summary unavailable: {error}")
@@ -448,7 +448,7 @@ class AIAnalyzer:
         data, _ = self._ask_json(
             "fixes",
             f"{load_prompt('fix_prompt.txt')}\n\nFindings:\n{json.dumps(findings, indent=1)}",
-            max_output_tokens=2500,
+            max_output_tokens=6000,
         )
         return data if isinstance(data, dict) else {}
 
@@ -501,6 +501,10 @@ class AIAnalyzer:
         )
         usage = result.usage_dict()
         usage["step"] = step
+        # finish_reason="length" means the reasoning model spent the whole budget
+        # thinking and never reached its JSON. Recording it keeps a truncated
+        # answer from being read as a considered one.
+        usage["finish_reason"] = result.finish_reason
         self.usage_log.append(usage)
         return data, result
 

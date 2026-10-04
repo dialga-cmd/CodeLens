@@ -230,6 +230,48 @@ def test_out_of_range_configuration_is_clamped_rather_than_trusted(monkeypatch):
     assert client.json_repair_attempts >= 1
 
 
+def _kwargs(client: LLMClient, max_output_tokens=None) -> dict:
+    return client._request_kwargs(ROLE_HEAVY, None, [{"role": "user", "content": "x"}], None, max_output_tokens, None, None, None, None)
+
+
+def test_the_default_budget_leaves_room_for_reasoning_before_the_answer():
+    """A Nemotron answer arrives after its reasoning, out of the same max_tokens.
+
+    Measured on Nemotron-3-Ultra-550b-a55b with the fix-advisor prompt: 1772
+    reasoning tokens then 407 tokens of JSON. A budget sized for the answer
+    returns finish_reason="length" and no JSON at all.
+    """
+    client = LLMClient()
+    assert client.max_output_tokens >= 4000
+
+
+def test_a_call_site_cannot_budget_less_than_the_configured_default():
+    """Lowering the cap below the default does not tighten the answer, it truncates it."""
+    client = LLMClient()
+    assert _kwargs(client, max_output_tokens=300)["max_tokens"] == client.max_output_tokens
+    assert _kwargs(client, max_output_tokens=2000)["max_tokens"] == client.max_output_tokens
+
+
+def test_a_call_site_may_raise_the_budget_above_the_default():
+    client = LLMClient()
+    assert _kwargs(client, max_output_tokens=client.max_output_tokens + 5000)["max_tokens"] > client.max_output_tokens
+
+
+def test_no_call_site_budgets_below_the_default():
+    """Every reasoning-heavy call site in the package, checked in one place."""
+    import pathlib
+    import re
+
+    root = pathlib.Path(__file__).resolve().parents[1] / "app" / "core"
+    offenders = []
+    for path in sorted(root.glob("*.py")):
+        for lineno, line in enumerate(path.read_text().splitlines(), start=1):
+            match = re.search(r"max_output_tokens=(\d+)", line)
+            if match and int(match.group(1)) < 4000:
+                offenders.append(f"{path.name}:{lineno} -> {match.group(1)}")
+    assert offenders == [], offenders
+
+
 def test_describe_never_exposes_the_key(monkeypatch):
     monkeypatch.setenv("NEBIUS_API_KEY", "nebius-secret-value-1234")
     described = LLMClient().describe()

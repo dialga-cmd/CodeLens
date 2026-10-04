@@ -129,7 +129,9 @@ class ChatService:
                 self.tools.execute,
                 role=CHAT_ROLE,
                 temperature=0.0,
-                max_output_tokens=300,
+                # Budget left to the client's configured default on purpose: this
+                # round returns tool calls, not prose, but the model still spends
+                # reasoning tokens out of the same allowance first.
                 max_rounds=MAX_PLANNING_ROUNDS,
             )
         except LLMError as error:

@@ -273,7 +273,14 @@ class LLMClient:
         self.timeout: float = _env_float("NEBIUS_REQUEST_TIMEOUT", 120.0)
         self.connect_timeout: float = _env_float("NEBIUS_CONNECT_TIMEOUT", 15.0)
         self.max_retries: int = max(0, _env_int("NEBIUS_MAX_RETRIES", 3))
-        self.max_output_tokens: int = max(256, _env_int("NEBIUS_MAX_OUTPUT_TOKENS", 4000))
+        # max_tokens is a *total* budget on Token Factory, not an answer budget.
+        # The Nemotron models reason before they answer and spend those tokens
+        # out of the same allowance, so a number sized for "the answer" truncates
+        # the reasoning and returns no answer at all. Measured on
+        # Nemotron-3-Ultra-550b-a55b: the fix-advisor prompt spent 1772 tokens
+        # reasoning and then emitted its JSON in 407, so a 2000-token cap
+        # produced an empty response with finish_reason="length".
+        self.max_output_tokens: int = max(256, _env_int("NEBIUS_MAX_OUTPUT_TOKENS", 8000))
         self.max_concurrency: int = max(1, _env_int("NEBIUS_MAX_CONCURRENCY", 4))
         self.json_repair_attempts: int = max(1, _env_int("NEBIUS_JSON_REPAIR_ATTEMPTS", 2))
         self.use_json_mode: bool = _env_bool("NEBIUS_USE_JSON_MODE", True)
@@ -415,7 +422,10 @@ class LLMClient:
         }
         if temperature is not None:
             kwargs["temperature"] = temperature
-        limit = max_output_tokens or self.max_output_tokens
+        # A call site may raise the budget above the configured default but never
+        # lower it below: the default already has to cover reasoning, so a
+        # smaller per-call number is not a tighter answer, it is a truncated one.
+        limit = max(max_output_tokens or 0, self.max_output_tokens)
         if limit:
             kwargs["max_tokens"] = limit
         if response_format:
