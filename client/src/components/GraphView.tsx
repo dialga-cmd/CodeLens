@@ -47,7 +47,7 @@ const CHARGE_STRENGTH = -260;
 const ISOLATE_CHARGE_STRENGTH = -35;
 const LINK_DISTANCE = 70;
 
-/** Share of the panel's shorter side the graph should span once it has been fitted. */
+/** How far out from the middle of the canvas the furthest file is allowed to sit. */
 const FIT_FILL = 0.82;
 /** Where the camera looks from before anybody has orbited: a little above level. */
 const DEFAULT_DIRECTION = new THREE.Vector3(0, 0.34, 1).normalize();
@@ -55,9 +55,7 @@ const DEFAULT_DIRECTION = new THREE.Vector3(0, 0.34, 1).normalize();
 const FIT_TAIL_FREE_UNDER = 48;
 /** Past this share of files, one of them stops deciding how far the camera sits. */
 const FIT_TAIL = 0.98;
-/** Framing stops once the drawing is this close to the middle, in pixels. */
-const FIT_CENTRE_TOLERANCE = 2;
-/** ...and this close to the wanted size, as a fraction of it. */
+/** Framing stops once the picture is this close to the size that was asked for. */
 const FIT_SCALE_TOLERANCE = 0.02;
 /** Give up after this many corrections; the last one still stands. */
 const FIT_ATTEMPTS = 14;
@@ -391,16 +389,20 @@ export default function GraphView({
 }
 
 /**
- * Point the camera at the graph and frame it inside the panel.
+ * Point the camera at the graph's hub and frame the rest of it inside the panel.
  *
- * The library's own `zoomToFit` aims at the world origin, which is only where the
- * *mean* file ends up - one file with no resolved imports is enough to shift that
- * mean and leave the cluster off to one side. Aiming at the median instead is
- * better but still not enough, and this was the second half of the bug: a camera
- * aimed at the middle of the files does not put the middle of the *drawing* in the
- * middle of the panel, because perspective spreads whatever is nearest the camera.
- * So both the point being looked at and the distance are solved against the box
- * the renderer actually projects, which is the only place the truth lives.
+ * The anchor is the hub - the file the most other files connect to - and the camera
+ * is aimed straight at it. That is what puts it on the exact middle of the canvas:
+ * the aim becomes the controls' target, and a point on the view axis always lands
+ * at the centre of the projection. So the hub's position is not solved for at all,
+ * it is chosen, and it cannot drift off centre afterwards.
+ *
+ * That leaves one thing to solve, the distance: how far back the camera has to
+ * stand for the furthest file to stay inside the panel. It is measured from the
+ * middle of the canvas rather than from the bounding box, so what is kept at zero
+ * is the hub's own offset. A hub that sits off to one side of the cloud therefore
+ * makes the picture lopsided around it, which is the trade being made on purpose -
+ * a radial graph anchored on its hub, not a photograph of the cloud's extent.
  *
  * `resetDirection` snaps back to the default angle; otherwise the reader's orbit
  * is kept, so refitting after a resize does not undo it.
@@ -422,18 +424,23 @@ function frameGraph(
   const camera = typeof control.camera === "function" ? control.camera() : null;
   if (!camera) return false;
 
-  // Starting point: the middle of the files, which is where the search begins.
-  const median = (read: (node: any) => number) => {
-    const values = placed.map(read).sort((a, b) => a - b);
-    return values[Math.floor(values.length / 2)];
-  };
-  const aim = new THREE.Vector3(
-    median((node) => node.x),
-    median((node) => node.y),
-    median((node) => node.z)
-  );
-  // The search starts at the middle of the files and should not wander off them.
-  const home = aim.clone();
+  const hub = pickHub(placed);
+  let aim: THREE.Vector3;
+  if (hub) {
+    aim = new THREE.Vector3(hub.x, hub.y, hub.z);
+  } else {
+    // Nothing is connected to anything, so there is no hub and the middle of the
+    // files is as good an anchor as any.
+    const median = (read: (node: any) => number) => {
+      const values = placed.map(read).sort((a, b) => a - b);
+      return values[Math.floor(values.length / 2)];
+    };
+    aim = new THREE.Vector3(
+      median((node) => node.x),
+      median((node) => node.y),
+      median((node) => node.z)
+    );
+  }
 
   // Past a certain size a handful of files at the far end of a large graph must
   // not be able to shrink everything else into a dot, so they are left out of the
@@ -462,11 +469,8 @@ function frameGraph(
   direction.normalize();
   if (resetDirection) direction.copy(DEFAULT_DIRECTION);
 
-  const target = Math.max(1, FIT_FILL * Math.min(size.width, size.height));
-  // World units per screen pixel at the point being looked at, from the camera the
-  // renderer is really using, so an off-centre drawing can be walked back over.
-  const perPixel = () =>
-    (2 * distance * Math.tan(((camera.fov ?? 50) * Math.PI) / 360)) / size.height;
+  const halfWidth = size.width / 2;
+  const halfHeight = size.height / 2;
 
   const place = () => {
     const position = aim.clone().addScaledVector(direction, distance);
@@ -481,49 +485,57 @@ function frameGraph(
   for (let attempt = 0; attempt < FIT_ATTEMPTS; attempt += 1) {
     place();
 
-    let x0 = Infinity;
-    let x1 = -Infinity;
-    let y0 = Infinity;
-    let y1 = -Infinity;
+    let spreadX = 0;
+    let spreadY = 0;
     for (const node of placed) {
       const point = control.graph2ScreenCoords(node.x, node.y, node.z);
       if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y)) continue;
-      x0 = Math.min(x0, point.x);
-      x1 = Math.max(x1, point.x);
-      y0 = Math.min(y0, point.y);
-      y1 = Math.max(y1, point.y);
+      spreadX = Math.max(spreadX, Math.abs(point.x - halfWidth) / halfWidth);
+      spreadY = Math.max(spreadY, Math.abs(point.y - halfHeight) / halfHeight);
     }
-    const extent = Math.max(x1 - x0, y1 - y0);
-    if (!Number.isFinite(extent) || extent <= 0) return false;
+    const spread = Math.max(spreadX, spreadY);
+    if (!Number.isFinite(spread) || spread <= 0) return false;
+    if (Math.abs(spread - FIT_FILL) <= FIT_FILL * FIT_SCALE_TOLERANCE) break;
 
-    const offX = (x0 + x1) / 2 - size.width / 2;
-    const offY = (y0 + y1) / 2 - size.height / 2;
-    if (
-      Math.abs(offX) <= FIT_CENTRE_TOLERANCE &&
-      Math.abs(offY) <= FIT_CENTRE_TOLERANCE &&
-      Math.abs(extent - target) <= target * FIT_SCALE_TOLERANCE
-    ) {
-      break;
-    }
-
-    // Slide the whole rig to walk the drawing back over the middle, and away from
-    // the graph to change how much of the panel it fills. Screen +y runs down the
-    // page while world +y runs up it, so the vertical correction is the other way
-    // round from the horizontal one.
-    const unit = Math.min(perPixel(), radius);
-    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
-    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
-    aim.addScaledVector(right, THREE.MathUtils.clamp(offX * unit, -radius, radius));
-    aim.addScaledVector(up, THREE.MathUtils.clamp(-offY * unit, -radius, radius));
-    distance = THREE.MathUtils.clamp(distance * (extent / target), radius, radius * 40);
-    // If the aim has wandered off the graph the corrections are fighting
-    // something, so keep the last attempt rather than chase it.
-    if (aim.distanceTo(home) > radius * 3) break;
+    // Too big for the panel means too close, so stand further back.
+    distance = THREE.MathUtils.clamp(distance * (spread / FIT_FILL), radius, radius * 40);
   }
 
   const position = aim.clone().addScaledVector(direction, distance);
   control.cameraPosition({ x: position.x, y: position.y, z: position.z }, aim, durationMs);
   return true;
+}
+
+/**
+ * The file the most other files connect to - the one a reader means when they call
+ * a dependency graph's "centre node".
+ *
+ * Degree first, because connected with the rest of the graph is what a hub means;
+ * then fan-in, because that is what the sphere is sized by, so the hub is also the
+ * node that reads as biggest; then the id, so a tie cannot pick a different answer
+ * on the next render. Null when no file is connected to anything, which is the
+ * caller's signal that there is no hub to anchor on.
+ */
+function pickHub(
+  nodes: any[]
+): { x: number; y: number; z: number } | null {
+  let best: { degree: number; fanIn: number; id: string; x: number; y: number; z: number } | null =
+    null;
+  for (const node of nodes) {
+    const fanIn = Number(node?.fanIn ?? 0);
+    const degree = fanIn + Number(node?.fanOut ?? 0);
+    if (degree <= 0) continue;
+    const id = String(node?.id ?? "");
+    if (
+      !best ||
+      degree > best.degree ||
+      (degree === best.degree && fanIn > best.fanIn) ||
+      (degree === best.degree && fanIn === best.fanIn && id < best.id)
+    ) {
+      best = { degree, fanIn, id, x: node.x, y: node.y, z: node.z };
+    }
+  }
+  return best ? { x: best.x, y: best.y, z: best.z } : null;
 }
 
 /**
