@@ -17799,7 +17799,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is benchmark code using eval on a hardcoded string to access V8 internal API %HasFastProperties for performance measurement; no user input reaches eval."
+   "triage_note": "This is benchmark code using V8's internal `%HasFastProperties` native syntax via eval for performance measurement. The comment explicitly notes it's a V8 natives syntax not valid in normal modules. It's not production code and doesn't process user input."
   },
   {
    "id": "sql_injection:packages/bench/validate-abort-sweep.ts:42",
@@ -17815,7 +17815,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The line deletes a computed property key from a JavaScript object (delete missing[`k${mid}`]); it is not SQL and no database query is constructed."
+   "triage_note": "The line `delete missing[`k${mid}`];` deletes a property from a JavaScript object using a computed key. This is not SQL code\u2014no database query is being constructed. The scanner misidentified a template literal in an object property delete as SQL interpolation."
   },
   {
    "id": "insecure_random:packages/bench/benchUtil.ts:20",
@@ -17831,7 +17831,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "randomString is a benchmark utility that generates test data for performance runs; Math.random() is not used for tokens, keys, or nonces in production."
+   "triage_note": "The `randomString` function in a benchmark utility generates random alphanumeric strings for test data generation, not for cryptographic tokens, keys, or nonces. It's used solely to create varied inputs for performance benchmarks."
   },
   {
    "id": "insecure_random:packages/bench/benchUtil.ts:26",
@@ -17847,7 +17847,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "randomPick is a benchmark helper that selects a random test fixture; it does not generate security-sensitive values."
+   "triage_note": "The `randomPick` function selects a random element from an array for benchmark test data variation. It's not used for security-sensitive randomness; it's a test helper in the benchmark suite."
   },
   {
    "id": "insecure_random:packages/bench/boolean.ts:5",
@@ -17863,7 +17863,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Boolean test data for a benchmark is produced with Math.random(); this is not production cryptographic material."
+   "triage_note": "This line generates boolean test data (`Math.random() > 0.5`) for a benchmark run. The `DATA` constant feeds a performance test, not a production code path that requires cryptographic randomness."
   },
   {
    "id": "path_traversal:packages/bench/compile-output.ts:182",
@@ -17879,7 +17879,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The function nestedClonePath clones a typed object structure; despite the name it does not build filesystem paths from user input."
+   "triage_note": "The function `nestedClonePath` clones a nested TypeScript object structure for benchmark purposes. Despite the name containing 'Path', it operates on in-memory data objects, not filesystem paths. No user-supplied path is being normalized or traversed."
   },
   {
    "id": "insecure_random:packages/bench/error-handling.ts:10",
@@ -17895,7 +17895,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test data for error-handling benchmarks uses Math.random() to vary string payloads; no security tokens are created."
+   "triage_note": "Test data generation for a benchmark: `Math.random()` creates random string values for the `b` field in a dataset used to measure error-handling performance. Not used for tokens, keys, or nonces."
   },
   {
    "id": "insecure_random:packages/bench/instanceof.ts:14",
@@ -17911,7 +17911,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Math.random() selects among test fixture variants for an instanceof benchmark; it is not used for secrets."
+   "triage_note": "The `Math.random()` call picks between different test value types (ZodFailure, object, string, Promise) for a benchmark dataset. It's purely for input variation in a performance test."
   },
   {
    "id": "insecure_random:packages/bench/number.ts:6",
@@ -17927,7 +17927,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Random numbers are generated as benchmark input for z.number().parse; this is test data, not cryptographic nonces."
+   "triage_note": "Generates random numbers for a benchmark dataset (`DATA`) that feeds `z.number().parse` performance tests. No security-sensitive context."
   },
   {
    "id": "insecure_random:packages/bench/object-setup.ts:14",
@@ -17943,7 +17943,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Object property 'number' is filled with Math.random() for a benchmark dataset; no production key material."
+   "triage_note": "Part of a frozen test object generated for benchmarking object schema parsing. The random number is a test fixture value, not a secret or token."
   },
   {
    "id": "insecure_random:packages/bench/object-setup.ts:15",
@@ -17959,7 +17959,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Object property 'string' uses a template literal with Math.random() for benchmark variety; not a secret generator."
+   "triage_note": "Random string interpolation in a test fixture object for benchmarking. The value is frozen into a constant test dataset, not used in any security context."
   },
   {
    "id": "insecure_random:packages/bench/object-setup.ts:16",
@@ -17975,7 +17975,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Object property 'boolean' uses Math.random() > 0.5 for benchmark test cases; not used for security decisions."
+   "triage_note": "Random boolean in a test fixture object for benchmarking. The dataset is exported as a constant and used only for performance measurement."
   },
   {
    "id": "insecure_random:packages/bench/object.ts:26",
@@ -17991,7 +17991,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is benchmark test data generation in packages/bench/object.ts, creating random values for performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
+   "triage_note": "This is benchmark test data generation in packages/bench/object.ts:24-30, creating 1000 frozen objects with random values for performance testing. Math.random() is used for synthetic test data, not for security tokens, keys, or nonces."
   },
   {
    "id": "insecure_random:packages/bench/object.ts:27",
@@ -18007,7 +18007,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is benchmark test data generation in packages/bench/object.ts, creating random string values for performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
+   "triage_note": "Same benchmark context as line 26; the string field uses template literal with Math.random() to generate varied test strings for parsing benchmarks, not for any security-sensitive purpose."
   },
   {
    "id": "insecure_random:packages/bench/object.ts:28",
@@ -18023,7 +18023,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is benchmark test data generation in packages/bench/object.ts, creating random boolean values for performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
+   "triage_note": "Boolean field in benchmark test data uses Math.random() > 0.5 to produce random true/false values for performance measurement. No security boundary is crossed."
   },
   {
    "id": "insecure_random:packages/bench/safe.ts:21",
@@ -18039,7 +18039,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is benchmark test data generation in packages/bench/safe.ts, returning random values for performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
+   "triage_note": "The data() function in packages/bench/safe.ts:18-22 returns either a random string or a random number for benchmark payloads. This is test fixture generation, not token or nonce creation."
   },
   {
    "id": "insecure_random:packages/bench/safe.ts:46",
@@ -18055,7 +18055,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This line is in a commented-out code block (lines 45-50 are all prefixed with //). It is dead code and never executes."
+   "triage_note": "Line 46 is a commented-out line (//   // const value = Math.random();) inside a disabled benchmark case. Dead code cannot pose a risk."
   },
   {
    "id": "insecure_random:packages/bench/safeparse.ts:12",
@@ -18071,7 +18071,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This line is commented out (prefixed with //). It is dead code and never executes."
+   "triage_note": "Line 12 is a commented-out field (// number: Math.random(),) in a benchmark data factory. The entire object is commented out and not executed."
   },
   {
    "id": "insecure_random:packages/bench/safeparse.ts:13",
@@ -18087,7 +18087,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This line is commented out (prefixed with //). It is dead code and never executes."
+   "triage_note": "Line 13 is a commented-out field (// string: `${Math.random()}`,) in the same disabled benchmark data block. No runtime execution."
   },
   {
    "id": "insecure_random:packages/bench/safeparse.ts:14",
@@ -18103,7 +18103,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This line is commented out (prefixed with //). It is dead code and never executes."
+   "triage_note": "Line 14 is a commented-out field (// boolean: Math.random() > 0.5,) in the same disabled benchmark data block. No runtime execution."
   },
   {
    "id": "insecure_random:packages/bench/string.ts:6",
@@ -18119,7 +18119,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is benchmark test data generation in packages/bench/string.ts, creating random strings for string parsing performance testing. The values are not used as tokens, keys, nonces, or any security-sensitive material."
+   "triage_note": "packages/bench/string.ts:6 generates 10,000 random strings via makeData() for a string parsing benchmark. The randomness seeds test variety, not cryptographic material."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:11",
@@ -18135,7 +18135,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The generateRedirects function in packages/docs/next.config.mjs is a build-time utility that generates static Next.js redirect configuration from an idmap (a static mapping of page IDs). The 'origin' parameter defaults to '/' and is not user-controlled at runtime. This is not an open redirect vulnerability."
+   "triage_note": "generateRedirects is a build-time utility in the Next.js docs config that constructs static redirect maps from an idmap object. The 'page' and 'origin' parameters are internal route identifiers, not user-supplied redirect targets at runtime."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:12",
@@ -18151,7 +18151,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This line is a JSDoc type annotation for the redirects array. The generateRedirects function is a build-time utility generating static redirect configuration, not handling user input at runtime."
+   "triage_note": "Line 12 is a JSDoc type annotation (/** @type import(\"next\").Redirect */) declaring the redirects array type. It does not perform any redirection or accept input."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:13",
@@ -18167,7 +18167,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This line initializes an empty redirects array. The generateRedirects function is a build-time utility generating static Next.js redirect configuration from a static idmap, not processing user-controlled redirect targets."
+   "triage_note": "Line 13 initializes an empty array (const redirects = []) to collect redirect objects during static site generation. No user input flows here."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:21",
@@ -18183,7 +18183,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The redirect destination is a relative path constructed from `page` (validated to start with '/') and a query parameter `value`; `origin` is used as the source pattern, not the target. This is an internal same-origin redirect, not an open redirect to an arbitrary external URL."
+   "triage_note": "This is a Next.js build-time configuration file (next.config.mjs) that statically defines redirect rules. The 'origin' variable is a configuration constant, not runtime user input. No user-controlled data reaches the redirect target at request time."
   },
   {
    "id": "open_redirect:packages/docs/next.config.mjs:34",
@@ -18199,7 +18199,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Same redirect logic as the previous finding; the returned redirects array contains only internal relative destinations built from validated inputs."
+   "triage_note": "Same file as above; line 34 merely returns the statically constructed redirects array. There is no runtime user influence on redirect destinations."
   },
   {
    "id": "insecure_random:packages/treeshake/default-locale.test.ts:62",
@@ -18215,7 +18215,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is test code generating a temporary filename to avoid collisions; Math.random() is acceptable for non-security purposes like test fixtures."
+   "triage_note": "Test file (.test.ts) using Math.random() only to generate a unique temporary filename for a test build artifact. Not used for tokens, keys, nonces, or any security-sensitive purpose."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:93",
@@ -18231,7 +18231,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is a code-generation utility for creating test schemas; Math.random() selects random elements during generation, not for cryptographic tokens, keys, or nonces."
+   "triage_note": "Test-data generation code that randomly selects schema references for fuzzing. The output is test fixtures, not production secrets or authentication material."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:121",
@@ -18247,7 +18247,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Same code-generation context; Math.random() filters keys randomly for schema variety in generated output, not for security-sensitive material."
+   "triage_note": "Test-data generation code that randomly omits keys when creating test schemas. No security-sensitive values are derived from this randomness."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:134",
@@ -18263,7 +18263,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Same code-generation context; Math.random() picks keys for `.pick()` calls in generated schemas, not for security purposes."
+   "triage_note": "Test-data generation code that randomly picks keys for test schema variants. Used only for test fixture diversity."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:252",
@@ -18279,7 +18279,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The Math.random() call appears only in a commented-out code fragment; the active code uses a deterministic slice of the first three fields."
+   "triage_note": "Commented-out random filter in test generation code; the active line uses a deterministic slice. Even if enabled, it would only affect test fixture shape."
   },
   {
    "id": "insecure_random:packages/tsc/generate.ts:320",
@@ -18295,7 +18295,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The randomStr function generates random variable names for code-generation output (e.g., `export const ${varname} = ...`), not cryptographic material."
+   "triage_note": "Helper function randomStr() used exclusively by the test generator to create random variable names in test output. Not used for any cryptographic purpose."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:2",
@@ -18311,7 +18311,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "This is a test utility in a dedicated test file (`/tests/Mocker.ts`) for generating mock data; Math.random() is appropriate for non-security test fixtures."
+   "triage_note": "Test utility getRandomInt() in a file under src/v3/tests/ used to generate mock data for Zod schema tests. No production code path consumes this for tokens or secrets."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:13",
@@ -18327,7 +18327,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test mock getter for random strings; used only in test scenarios, not for tokens, keys, or nonces in production code."
+   "triage_note": "Mocker.string getter produces random strings for test mocking only. The Mocker class is explicitly test infrastructure."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:16",
@@ -18343,7 +18343,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test mock getter for random numbers; same test-only context."
+   "triage_note": "Mocker.number getter returns random numbers for test mocking only. No security-sensitive usage."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:19",
@@ -18359,7 +18359,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "Test mock getter for random bigints; same test-only context."
+   "triage_note": "Mocker.bigint getter returns random bigints for test mocking only. No security-sensitive usage."
   },
   {
    "id": "insecure_random:packages/zod/src/v3/tests/Mocker.ts:22",
@@ -18375,7 +18375,7 @@
    "confidence": "medium",
    "source": "static-analysis",
    "triage": "dismissed",
-   "triage_note": "The code is in a test fixture file (packages/zod/src/v3/tests/Mocker.ts) inside a Mocker class that generates mock data for testing. The Math.random() calls produce random bigint, boolean, and date values for test mocking, not for security-sensitive tokens, keys, or nonces."
+   "triage_note": "The code is in a test utility file (Mocker.ts) and uses Math.random() to generate mock boolean values for testing purposes, not for security-sensitive tokens, keys, or nonces."
   }
  ],
  "security_summary": {
@@ -27258,13 +27258,14 @@
     "ecosystem_label": "npm",
     "declared_in": "package.json",
     "cves": [
-     "CVE-2019-16777",
-     "CVE-2020-15095",
-     "CVE-2022-25883",
-     "CVE-2024-25354"
+     "CVE-2021-32804",
+     "CVE-2021-37701",
+     "CVE-2021-37712",
+     "CVE-2021-37713",
+     "CVE-2021-39134"
     ],
-    "severity": "CRITICAL",
-    "summary": "According to Snyk's vulnerability database, no direct vulnerabilities have been found for @arethetypeswrong/cli.",
+    "severity": "UNKNOWN",
+    "summary": "According to Snyk, no direct vulnerabilities have been found for @arethetypeswrong/cli version 0.17.4 in their vulnerability database.",
     "fixed_in": "",
     "pinned_version": "0.17.4",
     "confidence": "needs-confirmation",
@@ -27277,22 +27278,65 @@
       "score": 0.66
      },
      {
-      "title": "arethetypeswrong/cli",
+      "title": "@arethetypeswrong/cli | Snyk",
       "url": "https://security.snyk.io/package/npm/%40arethetypeswrong%2Fcli",
-      "snippet": "No direct vulnerabilities have been found for this package in Snyk's vulnerability database. This does not include vulnerabilities belonging to this package's",
-      "score": 0.652
+      "snippet": "## Package versions\n\n| version | published | direct vulnerabilities |\n --- \n| 0.18.5 | 9 Jul, 2026 |  0  C  0  H  0  M  0  L |\n| 0.18.4 | 22 Jun, 2026 |  0  C  0  H  0  M  0  L |\n| 0.18.3 | 29 May, 2026 |  0  C  0  H  0  M  0  L |\n| 0.18.2 | 9 Jun, 2025 |  0  C  0  H  0  M  0  L |\n| 0.18.1 | 9 May, 2025 |  0  C  0  H  0  M  0  L |\n| 0.18.0 | 7 May, 2025 |  0  C  0  H  0  M  0  L |\n| 0.17.4 | 21 Fe",
+      "score": 0.658
+     },
+     {
+      "title": "@arethetypeswrong/cli - npm",
+      "url": "https://npmjs.com/@arethetypeswrong/cli",
+      "snippet": "\ud83d\udc80 Resolution failed\n \u274c No types\n \ud83c\udfad Masquerading as CJS\n \ud83d\udc7a Masquerading as ESM\n \u26a0\ufe0f ESM (dynamic import only)\n \ud83d\udc1b Used fallback condition\n \ud83e\udd28 CJS default export\n \u2757\ufe0f Incorrect default export\n \u2753 Missing `export =`\n \ud83d\udead Unexpected module syntax\n \ud83e\udd74 Internal resolution error\n \ud83d\udd75\ufe0f\u200d\u2642\ufe0f Named exports\n\n## Installation\n\n```\nnpm i -g @arethetypeswrong/cli\n```\n\n## Usage\n\nThe `attw` command acts very similarly to aret",
+      "score": 0.611
      },
      {
       "title": "GitHub - arethetypeswrong/arethetypeswrong.github.io: Tool for analyzing TypeScript types of npm packages \u00b7 GitHub",
       "url": "https://github.com/arethetypeswrong/arethetypeswrong.github.io",
       "snippet": "658 Commits\n\n658 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n ---  --- |\n| .changeset | .changeset |  |  |\n| .github/workflows | .github/workflows |  |  |\n| .vscode | .vscode |  |  |\n| docs/problems | docs/problems |  |  |\n| packages | packages |  |  |\n| patches | patches |  |  |\n| .gitignore | .gitignore |  |  |\n| .prettierignore | .prettierignore |  | ",
       "score": 0.483
+     }
+    ]
+   },
+   {
+    "name": "@seriousme/openapi-schema-validator",
+    "version": "2.9.0",
+    "declared_spec": "2.9.0",
+    "ecosystem": "npm",
+    "ecosystem_label": "npm",
+    "declared_in": "package.json",
+    "cves": [
+     "CVE-2026-49451"
+    ],
+    "severity": "CRITICAL",
+    "summary": "However, an external source mentions CVE-2026-49451 related to Microsoft.OpenAPI, but this does not directly pertain to @seriousme/openapi-schema-validator.",
+    "fixed_in": "",
+    "pinned_version": "2.9.0",
+    "confidence": "needs-confirmation",
+    "query": "@seriousme/openapi-schema-validator 2.9.0 npm security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "Vulnerabilities - @seriousme/openapi-schema-validator - npm | ReversingLabs Spectra Assure Community",
+      "url": "https://secure.software/npm/packages/@seriousme/openapi-schema-validator/vulnerabilities",
+      "snippet": "tagsALL\n\nseverityALL\n\nCVSS Score\n\nCVE Identifier\n\nNo vulnerabilities found. [...] Malware\n\nNo evidence of malware inclusion\n\nOverviewissues1vulnerabilities0malware0behaviors12dependencies4contributors1versions53\n\n### Did you know...\n\n... that you can use ReversingLabs\u2019Spectra Assure platform to perform regular risk assessments of packages you develop in-house?\n\nWe recommend continuous software saf",
+      "score": 0.708
      },
      {
-      "title": "Npmjs CVEs and Security Vulnerabilities - OpenCVE",
-      "url": "https://app.opencve.io/cve?vendor=npmjs",
-      "snippet": "| All versions of the package images are vulnerable to Denial of Service (DoS) due to providing unexpected input types to several different functions. This makes it possible to reach an assert macro, leading to a process crash. \\\\Note:\\\\ By providing some specific integer values (like 0) to the size function, it is possible to obtain a Segmentation fault error, leading to the process crash. |\n| CV",
-      "score": 0.43
+      "title": "@seriousme/openapi-schema-validator - npm",
+      "url": "https://www.npmjs.com/package/@seriousme/openapi-schema-validator",
+      "snippet": "### `new Validator(ajvOptions)`\n\nThe constructor returns an instance of `Validator`. By passing an ajv options\nobject it is possible to influence the behavior of the\nAJV schema validator. AJV fails to process the openApi\nschemas if you set `strict:true` therefore this set to `false` if present. This\nis not a bug but a result of the complexity of the openApi JSON schemas.\n\n### `<instance>.validate(",
+      "score": 0.621
+     },
+     {
+      "title": "CHANGELOG.md - seriousme/openapi-schema-validator",
+      "url": "https://github.com/seriousme/openapi-schema-validator/blob/master/CHANGELOG.md",
+      "snippet": "OpenApi schema validation for OpenApi versions v2, v3.0.x, v3.1.x and v3.2.x. SecurityEnterprise-grade security features",
+      "score": 0.566
+     },
+     {
+      "title": "package.json - seriousme/openapi-schema-validator",
+      "url": "https://github.com/seriousme/openapi-schema-validator/blob/master/package.json",
+      "snippet": "OpenApi schema validation for OpenApi versions v2, SecurityEnterprise-grade security features",
+      "score": 0.551
      }
     ]
    },
@@ -27306,27 +27350,20 @@
     "cves": [
      "CVE-2015-8855",
      "CVE-2019-16776",
-     "CVE-2022-25883",
      "CVE-2024-25354"
     ],
     "severity": "CRITICAL",
-    "summary": "Additionally, there are other CVEs listed such as CVE-2022-25883 and CVE-2015-8855, but these do not directly pertain to version 7.7.0.",
+    "summary": "According to the sources, there are no known security vulnerabilities in @types/semver version 7.7.0 as of today's date, 2026-10-04.",
     "fixed_in": ">= 7.8.5",
     "pinned_version": "7.7.0",
     "confidence": "needs-confirmation",
     "query": "@types/semver 7.7.0 npm security advisory CVE known vulnerabilities",
     "sources": [
      {
-      "title": "types/semver, NodeJS open source component",
+      "title": "Componentpedia: @types/semver, NodeJS open source component | Meterian Boost Open Source Security Resource",
       "url": "https://www.meterian.io/components/nodejs/@types%7Csemver",
-      "snippet": "This version is safe to use because it has no known security vulnerabilities at this time.",
-      "score": 0.674
-     },
-     {
-      "title": "@types/semver - npm Package Security Analysis - Socket",
-      "url": "https://socket.dev/npm/package/@types/semver",
-      "snippet": "analyze @types/semver and its dependencies to secure y... 7.7.0 (ts5.0,ts5.1) Detect and block malicious and high-risk dependencies. It is more lightweight than",
-      "score": 0.636
+      "snippet": "|  |  |  |  |  |  |\n ---  ---  --- |\n| 7.8.0 | 0 | 0 | 0 | 0 | 0 |\n| 7.7.1 | 0 | 0 | 0 | 0 | 0 |\n| 7.7.0 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.8 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.7 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.6 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.5 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.4 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.3 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.2 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.1 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.0 | 0 | 0 | 0 | 0 | 0 |\n| 7",
+      "score": 0.648
      },
      {
       "title": "Npmjs CVEs and Security Vulnerabilities - OpenCVE",
@@ -27339,6 +27376,58 @@
       "url": "https://www.versioneye.com/NodeJS/semver/2.0.6?page=3",
       "snippet": "Secure versions: [5.7.2, 6.3.1, 7.5.2, 7.5.3, 7.5.4, 7.6.0, 7.6.1, 7.6.2, 7.6.3, 7.7.0, 7.7.1, 7.7.2, 7.7.3, 7.7.4, 7.8.0, 7.8.1, 7.8.2, 7.8.3, 7.8.4, 7.8.5]\n\nRecommendation: Update to version 7.8.5.\n\nRegular Expression Denial of Service in semver\n\nPublished date: 2017-10-24T18:33:36Z\n\nCVE: CVE-2015-8855\n\nLinks:\n\n \n \n \n \n \n \n \n \n \n \n\nVersions 4.3.1 and earlier of `semver` are affected by a regular",
       "score": 0.603
+     },
+     {
+      "title": "semver | Snyk",
+      "url": "https://security.snyk.io/package/npm/semver",
+      "snippet": "Based on project statistics from the GitHub repository for the npm package semver, we found that it has been starred 5,451 times.\n\nDownloads are calculated as moving averages for a period of the last 12 months, excluding weekends and known missing data points.\n\n# Community\n\nThis project has seen only 10 or less contributors.\n\n# License\n\n## Direct Vulnerabilities\n\nKnown vulnerabilities in the semve",
+      "score": 0.588
+     }
+    ]
+   },
+   {
+    "name": "@web-std/file",
+    "version": "3.0.3",
+    "declared_spec": "^3.0.3",
+    "ecosystem": "npm",
+    "ecosystem_label": "npm",
+    "declared_in": "package.json",
+    "cves": [
+     "CVE-2019-16777",
+     "CVE-2020-15095",
+     "CVE-2021-39134",
+     "CVE-2021-39135"
+    ],
+    "severity": "CRITICAL",
+    "summary": "Additionally, OpenCVE lists several CVEs related to npm vulnerabilities, including CVE-2020-15095 and CVE-2019-16777, but does not mention @web-std/file specifically.",
+    "fixed_in": "",
+    "pinned_version": "3.0.3",
+    "confidence": "needs-confirmation",
+    "query": "@web-std/file 3.0.3 npm security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "The npm Threat Landscape: Attack Surface and Mitigations (Updated July 15)",
+      "url": "https://unit42.paloaltonetworks.com/monitoring-npm-supply-chain-attacks",
+      "snippet": "In contrast to the previous Miasma payload, this version\u2019s architecture has changed. When a developer runs npm install on a compromised package, a backdoored source file executes, such as index.js, validator.js or utils.js.\n\nTo evade static code-integrity audits, the file exports a legitimate-looking schemas object with version-keyed JSON references. However, upon import, its main() function trigg",
+      "score": 0.478
+     },
+     {
+      "title": "Auditing package dependencies for security vulnerabilities | npm Docs",
+      "url": "https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities",
+      "snippet": "## No security vulnerabilities found\n\nIf no security vulnerabilities are found, this means that packages with known vulnerabilities were not found in your package dependency tree. Since the advisory database can be updated at any time, we recommend regularly running `npm audit` manually, or adding `npm audit` to your continuous integration process.\n\nScreenshot showing audit report with no vulnerab",
+      "score": 0.438
+     },
+     {
+      "title": "Npmjs CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?vendor=npmjs",
+      "snippet": "| CVE-2020-15095 | 4 Fedoraproject, Npmjs, Opensuse and 1 more | 6 Fedora, Npm, Leap and 3 more | 2024-11-21 | 4.4 Medium |\n| Versions of the npm CLI prior to 6.14.6 are vulnerable to an information exposure vulnerability through log files. The CLI supports URLs like \"://[[:]@][:][:][/]\". The password value is not redacted and is printed to stdout and also to any generated log files. |\n| CVE-2019-",
+      "score": 0.431
+     },
+     {
+      "title": "New npm Supply Chain Attack Identified | eSentire",
+      "url": "https://www.esentire.com/security-advisories/new-npm-supply-chain-attack-identified",
+      "snippet": "| @art-ws/package-base | 1.0.5, 1.0.6 |\n| @art-ws/prettier | 1.0.5, 1.0.6 |\n| @art-ws/slf | 2.0.15, 2.0.22 |\n| @art-ws/ssl-info | 1.0.9, 1.0.10 |\n| @art-ws/web-app | 1.0.3, 1.0.4 |\n| @crowdstrike/commitlint | 8.1.1, 8.1.2 |\n| @crowdstrike/falcon-shoelace | 0.4.1, 0.4.2 |\n| @crowdstrike/foundry-js | 0.19.1, 0.19.2 |\n| @crowdstrike/glide-core | 0.34.2, 0.34.3 |\n| @crowdstrike/logscale-dashboard | 1.",
+      "score": 0.417
      }
     ]
    },
@@ -27350,15 +27439,11 @@
     "ecosystem_label": "npm",
     "declared_in": "package.json",
     "cves": [
-     "CVE-2020-7754",
-     "CVE-2021-23362",
-     "CVE-2021-39134",
-     "CVE-2021-39135",
      "CVE-2026-45321"
     ],
     "severity": "CRITICAL",
-    "summary": "The sources indicate that CVE-2026-45321 is a critical security vulnerability in TanStack's arktype-adapter that allowed attackers to execute code from fork pull requests, poison GitHub Actions cache, and extract OIDC tokens to publish malicious npm packages under the TanStack organization.",
-    "fixed_in": ">= 1.166.16",
+    "summary": "However, there is a detailed security advisory for CVE-2026-45321 related to Tanstack arktype-adapter, describing a significant security flaw involving authentication bypass, cache poisoning, and token extraction.",
+    "fixed_in": "",
     "pinned_version": "2.1.19",
     "confidence": "needs-confirmation",
     "query": "arktype 2.1.19 npm security advisory CVE known vulnerabilities",
@@ -27367,7 +27452,7 @@
       "title": "CVE-2026-45321: Tanstack arktype-adapter Auth Bypass Flaw",
       "url": "https://www.sentinelone.com/vulnerability-database/cve-2026-45321",
       "snippet": "First, a pull\\_request\\_target \"Pwn Request\" misconfiguration allowed attacker-controlled code from a fork pull request to execute in a workflow context that held access to repository secrets and elevated permissions. Second, GitHub Actions cache poisoning was used across the fork\u2194base trust boundary, letting attacker-controlled artifacts be retrieved by privileged jobs running on behalf of the ba",
-      "score": 0.606
+      "score": 0.605
      },
      {
       "title": "The npm Threat Landscape: Attack Surface and Mitigations (Updated July 15)",
@@ -27376,16 +27461,16 @@
       "score": 0.493
      },
      {
-      "title": "Npmjs CVEs and Security Vulnerabilities - OpenCVE",
-      "url": "https://app.opencve.io/cve?vendor=npmjs",
-      "snippet": "| CVE-2021-39134 | 3 Npmjs, Oracle, Siemens | 4 Arborist, Npm, Graalvm and 1 more | 2024-11-21 | 8.2 High | [...] | CVE-2021-39135 | 3 Npmjs, Oracle, Siemens | 4 Arborist, Npm, Graalvm and 1 more | 2024-11-21 | 8.2 High | [...] | CVE-2021-23362 | 3 Npmjs, Redhat, Siemens | 7 Hosted-git-info, Acm, Enterprise Linux and 4 more | 2024-11-21 | 5.3 Medium |\n| The package hosted-git-info before 3.0.8 are",
-      "score": 0.48
-     },
-     {
       "title": "Auditing package dependencies for security vulnerabilities | npm Docs",
       "url": "https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities",
       "snippet": "## No security vulnerabilities found\n\nIf no security vulnerabilities are found, this means that packages with known vulnerabilities were not found in your package dependency tree. Since the advisory database can be updated at any time, we recommend regularly running `npm audit` manually, or adding `npm audit` to your continuous integration process.\n\nScreenshot showing audit report with no vulnerab",
-      "score": 0.473
+      "score": 0.472
+     },
+     {
+      "title": "New npm Supply Chain Attack Identified | eSentire",
+      "url": "https://www.esentire.com/security-advisories/new-npm-supply-chain-attack-identified",
+      "snippet": "| @art-ws/package-base | 1.0.5, 1.0.6 |\n| @art-ws/prettier | 1.0.5, 1.0.6 |\n| @art-ws/slf | 2.0.15, 2.0.22 |\n| @art-ws/ssl-info | 1.0.9, 1.0.10 |\n| @art-ws/web-app | 1.0.3, 1.0.4 |\n| @crowdstrike/commitlint | 8.1.1, 8.1.2 |\n| @crowdstrike/falcon-shoelace | 0.4.1, 0.4.2 |\n| @crowdstrike/foundry-js | 0.19.1, 0.19.2 |\n| @crowdstrike/glide-core | 0.34.2, 0.34.3 |\n| @crowdstrike/logscale-dashboard | 1.",
+      "score": 0.407
      }
     ]
    },
@@ -27397,14 +27482,11 @@
     "ecosystem_label": "npm",
     "declared_in": "package.json",
     "cves": [
-     "CVE-2022-22475",
-     "CVE-2022-22476",
-     "CVE-2022-34165",
      "CVE-2024-34393",
      "CVE-2024-34394"
     ],
     "severity": "CRITICAL",
-    "summary": "The sources indicate that no security vulnerabilities were found in the package dependency tree as per the npm audit documentation.",
+    "summary": "The sources indicate that the npm package benchmark version 2.1.4, published on 28 Mar, 2017, has no direct vulnerabilities according to Snyk.",
     "fixed_in": "",
     "pinned_version": "2.1.4",
     "confidence": "needs-confirmation",
@@ -27417,6 +27499,12 @@
       "score": 0.645
      },
      {
+      "title": "benchmark | Snyk",
+      "url": "https://security.snyk.io/package/npm/benchmark",
+      "snippet": "## Package versions\n\n| version | published | direct vulnerabilities |\n --- \n| 2.1.4 | 28 Mar, 2017 |  0  C  0  H  0  M  0  L |\n| 2.1.3 | 24 Dec, 2016 |  0  C  0  H  0  M  0  L |\n| 2.1.2 | 31 Oct, 2016 |  0  C  0  H  0  M  0  L |\n| 2.1.1 | 20 Jul, 2016 |  0  C  0  H  0  M  0  L |\n| 2.1.0 | 28 Jan, 2016 |  0  C  0  H  0  M  0  L |\n| 2.0.0 | 4 Jan, 2016 |  0  C  0  H  0  M  0  L |\n| 1.0.0 | 16 Aug, 2",
+      "score": 0.493
+     },
+     {
       "title": "Auditing package dependencies for security vulnerabilities | npm Docs",
       "url": "https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities",
       "snippet": "## No security vulnerabilities found\n\nIf no security vulnerabilities are found, this means that packages with known vulnerabilities were not found in your package dependency tree. Since the advisory database can be updated at any time, we recommend regularly running `npm audit` manually, or adding `npm audit` to your continuous integration process.\n\nScreenshot showing audit report with no vulnerab",
@@ -27427,66 +27515,34 @@
       "url": "https://shattered.io/npm-audit-nodejs",
       "snippet": "Pitfall 5: Using npm audit as a complete security program\n\nnpm audit only covers known CVEs in published packages with registered advisories. It cannot detect zero-day vulnerabilities, business logic flaws, insecure use of a legitimate API (for example, calling `eval()` with user-controlled input from a perfectly clean package), newly published malicious packages with no advisory yet, or packages ",
       "score": 0.407
-     },
-     {
-      "title": "advisories - npm search",
-      "url": "https://www.npmjs.com/search?q=advisories",
-      "snippet": "426\n\n### @ttskp/libxmljs2-noop\n\nlibxmljs2 has critical, unresolved security issues, (CVE-2024-34393, CVE-2024-34394), but is no longer mai\n\nwistudent\n\n\u2022 1.0.0 \u2022 2 years ago \u2022 0 dependents \u2022 MITpublished version 1.0.0, 2 years ago0 dependents licensed under $MIT\n\n11,906\n\n### nsp-advisories-api\n\nClient for the NSP advisories API\n\n NSP\n advisories\n security\n\nalanshaw\n\n\u2022 2.0.2 \u2022 11 years ago \u2022 1 depen",
-      "score": 0.401
      }
     ]
    }
   ],
   "outdated": [
    {
-    "name": "@biomejs/biome",
-    "version": "1.9.4",
-    "declared_spec": "^1.9.4",
+    "name": "@types/benchmark",
+    "version": "2.1.5",
+    "declared_spec": "^2.1.5",
     "ecosystem": "npm",
     "ecosystem_label": "npm",
     "declared_in": "package.json",
-    "latest_version": "2.5.14",
-    "behind_by": "1 major release(s) behind",
+    "latest_version": "11.13.0",
+    "behind_by": "9 major release(s) behind",
     "confidence": "needs-confirmation",
-    "query": "latest stable released version of the @biomejs/biome package on npm 2026",
+    "query": "latest stable released version of the @types/benchmark package on npm 2026",
     "sources": [
      {
-      "title": "@biomejs/biome - npm",
-      "url": "https://www.npmjs.com/package/@biomejs/biome",
-      "snippet": "\u26a0\ufe0f\n\nnpm tokens that bypass 2FA are being restricted \u2014 account changes (Aug 2026) and direct publishing (Jan 2027). Learn how to prepare \u2192\n\n\u00d7\n\nskip to:contentpackage searchsign in\n\n   Pro\n   Teams\n   Pricing\n   Documentation\n\nnpm\n\n[](\n\nSearch\n\nSign UpSign In\n\n# @biomejs/biome\n\n2.5.10\u2022Public\u2022Published 6 days ago\n\n   Readme\n   Code Beta\n   0 Dependencies\n   292 Dependents\n   149 Versions\n\nImage 1: Sh",
-      "score": 0.791
+      "title": "Yarn vs npm 2026: 3.7x Faster, 85% Less Disk",
+      "url": "https://tech-insider.org/yarn-vs-npm-2026",
+      "snippet": "| Metric | npm 11 | Yarn 4 (Berry) | Yarn 1 (Classic) |\n ---  --- |\n| Latest stable version (Apr 2026) | 11.13.0 | 4.x active | 1.22.22 (frozen 2020) |\n| Weekly npm registry downloads | 13.76M | 8.66M (combined) | included in 8.66M |\n| Monthly npm registry downloads | 57.6M | 38.9M (combined) | included in 38.9M |\n| GitHub stars (official repo) | 9,706 (npm/cli) | 8,065 (yarnpkg/berry) | 41,515 (y",
+      "score": 0.666
      },
      {
-      "title": "Biome (@biomejs) / X",
-      "url": "https://x.com/biomejs",
-      "snippet": "3\n @biomejs\n\n  Biome@biomejs\n\n  Sep 10\n\n  v2.5.13 is out! Another patch with many bug fixes! Special thanks to @JakeLeventhal for the great help in improving type-inference lint rules.\n\n  \n\n  Version HistoryFrom biomejs.dev\n @biomejs\n\n  Biome@biomejs\n\n  Sep 3\n\n  Biome v2.5.12 is out with many fixes: - Improved DX for Astro files - Fixed a nasty regression in the file scanner - No more huge logs wh",
-      "score": 0.585
-     }
-    ]
-   },
-   {
-    "name": "@seriousme/openapi-schema-validator",
-    "version": "2.9.0",
-    "declared_spec": "2.9.0",
-    "ecosystem": "npm",
-    "ecosystem_label": "npm",
-    "declared_in": "package.json",
-    "latest_version": "2.9.1",
-    "behind_by": "1 patch release(s) behind",
-    "confidence": "needs-confirmation",
-    "query": "latest stable released version of the @seriousme/openapi-schema-validator package on npm 2026",
-    "sources": [
-     {
-      "title": "seriousme/openapi-schema-validator | OpenText Fortify SCA",
-      "url": "https://debricked.com/select/package/pkg:npm%2F%2540seriousme%2Fopenapi-schema-validator",
-      "snippet": "Latest version 2.9.1 Last publish August 5, 2026 MIT. A JSON schema validator for OpenAPI specifications, it currently supports: 2.0 3.0.x 3.1.x s from AWS,",
-      "score": 0.87
-     },
-     {
-      "title": "seriousme/openapi-schema-validator@2.6.0 - npm",
-      "url": "https://secure.software/npm/packages/@seriousme/openapi-schema-validator/2.6.0",
-      "snippet": "The npm package @seriousme/openapi-schema-validator was scanned for malware, software tampering, risky behaviors, exposed secrets and known",
-      "score": 0.744
+      "title": "NPM Crash Course 2026 [Important Commands] | 14",
+      "url": "https://www.youtube.com/watch?v=fqlFpNg99S0&vl=en",
+      "snippet": "[16:00] 4.17.1 etc. This type of version is the version range for 4.14.0\n[16:08] not 6.15. But you might ask what is the problem to upgrade our version to 6.15.0\n[16:16] latest version. Yes, we can do that. But when developer change version number like version 4 to version five or\n[16:24] version 6, then they might done some updates which can give you error for old code according to version 4.14.0",
+      "score": 0.446
      }
     ]
    }
@@ -27495,7 +27551,7 @@
  "dependency_research": {
   "provider": "tavily",
   "enabled": true,
-  "checked_at": "2026-10-04T15:08:08Z",
+  "checked_at": "2026-10-04T15:29:50Z",
   "vulnerable": [
    {
     "name": "@arethetypeswrong/cli",
@@ -27505,13 +27561,14 @@
     "ecosystem_label": "npm",
     "declared_in": "package.json",
     "cves": [
-     "CVE-2019-16777",
-     "CVE-2020-15095",
-     "CVE-2022-25883",
-     "CVE-2024-25354"
+     "CVE-2021-32804",
+     "CVE-2021-37701",
+     "CVE-2021-37712",
+     "CVE-2021-37713",
+     "CVE-2021-39134"
     ],
-    "severity": "CRITICAL",
-    "summary": "According to Snyk's vulnerability database, no direct vulnerabilities have been found for @arethetypeswrong/cli.",
+    "severity": "UNKNOWN",
+    "summary": "According to Snyk, no direct vulnerabilities have been found for @arethetypeswrong/cli version 0.17.4 in their vulnerability database.",
     "fixed_in": "",
     "pinned_version": "0.17.4",
     "confidence": "needs-confirmation",
@@ -27524,22 +27581,65 @@
       "score": 0.66
      },
      {
-      "title": "arethetypeswrong/cli",
+      "title": "@arethetypeswrong/cli | Snyk",
       "url": "https://security.snyk.io/package/npm/%40arethetypeswrong%2Fcli",
-      "snippet": "No direct vulnerabilities have been found for this package in Snyk's vulnerability database. This does not include vulnerabilities belonging to this package's",
-      "score": 0.652
+      "snippet": "## Package versions\n\n| version | published | direct vulnerabilities |\n --- \n| 0.18.5 | 9 Jul, 2026 |  0  C  0  H  0  M  0  L |\n| 0.18.4 | 22 Jun, 2026 |  0  C  0  H  0  M  0  L |\n| 0.18.3 | 29 May, 2026 |  0  C  0  H  0  M  0  L |\n| 0.18.2 | 9 Jun, 2025 |  0  C  0  H  0  M  0  L |\n| 0.18.1 | 9 May, 2025 |  0  C  0  H  0  M  0  L |\n| 0.18.0 | 7 May, 2025 |  0  C  0  H  0  M  0  L |\n| 0.17.4 | 21 Fe",
+      "score": 0.658
+     },
+     {
+      "title": "@arethetypeswrong/cli - npm",
+      "url": "https://npmjs.com/@arethetypeswrong/cli",
+      "snippet": "\ud83d\udc80 Resolution failed\n \u274c No types\n \ud83c\udfad Masquerading as CJS\n \ud83d\udc7a Masquerading as ESM\n \u26a0\ufe0f ESM (dynamic import only)\n \ud83d\udc1b Used fallback condition\n \ud83e\udd28 CJS default export\n \u2757\ufe0f Incorrect default export\n \u2753 Missing `export =`\n \ud83d\udead Unexpected module syntax\n \ud83e\udd74 Internal resolution error\n \ud83d\udd75\ufe0f\u200d\u2642\ufe0f Named exports\n\n## Installation\n\n```\nnpm i -g @arethetypeswrong/cli\n```\n\n## Usage\n\nThe `attw` command acts very similarly to aret",
+      "score": 0.611
      },
      {
       "title": "GitHub - arethetypeswrong/arethetypeswrong.github.io: Tool for analyzing TypeScript types of npm packages \u00b7 GitHub",
       "url": "https://github.com/arethetypeswrong/arethetypeswrong.github.io",
       "snippet": "658 Commits\n\n658 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n ---  --- |\n| .changeset | .changeset |  |  |\n| .github/workflows | .github/workflows |  |  |\n| .vscode | .vscode |  |  |\n| docs/problems | docs/problems |  |  |\n| packages | packages |  |  |\n| patches | patches |  |  |\n| .gitignore | .gitignore |  |  |\n| .prettierignore | .prettierignore |  | ",
       "score": 0.483
+     }
+    ]
+   },
+   {
+    "name": "@seriousme/openapi-schema-validator",
+    "version": "2.9.0",
+    "declared_spec": "2.9.0",
+    "ecosystem": "npm",
+    "ecosystem_label": "npm",
+    "declared_in": "package.json",
+    "cves": [
+     "CVE-2026-49451"
+    ],
+    "severity": "CRITICAL",
+    "summary": "However, an external source mentions CVE-2026-49451 related to Microsoft.OpenAPI, but this does not directly pertain to @seriousme/openapi-schema-validator.",
+    "fixed_in": "",
+    "pinned_version": "2.9.0",
+    "confidence": "needs-confirmation",
+    "query": "@seriousme/openapi-schema-validator 2.9.0 npm security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "Vulnerabilities - @seriousme/openapi-schema-validator - npm | ReversingLabs Spectra Assure Community",
+      "url": "https://secure.software/npm/packages/@seriousme/openapi-schema-validator/vulnerabilities",
+      "snippet": "tagsALL\n\nseverityALL\n\nCVSS Score\n\nCVE Identifier\n\nNo vulnerabilities found. [...] Malware\n\nNo evidence of malware inclusion\n\nOverviewissues1vulnerabilities0malware0behaviors12dependencies4contributors1versions53\n\n### Did you know...\n\n... that you can use ReversingLabs\u2019Spectra Assure platform to perform regular risk assessments of packages you develop in-house?\n\nWe recommend continuous software saf",
+      "score": 0.708
      },
      {
-      "title": "Npmjs CVEs and Security Vulnerabilities - OpenCVE",
-      "url": "https://app.opencve.io/cve?vendor=npmjs",
-      "snippet": "| All versions of the package images are vulnerable to Denial of Service (DoS) due to providing unexpected input types to several different functions. This makes it possible to reach an assert macro, leading to a process crash. \\\\Note:\\\\ By providing some specific integer values (like 0) to the size function, it is possible to obtain a Segmentation fault error, leading to the process crash. |\n| CV",
-      "score": 0.43
+      "title": "@seriousme/openapi-schema-validator - npm",
+      "url": "https://www.npmjs.com/package/@seriousme/openapi-schema-validator",
+      "snippet": "### `new Validator(ajvOptions)`\n\nThe constructor returns an instance of `Validator`. By passing an ajv options\nobject it is possible to influence the behavior of the\nAJV schema validator. AJV fails to process the openApi\nschemas if you set `strict:true` therefore this set to `false` if present. This\nis not a bug but a result of the complexity of the openApi JSON schemas.\n\n### `<instance>.validate(",
+      "score": 0.621
+     },
+     {
+      "title": "CHANGELOG.md - seriousme/openapi-schema-validator",
+      "url": "https://github.com/seriousme/openapi-schema-validator/blob/master/CHANGELOG.md",
+      "snippet": "OpenApi schema validation for OpenApi versions v2, v3.0.x, v3.1.x and v3.2.x. SecurityEnterprise-grade security features",
+      "score": 0.566
+     },
+     {
+      "title": "package.json - seriousme/openapi-schema-validator",
+      "url": "https://github.com/seriousme/openapi-schema-validator/blob/master/package.json",
+      "snippet": "OpenApi schema validation for OpenApi versions v2, SecurityEnterprise-grade security features",
+      "score": 0.551
      }
     ]
    },
@@ -27553,27 +27653,20 @@
     "cves": [
      "CVE-2015-8855",
      "CVE-2019-16776",
-     "CVE-2022-25883",
      "CVE-2024-25354"
     ],
     "severity": "CRITICAL",
-    "summary": "Additionally, there are other CVEs listed such as CVE-2022-25883 and CVE-2015-8855, but these do not directly pertain to version 7.7.0.",
+    "summary": "According to the sources, there are no known security vulnerabilities in @types/semver version 7.7.0 as of today's date, 2026-10-04.",
     "fixed_in": ">= 7.8.5",
     "pinned_version": "7.7.0",
     "confidence": "needs-confirmation",
     "query": "@types/semver 7.7.0 npm security advisory CVE known vulnerabilities",
     "sources": [
      {
-      "title": "types/semver, NodeJS open source component",
+      "title": "Componentpedia: @types/semver, NodeJS open source component | Meterian Boost Open Source Security Resource",
       "url": "https://www.meterian.io/components/nodejs/@types%7Csemver",
-      "snippet": "This version is safe to use because it has no known security vulnerabilities at this time.",
-      "score": 0.674
-     },
-     {
-      "title": "@types/semver - npm Package Security Analysis - Socket",
-      "url": "https://socket.dev/npm/package/@types/semver",
-      "snippet": "analyze @types/semver and its dependencies to secure y... 7.7.0 (ts5.0,ts5.1) Detect and block malicious and high-risk dependencies. It is more lightweight than",
-      "score": 0.636
+      "snippet": "|  |  |  |  |  |  |\n ---  ---  --- |\n| 7.8.0 | 0 | 0 | 0 | 0 | 0 |\n| 7.7.1 | 0 | 0 | 0 | 0 | 0 |\n| 7.7.0 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.8 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.7 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.6 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.5 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.4 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.3 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.2 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.1 | 0 | 0 | 0 | 0 | 0 |\n| 7.5.0 | 0 | 0 | 0 | 0 | 0 |\n| 7",
+      "score": 0.648
      },
      {
       "title": "Npmjs CVEs and Security Vulnerabilities - OpenCVE",
@@ -27586,6 +27679,58 @@
       "url": "https://www.versioneye.com/NodeJS/semver/2.0.6?page=3",
       "snippet": "Secure versions: [5.7.2, 6.3.1, 7.5.2, 7.5.3, 7.5.4, 7.6.0, 7.6.1, 7.6.2, 7.6.3, 7.7.0, 7.7.1, 7.7.2, 7.7.3, 7.7.4, 7.8.0, 7.8.1, 7.8.2, 7.8.3, 7.8.4, 7.8.5]\n\nRecommendation: Update to version 7.8.5.\n\nRegular Expression Denial of Service in semver\n\nPublished date: 2017-10-24T18:33:36Z\n\nCVE: CVE-2015-8855\n\nLinks:\n\n \n \n \n \n \n \n \n \n \n \n\nVersions 4.3.1 and earlier of `semver` are affected by a regular",
       "score": 0.603
+     },
+     {
+      "title": "semver | Snyk",
+      "url": "https://security.snyk.io/package/npm/semver",
+      "snippet": "Based on project statistics from the GitHub repository for the npm package semver, we found that it has been starred 5,451 times.\n\nDownloads are calculated as moving averages for a period of the last 12 months, excluding weekends and known missing data points.\n\n# Community\n\nThis project has seen only 10 or less contributors.\n\n# License\n\n## Direct Vulnerabilities\n\nKnown vulnerabilities in the semve",
+      "score": 0.588
+     }
+    ]
+   },
+   {
+    "name": "@web-std/file",
+    "version": "3.0.3",
+    "declared_spec": "^3.0.3",
+    "ecosystem": "npm",
+    "ecosystem_label": "npm",
+    "declared_in": "package.json",
+    "cves": [
+     "CVE-2019-16777",
+     "CVE-2020-15095",
+     "CVE-2021-39134",
+     "CVE-2021-39135"
+    ],
+    "severity": "CRITICAL",
+    "summary": "Additionally, OpenCVE lists several CVEs related to npm vulnerabilities, including CVE-2020-15095 and CVE-2019-16777, but does not mention @web-std/file specifically.",
+    "fixed_in": "",
+    "pinned_version": "3.0.3",
+    "confidence": "needs-confirmation",
+    "query": "@web-std/file 3.0.3 npm security advisory CVE known vulnerabilities",
+    "sources": [
+     {
+      "title": "The npm Threat Landscape: Attack Surface and Mitigations (Updated July 15)",
+      "url": "https://unit42.paloaltonetworks.com/monitoring-npm-supply-chain-attacks",
+      "snippet": "In contrast to the previous Miasma payload, this version\u2019s architecture has changed. When a developer runs npm install on a compromised package, a backdoored source file executes, such as index.js, validator.js or utils.js.\n\nTo evade static code-integrity audits, the file exports a legitimate-looking schemas object with version-keyed JSON references. However, upon import, its main() function trigg",
+      "score": 0.478
+     },
+     {
+      "title": "Auditing package dependencies for security vulnerabilities | npm Docs",
+      "url": "https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities",
+      "snippet": "## No security vulnerabilities found\n\nIf no security vulnerabilities are found, this means that packages with known vulnerabilities were not found in your package dependency tree. Since the advisory database can be updated at any time, we recommend regularly running `npm audit` manually, or adding `npm audit` to your continuous integration process.\n\nScreenshot showing audit report with no vulnerab",
+      "score": 0.438
+     },
+     {
+      "title": "Npmjs CVEs and Security Vulnerabilities - OpenCVE",
+      "url": "https://app.opencve.io/cve?vendor=npmjs",
+      "snippet": "| CVE-2020-15095 | 4 Fedoraproject, Npmjs, Opensuse and 1 more | 6 Fedora, Npm, Leap and 3 more | 2024-11-21 | 4.4 Medium |\n| Versions of the npm CLI prior to 6.14.6 are vulnerable to an information exposure vulnerability through log files. The CLI supports URLs like \"://[[:]@][:][:][/]\". The password value is not redacted and is printed to stdout and also to any generated log files. |\n| CVE-2019-",
+      "score": 0.431
+     },
+     {
+      "title": "New npm Supply Chain Attack Identified | eSentire",
+      "url": "https://www.esentire.com/security-advisories/new-npm-supply-chain-attack-identified",
+      "snippet": "| @art-ws/package-base | 1.0.5, 1.0.6 |\n| @art-ws/prettier | 1.0.5, 1.0.6 |\n| @art-ws/slf | 2.0.15, 2.0.22 |\n| @art-ws/ssl-info | 1.0.9, 1.0.10 |\n| @art-ws/web-app | 1.0.3, 1.0.4 |\n| @crowdstrike/commitlint | 8.1.1, 8.1.2 |\n| @crowdstrike/falcon-shoelace | 0.4.1, 0.4.2 |\n| @crowdstrike/foundry-js | 0.19.1, 0.19.2 |\n| @crowdstrike/glide-core | 0.34.2, 0.34.3 |\n| @crowdstrike/logscale-dashboard | 1.",
+      "score": 0.417
      }
     ]
    },
@@ -27597,15 +27742,11 @@
     "ecosystem_label": "npm",
     "declared_in": "package.json",
     "cves": [
-     "CVE-2020-7754",
-     "CVE-2021-23362",
-     "CVE-2021-39134",
-     "CVE-2021-39135",
      "CVE-2026-45321"
     ],
     "severity": "CRITICAL",
-    "summary": "The sources indicate that CVE-2026-45321 is a critical security vulnerability in TanStack's arktype-adapter that allowed attackers to execute code from fork pull requests, poison GitHub Actions cache, and extract OIDC tokens to publish malicious npm packages under the TanStack organization.",
-    "fixed_in": ">= 1.166.16",
+    "summary": "However, there is a detailed security advisory for CVE-2026-45321 related to Tanstack arktype-adapter, describing a significant security flaw involving authentication bypass, cache poisoning, and token extraction.",
+    "fixed_in": "",
     "pinned_version": "2.1.19",
     "confidence": "needs-confirmation",
     "query": "arktype 2.1.19 npm security advisory CVE known vulnerabilities",
@@ -27614,7 +27755,7 @@
       "title": "CVE-2026-45321: Tanstack arktype-adapter Auth Bypass Flaw",
       "url": "https://www.sentinelone.com/vulnerability-database/cve-2026-45321",
       "snippet": "First, a pull\\_request\\_target \"Pwn Request\" misconfiguration allowed attacker-controlled code from a fork pull request to execute in a workflow context that held access to repository secrets and elevated permissions. Second, GitHub Actions cache poisoning was used across the fork\u2194base trust boundary, letting attacker-controlled artifacts be retrieved by privileged jobs running on behalf of the ba",
-      "score": 0.606
+      "score": 0.605
      },
      {
       "title": "The npm Threat Landscape: Attack Surface and Mitigations (Updated July 15)",
@@ -27623,16 +27764,16 @@
       "score": 0.493
      },
      {
-      "title": "Npmjs CVEs and Security Vulnerabilities - OpenCVE",
-      "url": "https://app.opencve.io/cve?vendor=npmjs",
-      "snippet": "| CVE-2021-39134 | 3 Npmjs, Oracle, Siemens | 4 Arborist, Npm, Graalvm and 1 more | 2024-11-21 | 8.2 High | [...] | CVE-2021-39135 | 3 Npmjs, Oracle, Siemens | 4 Arborist, Npm, Graalvm and 1 more | 2024-11-21 | 8.2 High | [...] | CVE-2021-23362 | 3 Npmjs, Redhat, Siemens | 7 Hosted-git-info, Acm, Enterprise Linux and 4 more | 2024-11-21 | 5.3 Medium |\n| The package hosted-git-info before 3.0.8 are",
-      "score": 0.48
-     },
-     {
       "title": "Auditing package dependencies for security vulnerabilities | npm Docs",
       "url": "https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities",
       "snippet": "## No security vulnerabilities found\n\nIf no security vulnerabilities are found, this means that packages with known vulnerabilities were not found in your package dependency tree. Since the advisory database can be updated at any time, we recommend regularly running `npm audit` manually, or adding `npm audit` to your continuous integration process.\n\nScreenshot showing audit report with no vulnerab",
-      "score": 0.473
+      "score": 0.472
+     },
+     {
+      "title": "New npm Supply Chain Attack Identified | eSentire",
+      "url": "https://www.esentire.com/security-advisories/new-npm-supply-chain-attack-identified",
+      "snippet": "| @art-ws/package-base | 1.0.5, 1.0.6 |\n| @art-ws/prettier | 1.0.5, 1.0.6 |\n| @art-ws/slf | 2.0.15, 2.0.22 |\n| @art-ws/ssl-info | 1.0.9, 1.0.10 |\n| @art-ws/web-app | 1.0.3, 1.0.4 |\n| @crowdstrike/commitlint | 8.1.1, 8.1.2 |\n| @crowdstrike/falcon-shoelace | 0.4.1, 0.4.2 |\n| @crowdstrike/foundry-js | 0.19.1, 0.19.2 |\n| @crowdstrike/glide-core | 0.34.2, 0.34.3 |\n| @crowdstrike/logscale-dashboard | 1.",
+      "score": 0.407
      }
     ]
    },
@@ -27644,14 +27785,11 @@
     "ecosystem_label": "npm",
     "declared_in": "package.json",
     "cves": [
-     "CVE-2022-22475",
-     "CVE-2022-22476",
-     "CVE-2022-34165",
      "CVE-2024-34393",
      "CVE-2024-34394"
     ],
     "severity": "CRITICAL",
-    "summary": "The sources indicate that no security vulnerabilities were found in the package dependency tree as per the npm audit documentation.",
+    "summary": "The sources indicate that the npm package benchmark version 2.1.4, published on 28 Mar, 2017, has no direct vulnerabilities according to Snyk.",
     "fixed_in": "",
     "pinned_version": "2.1.4",
     "confidence": "needs-confirmation",
@@ -27664,6 +27802,12 @@
       "score": 0.645
      },
      {
+      "title": "benchmark | Snyk",
+      "url": "https://security.snyk.io/package/npm/benchmark",
+      "snippet": "## Package versions\n\n| version | published | direct vulnerabilities |\n --- \n| 2.1.4 | 28 Mar, 2017 |  0  C  0  H  0  M  0  L |\n| 2.1.3 | 24 Dec, 2016 |  0  C  0  H  0  M  0  L |\n| 2.1.2 | 31 Oct, 2016 |  0  C  0  H  0  M  0  L |\n| 2.1.1 | 20 Jul, 2016 |  0  C  0  H  0  M  0  L |\n| 2.1.0 | 28 Jan, 2016 |  0  C  0  H  0  M  0  L |\n| 2.0.0 | 4 Jan, 2016 |  0  C  0  H  0  M  0  L |\n| 1.0.0 | 16 Aug, 2",
+      "score": 0.493
+     },
+     {
       "title": "Auditing package dependencies for security vulnerabilities | npm Docs",
       "url": "https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities",
       "snippet": "## No security vulnerabilities found\n\nIf no security vulnerabilities are found, this means that packages with known vulnerabilities were not found in your package dependency tree. Since the advisory database can be updated at any time, we recommend regularly running `npm audit` manually, or adding `npm audit` to your continuous integration process.\n\nScreenshot showing audit report with no vulnerab",
@@ -27674,66 +27818,34 @@
       "url": "https://shattered.io/npm-audit-nodejs",
       "snippet": "Pitfall 5: Using npm audit as a complete security program\n\nnpm audit only covers known CVEs in published packages with registered advisories. It cannot detect zero-day vulnerabilities, business logic flaws, insecure use of a legitimate API (for example, calling `eval()` with user-controlled input from a perfectly clean package), newly published malicious packages with no advisory yet, or packages ",
       "score": 0.407
-     },
-     {
-      "title": "advisories - npm search",
-      "url": "https://www.npmjs.com/search?q=advisories",
-      "snippet": "426\n\n### @ttskp/libxmljs2-noop\n\nlibxmljs2 has critical, unresolved security issues, (CVE-2024-34393, CVE-2024-34394), but is no longer mai\n\nwistudent\n\n\u2022 1.0.0 \u2022 2 years ago \u2022 0 dependents \u2022 MITpublished version 1.0.0, 2 years ago0 dependents licensed under $MIT\n\n11,906\n\n### nsp-advisories-api\n\nClient for the NSP advisories API\n\n NSP\n advisories\n security\n\nalanshaw\n\n\u2022 2.0.2 \u2022 11 years ago \u2022 1 depen",
-      "score": 0.401
      }
     ]
    }
   ],
   "outdated": [
    {
-    "name": "@biomejs/biome",
-    "version": "1.9.4",
-    "declared_spec": "^1.9.4",
+    "name": "@types/benchmark",
+    "version": "2.1.5",
+    "declared_spec": "^2.1.5",
     "ecosystem": "npm",
     "ecosystem_label": "npm",
     "declared_in": "package.json",
-    "latest_version": "2.5.14",
-    "behind_by": "1 major release(s) behind",
+    "latest_version": "11.13.0",
+    "behind_by": "9 major release(s) behind",
     "confidence": "needs-confirmation",
-    "query": "latest stable released version of the @biomejs/biome package on npm 2026",
+    "query": "latest stable released version of the @types/benchmark package on npm 2026",
     "sources": [
      {
-      "title": "@biomejs/biome - npm",
-      "url": "https://www.npmjs.com/package/@biomejs/biome",
-      "snippet": "\u26a0\ufe0f\n\nnpm tokens that bypass 2FA are being restricted \u2014 account changes (Aug 2026) and direct publishing (Jan 2027). Learn how to prepare \u2192\n\n\u00d7\n\nskip to:contentpackage searchsign in\n\n   Pro\n   Teams\n   Pricing\n   Documentation\n\nnpm\n\n[](\n\nSearch\n\nSign UpSign In\n\n# @biomejs/biome\n\n2.5.10\u2022Public\u2022Published 6 days ago\n\n   Readme\n   Code Beta\n   0 Dependencies\n   292 Dependents\n   149 Versions\n\nImage 1: Sh",
-      "score": 0.791
+      "title": "Yarn vs npm 2026: 3.7x Faster, 85% Less Disk",
+      "url": "https://tech-insider.org/yarn-vs-npm-2026",
+      "snippet": "| Metric | npm 11 | Yarn 4 (Berry) | Yarn 1 (Classic) |\n ---  --- |\n| Latest stable version (Apr 2026) | 11.13.0 | 4.x active | 1.22.22 (frozen 2020) |\n| Weekly npm registry downloads | 13.76M | 8.66M (combined) | included in 8.66M |\n| Monthly npm registry downloads | 57.6M | 38.9M (combined) | included in 38.9M |\n| GitHub stars (official repo) | 9,706 (npm/cli) | 8,065 (yarnpkg/berry) | 41,515 (y",
+      "score": 0.666
      },
      {
-      "title": "Biome (@biomejs) / X",
-      "url": "https://x.com/biomejs",
-      "snippet": "3\n @biomejs\n\n  Biome@biomejs\n\n  Sep 10\n\n  v2.5.13 is out! Another patch with many bug fixes! Special thanks to @JakeLeventhal for the great help in improving type-inference lint rules.\n\n  \n\n  Version HistoryFrom biomejs.dev\n @biomejs\n\n  Biome@biomejs\n\n  Sep 3\n\n  Biome v2.5.12 is out with many fixes: - Improved DX for Astro files - Fixed a nasty regression in the file scanner - No more huge logs wh",
-      "score": 0.585
-     }
-    ]
-   },
-   {
-    "name": "@seriousme/openapi-schema-validator",
-    "version": "2.9.0",
-    "declared_spec": "2.9.0",
-    "ecosystem": "npm",
-    "ecosystem_label": "npm",
-    "declared_in": "package.json",
-    "latest_version": "2.9.1",
-    "behind_by": "1 patch release(s) behind",
-    "confidence": "needs-confirmation",
-    "query": "latest stable released version of the @seriousme/openapi-schema-validator package on npm 2026",
-    "sources": [
-     {
-      "title": "seriousme/openapi-schema-validator | OpenText Fortify SCA",
-      "url": "https://debricked.com/select/package/pkg:npm%2F%2540seriousme%2Fopenapi-schema-validator",
-      "snippet": "Latest version 2.9.1 Last publish August 5, 2026 MIT. A JSON schema validator for OpenAPI specifications, it currently supports: 2.0 3.0.x 3.1.x s from AWS,",
-      "score": 0.87
-     },
-     {
-      "title": "seriousme/openapi-schema-validator@2.6.0 - npm",
-      "url": "https://secure.software/npm/packages/@seriousme/openapi-schema-validator/2.6.0",
-      "snippet": "The npm package @seriousme/openapi-schema-validator was scanned for malware, software tampering, risky behaviors, exposed secrets and known",
-      "score": 0.744
+      "title": "NPM Crash Course 2026 [Important Commands] | 14",
+      "url": "https://www.youtube.com/watch?v=fqlFpNg99S0&vl=en",
+      "snippet": "[16:00] 4.17.1 etc. This type of version is the version range for 4.14.0\n[16:08] not 6.15. But you might ask what is the problem to upgrade our version to 6.15.0\n[16:16] latest version. Yes, we can do that. But when developer change version number like version 4 to version five or\n[16:24] version 6, then they might done some updates which can give you error for old code according to version 4.14.0",
+      "score": 0.446
      }
     ]
    }
@@ -27750,40 +27862,16 @@
     "query": "@biomejs/biome 1.9.4 npm security advisory CVE known vulnerabilities",
     "sources": [
      {
-      "title": "biomejs/biome 1.9.4",
+      "title": "@biomejs/biome 1.9.4 | Snyk",
       "url": "https://security.snyk.io/package/npm/%40biomejs%2Fbiome/1.9.4",
-      "snippet": "Security vulnerabilities and package health score for npm package @biomejs/biome 1.9.4. No direct vulnerabilities have been found for this package in Snyk's",
-      "score": 0.808
+      "snippet": "Homepage\n\n# @biomejs/biome@1.9.4\n\n## Biome is a toolchain for the web: formatter, linter and more\n\n### latest version\n\n2.5.15\n\n### latest non vulnerable version\n\n### first published\n\n3 years ago\n\n### latest version published\n\n3 days ago\n\n### licenses detected\n\n## Direct Vulnerabilities\n\nNo direct vulnerabilities have been found for this package in Snyk\u2019s vulnerability database. This does not inclu",
+      "score": 0.693
      },
      {
-      "title": "\ud83d\udc1b `npm` warns about 7 vulnerabilities in `biome@latest` ...",
-      "url": "https://github.com/biomejs/biome/issues/400",
-      "snippet": "`npm` warns about 7 vulnerabilities in `biome@latest` dependencies \u00b7 Issue #400 \u00b7 biomejs/biome. Skip to content",
-      "score": 0.651
-     }
-    ]
-   },
-   {
-    "name": "@seriousme/openapi-schema-validator",
-    "version": "2.9.0",
-    "declared_spec": "2.9.0",
-    "ecosystem": "npm",
-    "ecosystem_label": "npm",
-    "declared_in": "package.json",
-    "advisories_found": 0,
-    "query": "@seriousme/openapi-schema-validator 2.9.0 npm security advisory CVE known vulnerabilities",
-    "sources": [
-     {
-      "title": "@seriousme/openapi-schema-validator - npm",
-      "url": "https://www.npmjs.com/package/@seriousme/openapi-schema-validator",
-      "snippet": "### `new Validator(ajvOptions)`\n\nThe constructor returns an instance of `Validator`. By passing an ajv options\nobject it is possible to influence the behavior of the\nAJV schema validator. AJV fails to process the openApi\nschemas if you set `strict:true` therefore this set to `false` if present. This\nis not a bug but a result of the complexity of the openApi JSON schemas.\n\n### `<instance>.validate(",
-      "score": 0.621
-     },
-     {
-      "title": "seriousme/openapi-schema-validator - npm",
-      "url": "https://secure.software/npm/packages/@seriousme/openapi-schema-validator/vulnerabilities",
-      "snippet": "Supply chain risk analysis for @seriousme/openapi-schema-validator. Learn more about package security, deployment risks, vulnerabilities, popularity,",
-      "score": 0.588
+      "title": "Releases \u00b7 biomejs/biome \u00b7 GitHub",
+      "url": "https://github.com/biomejs/biome/releases",
+      "snippet": "```\n  - {item} -{item} -))} - + {item} +{item} + ))} +\n  ```\n #12016 `09d4000` Thanks @codspeed! - Improved the performance of indexing and analysis of big files up to 2x. The improvements are mostly visible in projects that make use of project and types lint rules.\n #11750 `089bde0` Thanks @dyc3! - Added the nursery rule `useStrictBooleanExpressions`, which reports ambiguous truthiness checks suc",
+      "score": 0.642
      }
     ]
    },
@@ -27810,30 +27898,6 @@
       "score": 0.602
      }
     ]
-   },
-   {
-    "name": "@web-std/file",
-    "version": "3.0.3",
-    "declared_spec": "^3.0.3",
-    "ecosystem": "npm",
-    "ecosystem_label": "npm",
-    "declared_in": "package.json",
-    "advisories_found": 4,
-    "query": "@web-std/file 3.0.3 npm security advisory CVE known vulnerabilities",
-    "sources": [
-     {
-      "title": "The npm Threat Landscape: Attack Surface and Mitigations (Updated July 15)",
-      "url": "https://unit42.paloaltonetworks.com/monitoring-npm-supply-chain-attacks",
-      "snippet": "In contrast to the previous Miasma payload, this version\u2019s architecture has changed. When a developer runs npm install on a compromised package, a backdoored source file executes, such as index.js, validator.js or utils.js.\n\nTo evade static code-integrity audits, the file exports a legitimate-looking schemas object with version-keyed JSON references. However, upon import, its main() function trigg",
-      "score": 0.478
-     },
-     {
-      "title": "Auditing package dependencies for security vulnerabilities | npm Docs",
-      "url": "https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities",
-      "snippet": "## No security vulnerabilities found\n\nIf no security vulnerabilities are found, this means that packages with known vulnerabilities were not found in your package dependency tree. Since the advisory database can be updated at any time, we recommend regularly running `npm audit` manually, or adding `npm audit` to your continuous integration process.\n\nScreenshot showing audit report with no vulnerab",
-      "score": 0.438
-     }
-    ]
    }
   ],
   "unverified": [
@@ -27854,34 +27918,58 @@
       "score": 0.828
      },
      {
-      "title": "GitHub - arethetypeswrong/arethetypeswrong.github.io: Tool for analyzing TypeScript types of npm packages \u00b7 GitHub",
-      "url": "https://github.com/arethetypeswrong/arethetypeswrong.github.io",
-      "snippet": "Notifications  You must be signed in to change notification settings\n Fork 65\n Star  1.6k\n\nBranchesTags\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n658 Commits\n\n658 Commits\n\n## Folders and files [...] \ud83d\udc80 Resolution failed\n \u274c No types\n \ud83c\udfad Masquerading as CJS\n \ud83d\udc7a Masquerading as ESM\n \u26a0\ufe0f ESM (dynamic import only)\n \ud83d\udc1b Used fallback condition\n \ud83e\udd28 CJS default export\n \u2757\ufe0f Incorrect default export\n \u2753",
-      "score": 0.349
+      "title": "@arethetypeswrong/cli | Snyk",
+      "url": "https://security.snyk.io/package/npm/%40arethetypeswrong%2Fcli",
+      "snippet": "| version | published | direct vulnerabilities |\n --- \n| 0.18.5 | 9 Jul, 2026 |  0  C  0  H  0  M  0  L |\n| 0.18.4 | 22 Jun, 2026 |  0  C  0  H  0  M  0  L |\n| 0.18.3 | 29 May, 2026 |  0  C  0  H  0  M  0  L |\n| 0.18.2 | 9 Jun, 2025 |  0  C  0  H  0  M  0  L |\n| 0.18.1 | 9 May, 2025 |  0  C  0  H  0  M  0  L |\n| 0.18.0 | 7 May, 2025 |  0  C  0  H  0  M  0  L |\n| 0.17.4 | 21 Feb, 2025 |  0  C  0  H",
+      "score": 0.666
      }
     ]
    },
    {
-    "name": "@types/benchmark",
-    "version": "2.1.5",
-    "declared_spec": "^2.1.5",
+    "name": "@biomejs/biome",
+    "version": "1.9.4",
+    "declared_spec": "^1.9.4",
     "ecosystem": "npm",
     "ecosystem_label": "npm",
     "declared_in": "package.json",
     "reason": "no parsable version in the search answer",
-    "query": "latest stable released version of the @types/benchmark package on npm 2026",
+    "query": "latest stable released version of the @biomejs/biome package on npm 2026",
     "sources": [
      {
-      "title": "Yarn vs npm 2026: 3.7x Faster, 85% Less Disk",
-      "url": "https://tech-insider.org/yarn-vs-npm-2026",
-      "snippet": "| Metric | npm 11 | Yarn 4 (Berry) | Yarn 1 (Classic) |\n ---  --- |\n| Latest stable version (Apr 2026) | 11.13.0 | 4.x active | 1.22.22 (frozen 2020) |\n| Weekly npm registry downloads | 13.76M | 8.66M (combined) | included in 8.66M |\n| Monthly npm registry downloads | 57.6M | 38.9M (combined) | included in 38.9M |\n| GitHub stars (official repo) | 9,706 (npm/cli) | 8,065 (yarnpkg/berry) | 41,515 (y",
-      "score": 0.666
+      "title": "@biomejs/biome - npm",
+      "url": "https://www.npmjs.com/package/@biomejs/biome",
+      "snippet": "\u26a0\ufe0f\n\nnpm tokens that bypass 2FA are being restricted \u2014 account changes (Aug 2026) and direct publishing (Jan 2027). Learn how to prepare \u2192\n\n\u00d7\n\nskip to:contentpackage searchsign in\n\n   Pro\n   Teams\n   Pricing\n   Documentation\n\nnpm\n\n[](\n\nSearch\n\nSign UpSign In\n\n# @biomejs/biome\n\n2.5.10\u2022Public\u2022Published 6 days ago\n\n   Readme\n   Code Beta\n   0 Dependencies\n   292 Dependents\n   149 Versions\n\nImage 1: Sh",
+      "score": 0.791
      },
      {
-      "title": "Benchmarks of JavaScript Package Managers | pnpm",
-      "url": "https://pnpm.io/benchmarks",
-      "snippet": "# Benchmarks of JavaScript Package Managers\n\nLast benchmarked at: Aug 28, 2026, 2:16 PM (weekly updated).",
-      "score": 0.506
+      "title": "@biomejs/biome | Snyk",
+      "url": "https://security.snyk.io/package/npm/%40biomejs%2Fbiome",
+      "snippet": "| version | published | direct vulnerabilities |\n --- \n| 2.5.15 | 30 Sep, 2026 |  0  C  0  H  0  M  0  L |\n| 2.5.14 | 16 Sep, 2026 |  0  C  0  H  0  M  0  L |\n| 2.5.13 | 10 Sep, 2026 |  0  C  0  H  0  M  0  L |\n| 2.5.12 | 3 Sep, 2026 |  0  C  0  H  0  M  0  L |\n| 2.5.11 | 27 Aug, 2026 |  0  C  0  H  0  M  0  L |\n| 2.5.10 | 21 Aug, 2026 |  0  C  0  H  0  M  0  L |\n| 2.5.9 | 17 Aug, 2026 |  0  C  0 ",
+      "score": 0.702
+     }
+    ]
+   },
+   {
+    "name": "@seriousme/openapi-schema-validator",
+    "version": "2.9.0",
+    "declared_spec": "2.9.0",
+    "ecosystem": "npm",
+    "ecosystem_label": "npm",
+    "declared_in": "package.json",
+    "reason": "no parsable version in the search answer",
+    "query": "latest stable released version of the @seriousme/openapi-schema-validator package on npm 2026",
+    "sources": [
+     {
+      "title": "@seriousme/openapi-schema-validator - npm",
+      "url": "https://www.npmjs.com/package/@seriousme/openapi-schema-validator",
+      "snippet": "\u26a0\ufe0f\n\nnpm tokens that bypass 2FA are being restricted \u2014 account changes (Aug 2026) and direct publishing (Jan 2027). Learn how to prepare \u2192\n\nnpm\n\nSign UpSign In\n\n# @seriousme/openapi-schema-validator TypeScript icon, indicating that this package has built-in type declarations\n\n2.11.0 \u2022 Public \u2022 Published\n\n Readme\n Code Beta\n 4 Dependencies\n 19 Dependents\n 53 Versions\n\n# OpenAPI schema validator\n\nCI ",
+      "score": 0.819
+     },
+     {
+      "title": "openapi-schema-validator - npm",
+      "url": "https://www.npmjs.com/package/openapi-schema-validator",
+      "snippet": "\u26a0\ufe0f\n\nnpm tokens that bypass 2FA are being restricted \u2014 account changes (Aug 2026) and direct publishing (Jan 2027). Learn how to prepare \u2192\n\nnpm\n\nSign UpSign In\n\n# openapi-schema-validator TypeScript icon, indicating that this package has built-in type declarations\n\n12.1.3 \u2022 Public \u2022 Published\n\n Readme\n Code Beta\n 4 Dependencies\n 84 Dependents\n 28 Versions\n\n# openapi-schema-validator NPM version Dow",
+      "score": 0.754
      }
     ]
    },
@@ -27896,16 +27984,16 @@
     "query": "latest stable released version of the @types/semver package on npm 2026",
     "sources": [
      {
-      "title": "semver - npm",
-      "url": "https://www.npmjs.com/package/semver",
-      "snippet": "npm tokens that bypass 2FA are being restricted \u2014 account changes (Aug 2026) and direct publishing (Jan 2027). Learn how to prepare \u2192\n\n# semver DefinitelyTyped icon, indicating that this package has TypeScript declarations provided by the separate @types/semver package\n\nDefinitelyTyped icon, indicating that this package has TypeScript declarations provided by the separate @types/semver package\n\n# ",
-      "score": 0.711
+      "title": "@types/semver - npm",
+      "url": "https://www.npmjs.com/package/@types/semver",
+      "snippet": "# Details\n\nFiles were exported from .\n\n### Additional Details\n\n Last updated: Sun, 02 Aug 2026 07:58:44 GMT\n Dependencies: none\n\n# Credits\n\nThese definitions were written by Bart van der Schoor, BendingBender, Lucian Buzzo, Klaus Meinhardt, ExE Boss, and Piotr B\u0142a\u017cejewicz.\n\n## Readme\n\n### Keywords\n\nnone\n\nViewing @types/semver version 7.8.0 [...] \u26a0\ufe0f\n\nnpm tokens that bypass 2FA are being restricted ",
+      "score": 0.815
      },
      {
-      "title": "Semantic Versioning: Breaking Changes Guide 2026 \u2014 PkgPulse Guides",
-      "url": "https://www.pkgpulse.com/guides/semantic-versioning-guide-breaking-changes-2026",
-      "snippet": "Many packages stay at 0.x for years (Vite was 0.x for months, now at 6.x)\n Consumers understand that 0.x means unstable\n Use 0.y for breaking changes and 0.0.z for patches\n\nWhen you're ready for stability, jump to 1.0.0. This is a commitment: from here, breaking changes require MAJOR bumps.\n\n## SemVer in Practice: Common Scenarios\n\n### Scenario 1: Changing Default Behavior\n\nYour function defaults ",
-      "score": 0.585
+      "title": "Semantic Versioning: Strategy and Automation - Library",
+      "url": "https://www.grizzlypeaksoftware.com/library/semantic-versioning-strategy-and-automation-gdzj38eb",
+      "snippet": "standard-version generates a `CHANGELOG.md` that groups changes by type:\n\n```\n# Changelog ## 2.1.0 (2026-02-13) ### Features  api: add request timeout configuration (a1b2c3d)  cli: support --json output flag (d4e5f6a) ### Bug Fixes  parser: handle empty input gracefully (b7c8d9e)  auth: refresh token before expiry (f0a1b2c) ### Performance  cache: reduce memory usage by 40% with LRU eviction (c3d4",
+      "score": 0.67
      }
     ]
    },
@@ -34509,12 +34597,12 @@
   ],
   "queries_run": 13,
   "declared_dependencies": 741,
-  "not_checked": 736,
+  "not_checked": 737,
   "errors": [],
   "note": "Advisories come from web search, not from a vulnerability database. Confirm the affected version range in the linked advisory before acting."
  },
  "architecture": {
-  "summary": "Zod is a TypeScript-first schema validation library with static type inference, developed as a pnpm monorepo by colinhacks. The library emphasizes zero external dependencies, 2kb core bundle size, immutable APIs, and compatibility with TypeScript and plain JavaScript across Node.js and browsers.",
+  "summary": "Zod is a TypeScript-first schema validation library with static type inference. This monorepo contains the core validation library, a minimal variant, integration tests, documentation site, and build tooling.",
   "pattern": "",
   "layers": [],
   "entry_points": [],
@@ -34536,9 +34624,9 @@
   {
    "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
    "prompt_tokens": 937,
-   "completion_tokens": 391,
-   "total_tokens": 1328,
-   "latency_s": 3.633,
+   "completion_tokens": 404,
+   "total_tokens": 1341,
+   "latency_s": 2.939,
    "attempts": 1,
    "step": "triage",
    "finish_reason": "stop"
@@ -34546,19 +34634,9 @@
   {
    "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
    "prompt_tokens": 3363,
-   "completion_tokens": 1729,
-   "total_tokens": 5092,
-   "latency_s": 7.594,
-   "attempts": 1,
-   "step": "triage",
-   "finish_reason": "stop"
-  },
-  {
-   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
-   "prompt_tokens": 3628,
-   "completion_tokens": 1975,
-   "total_tokens": 5603,
-   "latency_s": 8.621,
+   "completion_tokens": 1972,
+   "total_tokens": 5335,
+   "latency_s": 7.042,
    "attempts": 1,
    "step": "triage",
    "finish_reason": "stop"
@@ -34566,9 +34644,19 @@
   {
    "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
    "prompt_tokens": 3650,
-   "completion_tokens": 2907,
-   "total_tokens": 6557,
-   "latency_s": 11.482,
+   "completion_tokens": 1925,
+   "total_tokens": 5575,
+   "latency_s": 7.213,
+   "attempts": 1,
+   "step": "triage",
+   "finish_reason": "stop"
+  },
+  {
+   "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+   "prompt_tokens": 3628,
+   "completion_tokens": 1963,
+   "total_tokens": 5591,
+   "latency_s": 7.336,
    "attempts": 1,
    "step": "triage",
    "finish_reason": "stop"
@@ -34576,9 +34664,9 @@
   {
    "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
    "prompt_tokens": 6899,
-   "completion_tokens": 1833,
-   "total_tokens": 8732,
-   "latency_s": 7.324,
+   "completion_tokens": 2049,
+   "total_tokens": 8948,
+   "latency_s": 7.029,
    "attempts": 1,
    "step": "architecture",
    "finish_reason": "stop"
@@ -34606,12 +34694,12 @@
   "graph_links": 138,
   "dependency_manifests": 9,
   "dependencies": 1707,
-  "vulnerable_dependencies": 4,
-  "outdated_dependencies": 2,
+  "vulnerable_dependencies": 6,
+  "outdated_dependencies": 1,
   "research_queries": 13,
   "total_loc": 22223,
-  "analyzed_at": "2026-10-04T15:08:21Z",
-  "elapsed_seconds": 44.34,
+  "analyzed_at": "2026-10-04T15:30:03Z",
+  "elapsed_seconds": 38.52,
   "head_sha": "0b216ef674e297ebe41d8bf902262e56f8755822"
  },
  "repo_path": ""
