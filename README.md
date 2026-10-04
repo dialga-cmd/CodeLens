@@ -120,7 +120,7 @@ how the public deployment runs.
 ### Tests
 
 ```bash
-cd server && pip install pytest && pytest tests/ -q     # 172 tests, no keys needed
+cd server && pip install pytest && pytest tests/ -q     # 237 tests, no keys needed
 cd client && npx tsc --noEmit && npm run build
 ```
 
@@ -148,6 +148,28 @@ pinned by tests — TypeScript under NodeNext names the emitted file, so
 graph view also injected a synthetic hub node wired to every file, which made the
 picture look connected while hiding the real fan-in that hotspots are computed
 from. That node is gone.
+
+**The dependency graph panel is framed, not cropped.** It was drawn into a
+canvas the size of the browser window inside a panel a third of that width, so
+the picture was a top-left crop, and the camera was never fitted to the layout
+at all — the effect that was supposed to do it ran before the graph object
+existed and never ran again. The camera is now solved against what the renderer
+actually projects, after the layout stops and again whenever the panel is
+resized or comes back from being collapsed, and it aims at the middle of the
+*drawing* rather than the middle of the file positions, because perspective
+moves those apart. The canvas is now sized to its container; before it was
+always the size of the browser window, 44% wider than the panel it had to fit
+inside. Verified on the built client with real Chromium, measuring where the
+graph's pixels actually land: across flask (96 files), zod (250) and a
+20-file repository, at 1440×900 and 390×844, the drawing now sits within 6% of
+the panel's centre in all six cases — the worst before was 59% of the panel's
+height away from it. Before and after, at both sizes, is in
+[`docs/screenshots/`](docs/screenshots):
+
+| | before | after |
+| --- | --- | --- |
+| flask, 1440×900 | ![before: flask desktop](docs/screenshots/graph-before-flask-demo-desktop.png) | ![after: flask desktop](docs/screenshots/graph-after-flask-demo-desktop.png) |
+| flask, 390×844 | ![before: flask mobile](docs/screenshots/graph-before-flask-demo-mobile.png) | ![after: flask mobile](docs/screenshots/graph-after-flask-demo-mobile.png) |
 
 **The pre-scan is real, and it runs.** 18 deterministic rules — committed
 credentials, AWS keys, PEM private key blocks, GitHub and Slack tokens, unsafe
@@ -359,7 +381,7 @@ CodeLens/
 │   │   └── fix_advisor_prompt.txt
 │   ├── demo/                   committed analyses for the demo button
 │   ├── scripts/build_demo.py   regenerates server/demo/
-│   ├── tests/                  172 tests, no network
+│   ├── tests/                  237 tests, no network
 │   └── Dockerfile              two-stage, runs as uid 10001
 ├── client/                     Next.js static export
 │   └── src/
@@ -369,6 +391,7 @@ CodeLens/
 │       └── lib/                api.ts, session.ts, firebase.ts
 ├── assets/                     README banner and landing screenshots
 ├── docs/
+│   ├── screenshots/            the dependency graph panel, before and after
 │   ├── PLATFORM_NOTES.md       verified platform facts, with sources
 │   ├── DEPLOY_NEBIUS.md        deployment, env reference, verification
 │   └── TEST_REPORT.md          real end-to-end results
