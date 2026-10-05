@@ -15,8 +15,8 @@ import asyncio
 import json
 
 from app.core.chat_context import build_analysis_digest
-from app.core.chat_service import is_tool_call_text, _split_safe
-from app.core.llm import ChatResult, LLMClient
+from app.core.chat_service import ChatService, is_tool_call_text, _split_safe
+from app.core.llm import ChatResult, LLMClient, LLMError
 
 
 def _snapshot() -> dict:
@@ -175,6 +175,91 @@ def test_a_wrap_up_that_is_still_a_tool_call_is_reported_not_streamed():
 
     assert is_tool_call_text(result.text) is False
     assert "all 2 look-ups" in result.text
+
+
+# -- what the streaming endpoint actually emits ------------------------------ #
+
+
+class _StubClient:
+    """Enough of LLMClient for ChatService.stream: a model id and a text stream.
+
+    The planning round that gathers evidence is stubbed to "no tools called",
+    because what these tests are about is what the streaming turn emits.
+    """
+
+    model = "nvidia/stub"
+
+    def __init__(self, pieces, error=None):
+        self._pieces = pieces
+        self._error = error
+
+    def model_for(self, _role):
+        return self.model
+
+    async def chat_with_tools(self, *_args, **_kwargs):
+        return ChatResult(text="", model=self.model), []
+
+    async def chat_stream(self, _messages, **_kwargs):
+        for piece in self._pieces:
+            yield piece
+        if self._error:
+            raise self._error
+
+
+async def _stream_events(pieces, error=None) -> list[dict]:
+    service = ChatService(_snapshot(), client=_StubClient(pieces, error))
+    return [event async for event in service.stream("what is this repo about?")]
+
+
+def _names(events) -> list[str]:
+    return [event["event"] for event in events]
+
+
+def _answer(events) -> str:
+    return "".join(
+        json.loads(event["data"])["text"] for event in events if event["event"] == "delta"
+    )
+
+
+def test_a_normal_answer_reaches_the_browser_as_deltas():
+    events = asyncio.run(_stream_events(["This is a ", "WSGI microframework."]))
+
+    assert _names(events) == ["sources", "delta", "delta", "done"]
+    assert _answer(events) == "This is a WSGI microframework."
+    assert json.loads(events[-1]["data"])["ok"] is True
+
+
+def test_the_sources_event_names_the_files_the_answer_is_based_on():
+    events = asyncio.run(_stream_events(["src/flask/app.py is the entry point."]))
+
+    sources = json.loads(events[0]["data"])
+    assert sources["sources"], "the reader must be able to check what was used"
+    assert all({"path", "source"} <= set(entry) for entry in sources["sources"])
+
+
+def test_a_token_budget_cutoff_reaches_the_browser_as_a_reason():
+    """The bug in front of the user: every answer came back empty with no reason.
+
+    The model spent its whole budget reasoning, so the stream carried no content
+    and no explanation. The endpoint has to end that turn with something the UI
+    can show, not with silence.
+    """
+    events = asyncio.run(
+        _stream_events([], error=LLMError("The model used its whole token budget before answering."))
+    )
+
+    assert _names(events) == ["sources", "error", "done"]
+    assert "token budget" in json.loads(events[1]["data"])["message"]
+    assert json.loads(events[-1]["data"])["ok"] is False
+    assert _answer(events) == "", "nothing may be invented to fill the gap"
+
+
+def test_a_stream_that_says_nothing_still_produces_an_error_event():
+    """The backstop: whatever the client does, an answer turn is never silent."""
+    events = asyncio.run(_stream_events([]))
+
+    assert _names(events) == ["sources", "error", "done"]
+    assert json.loads(events[-1]["data"])["ok"] is False
 
 
 def test_the_usage_of_the_wrap_up_is_kept():

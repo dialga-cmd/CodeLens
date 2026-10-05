@@ -236,6 +236,21 @@ class ChatService:
 
         if pending:
             yield {"event": "delta", "data": json.dumps({"text": pending})}
+        elif not wrote_anything:
+            # `chat_stream` raises rather than ending silently, so this is the
+            # backstop that keeps the promise this endpoint makes to the browser:
+            # an answer turn always ends with either some text or a reason. A bare
+            # `done` here is what the client could only render as "the model
+            # returned an empty answer", with nothing to act on.
+            yield {
+                "event": "error",
+                "data": json.dumps(
+                    {"message": "The model produced no answer text for this question."}
+                ),
+            }
+            yield {"event": "done", "data": json.dumps({"ok": False})}
+            return
+
         yield {"event": "done", "data": json.dumps({"ok": True})}
 
     # -- reporting --------------------------------------------------------- #

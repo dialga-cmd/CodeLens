@@ -323,15 +323,19 @@ def test_redaction_cannot_be_defeated_by_url_encoding_the_key(monkeypatch):
 class _Choice:
     """A streamed choice carries a delta, unlike a completed one which carries a message."""
 
-    def __init__(self, content=None):
+    def __init__(self, content=None, finish_reason=None):
         self.delta = type("Delta", (), {"content": content})()
+        self.finish_reason = finish_reason
 
 
 class _Chunk:
     """A ChatCompletionChunk. The SDK's .stream() helper yields ChunkEvent, which has no .choices."""
 
-    def __init__(self, content=None):
-        self.choices = [_Choice(content)] if content is not None else []
+    def __init__(self, content=None, finish_reason=None):
+        if content is None and finish_reason is None:
+            self.choices = []
+        else:
+            self.choices = [_Choice(content, finish_reason)]
 
 
 class _FakeStream:
@@ -402,6 +406,79 @@ def test_a_chunk_without_choices_is_skipped_not_crashed():
     client, _ = _streaming_client(_FakeStream([empty, _Chunk("ok")]))
 
     assert _drain(client.chat_stream([{"role": "user", "content": "hi"}])) == ["ok"]
+
+
+def test_a_normal_answer_streams_through_untouched():
+    """The ordinary case, with the finish_reason the last chunk always carries."""
+    client, _ = _streaming_client(
+        _FakeStream([_Chunk("flask/app.py "), _Chunk("creates the app."), _Chunk(finish_reason="stop")])
+    )
+
+    assert _drain(client.chat_stream([{"role": "user", "content": "hi"}])) == [
+        "flask/app.py ",
+        "creates the app.",
+    ]
+
+
+def test_reasoning_only_then_a_length_cutoff_is_reported_not_silently_empty():
+    """The failure this exists for.
+
+    The Nemotron models spend their reasoning out of the same budget they answer
+    from, so a tight max_tokens returns a stream with no content at all and
+    finish_reason="length". That used to reach the browser as a stream of nothing,
+    which it could only render as "the model returned an empty answer" - telling
+    the reader nothing, when the cause is a setting.
+    """
+    from app.core.llm import LLMError
+
+    # Reasoning tokens arrive as content-free deltas; the stream then ends at the cap.
+    reasoning = _FakeStream([_Chunk(None), _Chunk(finish_reason="length")])
+    client, _ = _streaming_client(reasoning)
+
+    with pytest.raises(LLMError, match="token budget"):
+        _drain(client.chat_stream([{"role": "user", "content": "hi"}]))
+    assert reasoning.closed, "the stream must be closed even when the guard fires"
+
+
+def test_a_completely_empty_stream_is_reported_too():
+    from app.core.llm import LLMError
+
+    empty = _FakeStream([])
+    client, _ = _streaming_client(empty)
+
+    with pytest.raises(LLMError, match="without writing an answer"):
+        _drain(client.chat_stream([{"role": "user", "content": "hi"}]))
+    assert empty.closed
+
+
+def test_an_empty_stream_is_not_retried():
+    """Retrying the same request with the same budget produces the same nothing."""
+    attempts = []
+
+    class _CountingCompletions(_FakeCompletions):
+        async def create(self, **kwargs):
+            attempts.append(1)
+            return await super().create(**kwargs)
+
+    client = LLMClient()
+    completions = _CountingCompletions(_FakeStream([]))
+    client._async_client = type("FakeAsync", (), {"chat": type("Chat", (), {"completions": completions})()})()
+
+    with pytest.raises(Exception):
+        _drain(client.chat_stream([{"role": "user", "content": "hi"}]))
+
+    assert len(attempts) == 1
+
+
+def test_a_length_cutoff_after_partial_content_is_not_an_error():
+    """Once a word has been said, the reader has an answer; a cutoff only truncates it."""
+    client, _ = _streaming_client(
+        _FakeStream([_Chunk("The answer starts here"), _Chunk(finish_reason="length")])
+    )
+
+    assert _drain(client.chat_stream([{"role": "user", "content": "hi"}])) == [
+        "The answer starts here"
+    ]
 
 
 def test_a_stream_that_raises_surfaces_as_an_llm_error():

@@ -446,6 +446,24 @@ class LLMClient:
             return status >= 500 or status == 429
         return isinstance(error, (TimeoutError, asyncio.TimeoutError))
 
+    def _empty_stream_message(self, finish_reason: str) -> str:
+        """Why a stream finished without writing a word.
+
+        Silence here is the worst outcome, because it is indistinguishable from a
+        model that simply had nothing to contribute - and the usual cause is the
+        opposite: the Nemotron models reason out of the same budget they answer
+        from, so a tight ``max_tokens`` is spent before the first token of the
+        answer exists. That is a setting someone can change, so it is named.
+        """
+        if finish_reason == "length":
+            return (
+                "The model used its whole token budget before answering. Try again, or "
+                "raise NEBIUS_MAX_OUTPUT_TOKENS so there is room for the answer as well "
+                "as the reasoning."
+            )
+        detail = f" (finish_reason={finish_reason})" if finish_reason else ""
+        return f"The model finished without writing an answer{detail}."
+
     def _failure_message(self, error: BaseException) -> str:
         if isinstance(error, LLMError):
             return self._redact(str(error))
@@ -715,12 +733,29 @@ class LLMClient:
                     max_tokens=max(max_output_tokens or 0, self.max_output_tokens),
                     stream=True,
                 )
+                finish_reason = ""
+                wrote = False
                 try:
                     async for chunk in stream:
-                        delta = chunk.choices[0].delta if getattr(chunk, "choices", None) else None
-                        content = getattr(delta, "content", None) if delta is not None else None
+                        choices = getattr(chunk, "choices", None)
+                        if not choices:
+                            # Role-only deltas and keep-alive chunks arrive with an
+                            # empty choices list.
+                            continue
+                        content = getattr(choices[0].delta, "content", None)
                         if content:
+                            wrote = True
                             yield content
+                        # The reason arrives on the last chunk, after the content.
+                        finish_reason = getattr(choices[0], "finish_reason", "") or finish_reason
+                    if not wrote:
+                        # A stream that ends without saying anything used to look
+                        # exactly like a model with nothing to contribute, and the
+                        # browser reported it as an empty answer. Usually it is the
+                        # opposite: the Nemotron models reason out of the same
+                        # budget they answer from, so a tight cap spends it all
+                        # before the first token of the answer.
+                        raise LLMError(self._empty_stream_message(finish_reason))
                 finally:
                     await stream.close()
 
