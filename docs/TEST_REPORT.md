@@ -5,25 +5,34 @@ traceable to a request in this file. Anything not recorded here is an intention,
 not a result.
 
 **Status: run against the live Nebius Token Factory and Tavily APIs on
-2026-10-04.** Every number below came from a request made during that session
-and is reproducible with the commands shown. Where a result was a failure, the
-failure and the fix are both recorded, because those are the interesting rows.
+2026-10-04; the browser checks in §5a on 2026-10-05.** Every number below came
+from a request made during that session and is reproducible with the commands
+shown. Where a result was a failure, the failure and the fix are both recorded,
+because those are the interesting rows.
 
-The only things not verified here are the ones that need a deployment: the
-public demo URL, and the client as a judge would load it in a browser. There is
-no browser in this environment, so the client is verified by `tsc`, a production
-build, and the API responses it consumes. §10 lists exactly what is left, and
-`SUBMISSION.md` §6 has the commands to close the gap.
+Two sections are the reason to read the rest: §5a, where a bug is recorded that
+passed every other check in this file, and §9.
+
+§5a drives the real client in real Chromium against the real API with real keys.
+That is not ceremony. The bug it caught — every chat answer rendering as "the
+model returned an empty answer" — passed `tsc`, passed the production build,
+passed every HTTP request in this report, and would have passed a judge reading
+the API responses, because the bytes on the wire were exactly right. Only the
+browser's own reader ever noticed.
+
+What is still not verified is in §10: the public demo URL, concurrency under
+load, and cost at scale.
 
 ## 1. Offline checks
 
 | # | Check | Command | Result |
 | --- | --- | --- | --- |
-| 1 | Server unit suite | `cd server && pytest tests/ -q` | **237 passed** |
-| 2 | Client types | `cd client && npx tsc --noEmit` | clean |
-| 3 | Client production build | `cd client && npm run build` | clean, 4 static routes |
-| 4 | No secrets tracked | `git grep -nE 'v1\.[A-Za-z0-9]{20,}|tvly-[A-Za-z0-9]{20,}'` | no matches |
-| 5 | No absolute local paths | `git grep -n '/home/dialgga' -- server client README.md` | no matches |
+| 1 | Server unit suite | `cd server && pytest tests/ -q` | **246 passed** |
+| 2 | SSE parser unit tests | `cd client && npm test` | **12 passed** |
+| 3 | Client types | `cd client && npx tsc --noEmit` | clean |
+| 4 | Client production build | `cd client && npm run build` | clean, 4 static routes |
+| 5 | No secrets tracked | `git grep -nE 'v1\.[A-Za-z0-9]{20,}|tvly-[A-Za-z0-9]{20,}'` | no matches |
+| 6 | No absolute local paths | `git grep -n '/home/dialgga' -- server client README.md` | no matches |
 
 The unit suite opens no sockets and needs no keys, so it runs in CI unchanged.
 Every test that models a real failure is commented with the request that
@@ -134,6 +143,45 @@ dismissed findings.
 
 Chat uses the small model by default. The heavy model is for the analysis
 passes, where a wrong triage verdict costs more than a slow one.
+
+### 5a. The chat panel, in a real browser
+
+Every row above is an HTTP request. This one is a browser, because that is where
+this bug lived: the server was correct, the bytes on the wire were correct, and
+`curl` printing them looks healthy. The client was splitting the stream on
+`"\n\n"` while `sse-starlette` terminates every event with `"\r\n\r\n"`, so no
+event ever parsed and every answer rendered as "the model returned an empty
+answer". Nothing short of a browser could have shown it.
+
+Real Chromium, the built static client served the way `firebase.json` serves it,
+the real API with real keys, against a real analysis of `pallets/itsdangerous`.
+
+| Question asked in the chat box | Latency | Answer | Sources | Verdict |
+| --- | --- | --- | --- | --- |
+| "what is this repo about?" | **8.2 s** | 3 306 chars, names the library and its purpose | 8 | **PASS** |
+| "what does src/itsdangerous/signer.py do?" | **12.8 s** | 3 894 chars, describes it as the cryptographic signing core | 8 | **PASS** |
+| "how is the code organised?" | **13.1 s** | 4 667 chars, walks the package layout | 8 | **PASS** |
+
+Each turn asserts three things a reader would check: the answer is not empty,
+the file sources rendered underneath it, and the empty-answer fallback is
+absent. 3/3 pass, and no page errors.
+
+The same check run against the **broken** client, to confirm it discriminates
+rather than merely passing - same server, same stored analysis, same questions:
+
+| Build | Result |
+| --- | --- |
+| Before the fix | **0/3** - "The model returned an empty answer" for all three, 0 sources |
+| After the fix | **3/3** - real answers, 8 sources each |
+
+The stored demo was checked too: a stored analysis has no clone behind it, so the
+assistant is turned off, and the panel says so - *"This is a stored analysis.
+The clone it was made from is not kept…"* with the input disabled. It does not
+fail, and it does not show the empty-answer text.
+
+![chat: a real answer with its sources](screenshots/chat-answer-general.png)
+
+![chat: the stored demo, assistant disabled](screenshots/chat-demo-disabled.png)
 
 ## 6. Fix Advisor - does the diff actually apply?
 
@@ -290,13 +338,14 @@ build time and looked fine in the response shape.
 | The committed demo snapshots had no triage, no architecture and no sources | `build_demo.py` never loaded `server/.env` | it loads it, and refuses to run without `NEBIUS_API_KEY` rather than writing a degraded demo |
 | `CODELENS_RATE_ANALYZE=200/3600s` was silently ignored | `parse_limit` rejected the exact string `/health` prints | `s`/`m`/`h` suffixes accepted |
 | Grounding a session-signing HMAC recommended Argon2id with 19 MiB of memory | `weak_hash` was grounded with the password-hashing query | the query now asks about digest deprecation; NIST sources instead |
+| Every chat answer said "the model returned an empty answer", in the deployed app | `AIChat` split the body on `"\n\n"`; `sse-starlette` ends each event with `"\r\n\r\n"`. Zero events parsed, and the buffered tail was dropped when the read loop ended. `curl` printed a healthy stream, so §5 above all passed. | parsing moved to one tested module (`client/src/lib/sse.ts`) that takes CRLF, LF and a lone CR, holds a chunk-final `"\r"` instead of guessing, and flushes an event that never got its blank line. §5a: 0/3 → 3/3. |
+| A stream that wrote nothing reached the browser as silence | no `finish_reason` was tracked, so a budget cutoff was indistinguishable from a model with nothing to say | `chat_stream` raises naming the cause and the setting (`NEBIUS_MAX_OUTPUT_TOKENS`); `ChatService.stream` emits an `error` event as the backstop |
 
 ## 10. Not verified
 
 | Item | Why | What would verify it |
 | --- | --- | --- |
 | The public demo URL | nothing is deployed | deploy per [DEPLOY_NEBIUS.md](DEPLOY_NEBIUS.md) and re-run §3, §5 and §8 against it |
-| The client in a browser | no browser in this environment | load the deployed URL; §1's build and type checks are the only client evidence here |
 | Concurrency under load | one client, one at a time | a load test against the deployment |
 | Cost at scale | 3 analyses measured | depends entirely on how often the demo URL is used; the rate limits in §7 bound it |
 
@@ -327,6 +376,28 @@ curl -s -X POST $API/api/fix -H 'Content-Type: application/json' \
   -d '{"repo_id":"<repo_id>","finding_id":"weak_hash:src/flask/sessions.py:277",
        "file_path":"src/flask/sessions.py","line":277}' | python3 -m json.tool
 ```
+
+§5a, the browser check, is driven through Chromium rather than curl, because
+that is the only way to reach the code that was broken:
+
+```bash
+# the API on 8100, with keys in server/.env, and its own origin allowed
+cd server && set -a && . ./.env && set +a && \
+  CODELENS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:8111 \
+  uvicorn main:app --host 127.0.0.1 --port 8100
+
+# the static export, served with the rewrites from firebase.json
+cd client && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8100 npm run build
+python3 -m http.server --directory out 8111   # see the note below: needs rewrites
+
+# then: analyse a repository, open the chat panel, ask the three questions in
+# §5a, and assert on the answer text, the sources and the empty-answer fallback
+```
+
+One wrinkle worth recording, because it looks like an application bug and is not:
+`python3 -m http.server` will not do for this. Firebase rewrites `/dashboard` and
+`/results` to their `.html` files and everything else to `index.html`, and a plain
+file server 404s both routes. The rig served them the way `firebase.json` does.
 
 Model output varies between runs. Where this report quotes a number - token
 counts, dismissals, latencies - it is the run that produced the quoted text, not

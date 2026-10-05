@@ -120,7 +120,7 @@ how the public deployment runs.
 ### Tests
 
 ```bash
-cd server && pip install pytest && pytest tests/ -q     # 237 tests, no keys needed
+cd server && pip install pytest && pytest tests/ -q     # 246 tests, no keys needed
 cd client && npx tsc --noEmit && npm run build
 ```
 
@@ -183,6 +183,27 @@ least 40% of the panel's shorter side in all six cases — the worst before was
 | --- | --- | --- |
 | flask, 1440×900 | ![before: flask desktop](docs/screenshots/graph-before-flask-demo-desktop.png) | ![after: flask desktop](docs/screenshots/graph-after-flask-demo-desktop.png) |
 | flask, 390×844 | ![before: flask mobile](docs/screenshots/graph-before-flask-demo-mobile.png) | ![after: flask mobile](docs/screenshots/graph-after-flask-demo-mobile.png) |
+
+**The chat panel can read the stream it is given.** Every question came back as
+"The model returned an empty answer. Try naming a file or a directory." — while
+the server was sending correct answers, and `curl` showed a healthy stream. The
+client split the stream on `"\n\n"`, but `sse-starlette` terminates each event
+with `"\r\n\r\n"`, so the split never matched, no event ever parsed, and the
+buffered tail was thrown away when the reader closed. Only a browser could have
+shown this: the bytes were right. Parsing now lives in one tested module
+(`client/src/lib/sse.ts`) that accepts CRLF, LF and a lone CR, waits rather than
+guessing at a chunk boundary, and flushes a final event that arrived without its
+closing blank line. Measured in real Chromium against a real analysis of
+`pallets/itsdangerous`: 3/3 questions answered with their file sources rendered
+and no empty-answer text, where the same questions scored 0/3 before the fix.
+
+The server is honest about the other failure too. A stream that ends without
+saying anything used to reach the browser as silence; it is now an error event
+naming the cause — if the model spent its budget reasoning (`finish_reason:
+"length"`), the message says to raise `NEBIUS_MAX_OUTPUT_TOKENS`, because that is
+what it is and someone can change it.
+
+![chat: a real answer with the files it used](docs/screenshots/chat-answer-general.png)
 
 **The pre-scan is real, and it runs.** 18 deterministic rules — committed
 credentials, AWS keys, PEM private key blocks, GitHub and Slack tokens, unsafe
@@ -394,7 +415,7 @@ CodeLens/
 │   │   └── fix_advisor_prompt.txt
 │   ├── demo/                   committed analyses for the demo button
 │   ├── scripts/build_demo.py   regenerates server/demo/
-│   ├── tests/                  237 tests, no network
+│   ├── tests/                  246 tests, no network
 │   └── Dockerfile              two-stage, runs as uid 10001
 ├── client/                     Next.js static export
 │   └── src/
