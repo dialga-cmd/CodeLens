@@ -176,8 +176,18 @@ class AIAnalyzer:
         results = self._run_chunks(chunks, lambda batch: self._triage_chunk(batch, repo_info))
 
         model_only: list[dict[str, Any]] = []
+        # Three ways a candidate can come out of triage without a verdict, all of
+        # them invisible in the summary line unless they are counted here: the
+        # batch failed, the model skipped the id, or it used a label this code
+        # does not know. Each one leaves a finding looking unreviewed, which is
+        # indistinguishable from a model that had nothing to say.
+        lost_to_failure = 0
+        no_verdict = 0
+        unrecognised = 0
+
         for payload, data in results:
             if data is None:
+                lost_to_failure += len(payload)
                 continue
             verdicts = data.get("verdicts") if isinstance(data, dict) else None
             by_id = {
@@ -191,8 +201,10 @@ class AIAnalyzer:
                     continue
                 verdict = by_id.get(str(candidate["id"]))
                 if verdict is None:
+                    no_verdict += 1
                     continue
-                self._apply_verdict(finding, verdict)
+                if not self._apply_verdict(finding, verdict):
+                    unrecognised += 1
 
             for extra in (data.get("additional_findings") if isinstance(data, dict) else None) or []:
                 parsed = self._parse_model_finding(extra, repo_info)
@@ -204,6 +216,15 @@ class AIAnalyzer:
         self._report(
             f"Model triage: {confirmed} confirmed, {dismissed} dismissed, {len(model_only)} further issues reported."
         )
+        gaps = lost_to_failure + no_verdict + unrecognised
+        if gaps:
+            # Worth its own line: without it "0 confirmed" reads as a considered
+            # judgement when it may be a batch that never came back.
+            self._report(
+                f"{gaps} of {len(triaged)} candidates got no usable verdict "
+                f"({lost_to_failure} in failed batches, {no_verdict} the model skipped, "
+                f"{unrecognised} with an unrecognised label); they stay unreviewed."
+            )
         return triaged, model_only, list(self.usage_log[before:])
 
     def _triage_chunk(self, candidates: list[dict[str, Any]], repo_info: str = "") -> dict[str, Any]:
@@ -251,10 +272,11 @@ class AIAnalyzer:
             f"{number}: {text}" for number, text in enumerate(lines[start:end], start=start + 1)
         )
 
-    def _apply_verdict(self, finding: dict[str, Any], verdict: dict[str, Any]) -> None:
+    def _apply_verdict(self, finding: dict[str, Any], verdict: dict[str, Any]) -> bool:
+        """Apply one verdict. Returns whether it was a verdict we understand."""
         raw = str(verdict.get("verdict", "")).strip().lower()
         if raw not in VERDICTS:
-            return
+            return False
 
         finding["triage"] = _VERDICT_TO_TRIAGE[raw]
         finding["triage_note"] = str(verdict.get("explanation", ""))[:800]
@@ -270,6 +292,7 @@ class AIAnalyzer:
         recommendation = str(verdict.get("recommendation", "")).strip()
         if recommendation:
             finding["recommendation"] = recommendation[:1200]
+        return True
 
     def _parse_model_finding(self, payload: Any, repo_info: str) -> dict[str, Any] | None:
         if not isinstance(payload, dict):
@@ -455,12 +478,21 @@ class AIAnalyzer:
             return {}, []
 
         before = len(self.usage_log)
+        # Everything the model did not dismiss is worth advice on, and that
+        # includes the candidates it never ruled on. The scanner tags every
+        # finding triage="pending" and the UI reads that as "not triaged", so
+        # matching an allowlist of the labels the model can return quietly skips
+        # all of them - and an unjudged candidate is precisely the one that still
+        # needs advice. Measured on codelens: 45 candidates, 21 dismissed, 0
+        # confirmed, so the allowlist matched nothing and the run reported
+        # "Remediation written for 0 of 45 findings" having called no model at all.
         targets = [
-            finding
-            for finding in findings
-            if finding.get("triage") in {"confirmed", "escalated", "unverified", "unreviewed", "downgraded"}
+            finding for finding in findings if finding.get("triage") != "dismissed"
         ][:MAX_FIX_TARGETS]
         if not targets:
+            # Say so. A silent return here is indistinguishable from a run that
+            # asked the model and got nothing usable back.
+            self._report("No finding survived triage, so there was nothing to write remediation for.")
             return {}, []
 
         contents = {
@@ -574,6 +606,12 @@ class AIAnalyzer:
 
     @staticmethod
     def _mark_unreviewed(finding: dict[str, Any]) -> dict[str, Any]:
+        """Give a finding a triage label if it has none.
+
+        Deliberately does not overwrite the scanner's ``triage="pending"``: that
+        is what the UI reads as "flagged but never judged", so relabelling it here
+        would put an empty verdict badge on every unreviewed finding.
+        """
         marked = dict(finding)
         marked.setdefault("triage", "unreviewed")
         return marked
