@@ -13,6 +13,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { API_BASE_URL, type ChatSource } from "@/lib/api";
+import { SSEParser, type SSEMessage } from "@/lib/sse";
 
 type Role = "user" | "assistant";
 
@@ -121,55 +122,53 @@ export default function AIChat({
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = "";
+        const sse = new SSEParser();
+
+        // Server-Sent Events, read by a parser rather than by splitting on a
+        // string: the server terminates them with CRLF, so splitting on "\n\n"
+        // never matched a single event.
+        const handle = (message: SSEMessage) => {
+          let payload: any;
+          try {
+            payload = JSON.parse(message.data);
+          } catch {
+            return;
+          }
+
+          if (message.event === "sources") {
+            patch(answerId, {
+              sources: payload.sources || [],
+              tools: (payload.tools_used || []).map((tool: any) =>
+                typeof tool === "string" ? tool : String(tool?.name || "tool")
+              ),
+            });
+          } else if (message.event === "delta") {
+            setMessages((current) =>
+              current.map((message_) =>
+                message_.id === answerId
+                  ? { ...message_, content: message_.content + String(payload.text ?? "") }
+                  : message_
+              )
+            );
+          } else if (message.event === "error") {
+            throw new Error(String(payload.message || "The assistant failed."));
+          } else if (message.event === "done" && payload.ok === false) {
+            throw new Error("The assistant stopped before finishing the answer.");
+          }
+        };
 
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-
-          // Server-Sent Events arrive as blocks separated by a blank line.
-          const blocks = buffer.split("\n\n");
-          buffer = blocks.pop() ?? "";
-
-          for (const block of blocks) {
-            let name = "message";
-            let data = "";
-            for (const line of block.split("\n")) {
-              if (line.startsWith("event:")) name = line.slice(6).trim();
-              else if (line.startsWith("data:")) data += line.slice(5).trim();
-            }
-            if (!data) continue;
-
-            let payload: any;
-            try {
-              payload = JSON.parse(data);
-            } catch {
-              continue;
-            }
-
-            if (name === "sources") {
-              patch(answerId, {
-                sources: payload.sources || [],
-                tools: (payload.tools_used || []).map((tool: any) =>
-                  typeof tool === "string" ? tool : String(tool?.name || "tool")
-                ),
-              });
-            } else if (name === "delta") {
-              setMessages((current) =>
-                current.map((message) =>
-                  message.id === answerId
-                    ? { ...message, content: message.content + String(payload.text ?? "") }
-                    : message
-                )
-              );
-            } else if (name === "error") {
-              throw new Error(String(payload.message || "The assistant failed."));
-            } else if (name === "done" && payload.ok === false) {
-              throw new Error("The assistant stopped before finishing the answer.");
-            }
+          for (const message of sse.push(decoder.decode(value, { stream: true }))) {
+            handle(message);
           }
         }
+        // The stream can close straight after writing the last event, with no
+        // closing blank line, and the decoder can still be holding the tail of a
+        // multi-byte character. Both are flushed, so the last event is not lost.
+        sse.push(decoder.decode());
+        for (const message of sse.flush()) handle(message);
 
         setMessages((current) =>
           current.map((message) =>
