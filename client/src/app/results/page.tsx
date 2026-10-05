@@ -319,18 +319,26 @@ function Panel({
   icon,
   children,
   actions,
+  className,
 }: {
   title: string;
   icon: React.ReactNode;
   children: React.ReactNode;
   actions?: React.ReactNode;
+  // For the panels that size themselves to the screen rather than to their
+  // content. The header stays its own height and the body takes the rest, which
+  // is why this goes on the section rather than on the body.
+  className?: string;
 }) {
   // A <section> is only announced as a region once it has an accessible name,
   // and the title is what the reader needs to hear to find the right one.
   const headingId = useId();
   return (
-    <section className="panel overflow-hidden" aria-labelledby={headingId}>
-      <div className="flex items-center gap-2 border-b border-white/10 bg-[#111] px-4 py-3">
+    <section
+      className={`panel overflow-hidden ${className ?? ""}`}
+      aria-labelledby={headingId}
+    >
+      <div className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-[#111] px-4 py-3">
         {icon}
         <h2
           id={headingId}
@@ -1129,8 +1137,18 @@ function ChatPanel({
           fast model · tools · reads real files
         </span>
       }
+      // A screen tall, whatever the screen is. This used to be a fixed 420px,
+      // which read wrong both ways: a stamp in the corner of a page that runs
+      // for thousands of pixels, and a box with a strip of empty screen under it
+      // on a page that did not have much on it.
+      //
+      // `dvh` rather than `vh` so it lines up with the part of the screen that
+      // is actually showing, including where a phone's browser bars are. The
+      // header is `shrink-0` and the body takes what is left, so the panel as a
+      // whole is one screen and the question box stays pinned at its bottom.
+      className="flex h-[100dvh] flex-col"
     >
-      <div className="h-[420px]">
+      <div className="min-h-0 flex-1">
         <AIChat repoId={results.repo_id} getIdToken={getIdToken} disabled={isDemo} />
       </div>
     </Panel>
