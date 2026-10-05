@@ -33,22 +33,82 @@ const LANGUAGE_COLOURS: Record<string, string> = {
 };
 const FALLBACK_COLOUR = "#00ff41";
 
-/** Fan-in needed before a node is given a text label, so a big graph stays legible. */
+/**
+ * Sphere radius, from a file's fan-in.
+ *
+ * Base plus the square root of `val`, so the most depended-upon file is clearly
+ * the largest without the small ones shrinking to nothing. Compared against
+ * `LINK_DISTANCE`: a file is only as big as the spacing around it allows, so
+ * this and the link distance have to be decided together.
+ */
+const SPHERE_BASE = 5;
+const SPHERE_PER_FAN_IN = 5;
+
+/**
+ * Alpha below which the layout counts as settled.
+ *
+ * The engine stops on whichever comes first: this, or a 15 second cooldown. Left
+ * at the library default of zero it is never below zero, so the cooldown always
+ * wins and the graph spends 15 seconds visibly expanding outwards before the
+ * camera finally frames it. This is d3's own "motion is negligible" value.
+ */
+const ALPHA_SETTLED = 0.001;
+/** Ticks run before the first frame, so the files arrive spread out already. */
+const WARMUP_TICKS = 90;
+
+/**
+ * Fan-in needed before a node is given a text label.
+ *
+ * The edges are pulled in tight, so files sit close together and their labels
+ * overlap. Only the files other code genuinely hangs off get named; the rest are
+ * named on hover, which costs nothing until somebody asks.
+ */
 const LABEL_FAN_IN_THRESHOLD = 3;
 /** Below this many nodes, everything is labelled - there is room. */
 const LABEL_EVERYTHING_UNDER = 40;
 
-/** Repulsion between files that import each other. */
-const CHARGE_STRENGTH = -260;
 /**
- * A file with no resolved imports gets far less repulsion, so it settles beside
+ * Repulsion between files.
+ *
+ * Deliberately weak. This is the number that decides how much room the whole
+ * graph claims, and the camera then frames whatever room it claimed - so a
+ * strong charge does not make the picture clearer, it makes every file a four
+ * pixel dot on a wide cloud. The files cannot be made bigger by asking the
+ * camera to come closer; they are only as big as the spacing between them
+ * allows.
+ */
+const CHARGE_STRENGTH = -320;
+/**
+ * A file with no resolved imports gets less repulsion still, so it settles beside
  * the cluster instead of being flung to one side and dragging the view with it.
  */
-const ISOLATE_CHARGE_STRENGTH = -35;
-const LINK_DISTANCE = 70;
+const ISOLATE_CHARGE_STRENGTH = -40;
+/**
+ * Rest length of an import edge - roughly how far apart two files that import
+ * each other end up sitting.
+ *
+ * The number that matters most, because it is the scale everything else is
+ * measured against. Measured on the 96-file demo: at 34 the files sat about a
+ * hundred pixels apart on screen while each was four pixels across, so the graph
+ * read as a scatter of specks. Bring the edges in and the same files become a
+ * ball of distinguishable spheres.
+ */
+const LINK_DISTANCE = 18;
 
-/** How far out from the middle of the canvas the furthest file is allowed to sit. */
-const FIT_FILL = 0.82;
+/**
+ * How far out from the middle of the canvas the furthest file is allowed to sit.
+ *
+ * Close to the edges on purpose. The graph is a dense ball of spheres now, and
+ * stopping while there is still a visible gap around the outside just makes the
+ * files smaller than they need to be - the gap is not information.
+ */
+const FIT_FILL = 0.97;
+/**
+ * How far in the first tap on a file moves the camera, as a share of the distance
+ * it is already at. Big enough to be obvious, small enough that the surrounding
+ * files are still there to be compared against.
+ */
+const ZOOM_STEP = 0.42;
 /** Where the camera looks from before anybody has orbited: a little above level. */
 const DEFAULT_DIRECTION = new THREE.Vector3(0, 0.34, 1).normalize();
 /** Below this many files nothing is trimmed - every one of them stays in frame. */
@@ -67,6 +127,9 @@ const FIT_ATTEMPTS = 14;
  */
 type GraphRef = MutableRefObject<any>;
 
+/** A file the reader has asked to see the contents of. */
+export type FileViewer = { path: string; language: string };
+
 /**
  * The dependency graph, as the pipeline computed it.
  *
@@ -81,10 +144,17 @@ type GraphRef = MutableRefObject<any>;
 export default function GraphView({
   data,
   onNodeClick,
+  onNodeClear,
   analysedFiles,
 }: {
   data?: { nodes?: any[]; links?: any[] };
-  onNodeClick?: (node: any) => void;
+  /**
+   * Called on every click of a file: `stage="zoom"` the first time, `stage="open"`
+   * on the second tap of the same file. The caller decides what each means.
+   */
+  onNodeClick?: (node: any, stage: "zoom" | "open") => void;
+  /** Called when the reader dismisses whatever the last click opened. */
+  onNodeClear?: () => void;
   /** Files the analysis read, which is not the same as files in the graph. */
   analysedFiles?: number;
 }) {
@@ -102,6 +172,18 @@ export default function GraphView({
   // Whether the layout has stopped moving at least once. Before that there is
   // nothing worth framing, and any fit would be thrown away by the first settle.
   const settledOnce = useRef(false);
+  // The file the camera has already moved in on, so a second tap on it can mean
+  // "show me the code" rather than zooming a second time. Cleared whenever the
+  // view is reframed or the graph changes, because after either of those the
+  // reader is looking somewhere new.
+  const zoomedTo = useRef<string | null>(null);
+
+  const resetZoomState = useCallback(() => {
+    if (zoomedTo.current !== null) {
+      zoomedTo.current = null;
+      onNodeClear?.();
+    }
+  }, [onNodeClear]);
 
   useEffect(() => setMounted(true), []);
 
@@ -184,10 +266,44 @@ export default function GraphView({
   const frame = useCallback(
     (durationMs: number, resetDirection: boolean) => {
       if (!graphRef.current) return false;
-      return frameGraph(graphRef.current, graph.nodes, size, durationMs, resetDirection);
+      const framed = frameGraph(graphRef.current, graph.nodes, size, durationMs, resetDirection);
+      // A reframe means the reader is looking at the whole graph again, so the
+      // next tap on any file should zoom rather than open.
+      if (framed) resetZoomState();
+      return framed;
     },
-    [graph, size]
+    [graph, size, resetZoomState]
   );
+
+  /**
+   * Step the camera in towards one file, along the direction already being looked
+   * from so the view does not spin.
+   */
+  const moveCameraTo = useCallback((node: any) => {
+    const control = graphRef.current;
+    if (!control || typeof control.cameraPosition !== "function") return;
+    if (!Number.isFinite(node?.x) || !Number.isFinite(node?.y) || !Number.isFinite(node?.z)) return;
+
+    const view = control.cameraPosition() ?? null;
+    const aim = new THREE.Vector3(view?.lookAt?.x ?? 0, view?.lookAt?.y ?? 0, view?.lookAt?.z ?? 0);
+    const away = new THREE.Vector3(view?.x ?? 0, view?.y ?? 0, view?.z ?? 0).sub(aim);
+    const current = away.length();
+    // `ZOOM_STEP` of the way in rather than all the way: the file fills more of
+    // the panel and its neighbours stay readable, which is what makes the second
+    // tap worth having.
+    const distance = Math.max(current > 0 ? current * ZOOM_STEP : 60, 26);
+    const direction = current > 0 ? away.normalize() : DEFAULT_DIRECTION;
+
+    control.cameraPosition(
+      {
+        x: node.x + direction.x * distance,
+        y: node.y + direction.y * distance,
+        z: node.z + direction.z * distance,
+      },
+      { x: node.x, y: node.y, z: node.z },
+      700
+    );
+  }, []);
 
   // A callback ref, not an effect keyed on `mounted`: the graph component arrives
   // asynchronously, so an effect that runs when this component mounts finds no
@@ -205,9 +321,11 @@ export default function GraphView({
     []
   );
 
-  // A new layout has to be reframed once it settles.
+  // A new layout has to be reframed once it settles, and the file the reader had
+  // zoomed in on is not in this graph any more.
   useEffect(() => {
     frameOnSettle.current = true;
+    zoomedTo.current = null;
   }, [graph]);
 
   const legend = useMemo(() => {
@@ -263,32 +381,29 @@ export default function GraphView({
     if (!frame(250, false)) return;
     framedSize.current = { width: size.width, height: size.height };
   }, [frame, size]);
+  /**
+   * Two taps on a file, two different things.
+   *
+   * The first tap moves the camera in on the file, so you can see what it is
+   * connected to before committing to reading it. The second tap on that same
+   * file opens the code. Doing both in one click meant that every time you
+   * wanted to look closely at a file you also got a popup over it, and the zoom
+   * was never worth having on its own.
+   *
+   * The zoom is not one of the re-framing fits: it steps in along the direction
+   * the reader is already looking from, so it never spins the view.
+   */
   const selectNode = useCallback(
     (node: any) => {
-      const control = graphRef.current;
-      const view = control?.cameraPosition?.();
-      const aim = new THREE.Vector3(
-        view?.lookAt?.x ?? 0,
-        view?.lookAt?.y ?? 0,
-        view?.lookAt?.z ?? 0
-      );
-      const away = new THREE.Vector3(view?.x ?? 0, view?.y ?? 0, view?.z ?? 0).sub(aim);
-      const current = away.length();
-      // Step in towards the clicked file without spinning the view round.
-      const distance = Math.max(current > 0 ? current * 0.45 : 60, 30);
-      const direction = current > 0 ? away.normalize() : DEFAULT_DIRECTION;
-      control?.cameraPosition(
-        {
-          x: node.x + direction.x * distance,
-          y: node.y + direction.y * distance,
-          z: node.z + direction.z * distance,
-        },
-        { x: node.x, y: node.y, z: node.z },
-        700
-      );
-      onNodeClick?.(node);
+      const id = String(node?.id ?? "");
+      if (!id) return;
+
+      const stage = zoomedTo.current === id ? "open" : "zoom";
+      zoomedTo.current = id;
+      moveCameraTo(node);
+      onNodeClick?.(node, stage);
     },
-    [onNodeClick]
+    [moveCameraTo, onNodeClick]
   );
 
   if (!mounted) {
@@ -332,6 +447,14 @@ export default function GraphView({
             // Only the most depended-upon files get one, or the view becomes a wall
             // of overlapping text.
             nodeThreeObject={buildForNode}
+            // Without this the engine always runs the library's full 15 second
+            // cooldown before it stops, so the graph spends 15 seconds visibly
+            // expanding and only frames itself at the end of it. Stopping as soon
+            // as the layout has actually settled is what makes it readable.
+            d3AlphaMin={ALPHA_SETTLED}
+            // A short burst of ticks before the first frame, so the files arrive
+            // already spread instead of exploding outwards from a single point.
+            warmupTicks={WARMUP_TICKS}
             linkColor={colourOfLink}
             linkWidth={0.6}
             linkDirectionalArrowLength={3}
@@ -340,6 +463,11 @@ export default function GraphView({
             // would fight the reader: dragging a file restarts the engine.
             onEngineStop={frameAfterSettle}
             onNodeClick={selectNode}
+            // A click that lands on nothing is how the reader backs out of a file,
+            // and it has to come from the library: `onNodeClick` is only called
+            // when a file was actually hit, so without this there is no way to
+            // disarm and the next tap on any file opens it.
+            onBackgroundClick={resetZoomState}
           />
         )}
 
@@ -544,7 +672,7 @@ function pickHub(
  */
 function buildNode(node: any, nodeCount: number): THREE.Object3D {
   const group = new THREE.Group();
-  const radius = 1.6 + Math.sqrt(Math.max(0.1, node.val)) * 1.5;
+  const radius = SPHERE_BASE + Math.sqrt(Math.max(0.1, node.val)) * SPHERE_PER_FAN_IN;
 
   const shell = new THREE.Mesh(
     new THREE.SphereGeometry(radius, 16, 12),
@@ -566,8 +694,12 @@ function buildNode(node: any, nodeCount: number): THREE.Object3D {
   const label = String(node.name ?? "");
   if (label && worthLabelling) {
     const sprite = makeLabelSprite(label.length > 20 ? `${label.slice(0, 19)}…` : label);
-    sprite.position.y = radius + 2.4;
-    sprite.scale.set(11, 2.6, 1);
+    // Sized from the sphere it names, so a label never looks detached from a big
+    // file or swallows a small one - and capped, because in a cluster this tight
+    // an uncapped label covers the files it is meant to sit between.
+    const width = Math.min(radius * 6, 18);
+    sprite.scale.set(width, width / 4, 1);
+    sprite.position.y = radius + width / 8 + 0.5;
     group.add(sprite);
   }
 

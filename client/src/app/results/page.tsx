@@ -23,8 +23,9 @@ import {
   X,
 } from "lucide-react";
 
-import GraphView from "@/components/GraphView";
+import GraphView, { type FileViewer } from "@/components/GraphView";
 import AIChat from "@/components/AIChat";
+import FileDialog from "@/components/FileDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { api, type AnalysisResult, type Finding, type ProposedFix, type RepoFile } from "@/lib/api";
 import { lastAnalysis, readStashedResults, stashResults } from "@/lib/session";
@@ -182,7 +183,7 @@ export default function ResultsPage() {
         <div className="min-w-0 space-y-4">
           {tab === "overview" && (
             <>
-              <GraphPanel results={results} />
+              <GraphPanel results={results} getIdToken={getIdToken} />
               <ChatPanel results={results} getIdToken={getIdToken} isDemo={Boolean(results.demo)} />
             </>
           )}
@@ -353,43 +354,73 @@ function Panel({
   );
 }
 
-function GraphPanel({ results }: { results: AnalysisResult }) {
-  const [selected, setSelected] = useState<{ path: string; language: string } | null>(null);
+function GraphPanel({
+  results,
+  getIdToken,
+}: {
+  results: AnalysisResult;
+  getIdToken: () => Promise<string | null>;
+}) {
+  const [focused, setFocused] = useState<{ path: string; language: string } | null>(null);
+  const [openFile, setOpenFile] = useState<FileViewer | null>(null);
+
+  // Zooming in on a file is the first tap, so a click that is only a zoom must not
+  // leave a popup over the thing the reader just moved in to look at.
+  const onNodeClick = useCallback((node: any, stage: "zoom" | "open") => {
+    const picked = {
+      path: String(node?.path || node?.id || ""),
+      language: String(node?.language || ""),
+    };
+    setFocused(picked);
+    if (stage === "open") setOpenFile(picked);
+  }, []);
+
+  const closeFile = useCallback(() => setOpenFile(null), []);
 
   return (
     <Panel
       title="Dependency graph"
       icon={<GitBranch size={14} className="text-[#00ff41]" aria-hidden />}
-      actions={<span className="hidden text-[10px] text-[#4d4d4d] sm:inline">click a file</span>}
+      actions={
+        <span className="hidden text-[10px] text-[#4d4d4d] sm:inline">
+          click to zoom · click again for code
+        </span>
+      }
     >
       <div className="h-[420px] bg-[#0a0a0a] md:h-[520px]">
         <GraphView
           data={results.graph}
           analysedFiles={results.stats?.total_files}
-          onNodeClick={(node: any) =>
-            setSelected({
-              path: String(node?.path || node?.id || ""),
-              language: String(node?.language || ""),
-            })
-          }
+          onNodeClick={onNodeClick}
+          onNodeClear={closeFile}
         />
       </div>
-      {selected && (
+      {focused && (
         <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-2 text-xs">
-          <span className="min-w-0 truncate font-mono text-[#8a8a8a]">{selected.path}</span>
+          <span className="min-w-0 truncate font-mono text-[#8a8a8a]">{focused.path}</span>
           <span className="flex shrink-0 items-center gap-2">
             <span className="text-[10px] uppercase tracking-widest text-[#4d4d4d]">
-              {selected.language}
+              {focused.language}
             </span>
-            <button
-              type="button"
-              onClick={() => setSelected(null)}
-              className="text-[#4d4d4d] hover:text-[#00ff41]"
-            >
-              clear
-            </button>
+            {openFile?.path !== focused.path && (
+              <button
+                type="button"
+                onClick={() => setOpenFile(focused)}
+                className="text-[#4d4d4d] hover:text-[#00ff41]"
+              >
+                show code
+              </button>
+            )}
           </span>
         </div>
+      )}
+      {openFile && (
+        <FileDialog
+          repoId={results.repo_id}
+          file={openFile}
+          getIdToken={getIdToken}
+          onClose={closeFile}
+        />
       )}
     </Panel>
   );
